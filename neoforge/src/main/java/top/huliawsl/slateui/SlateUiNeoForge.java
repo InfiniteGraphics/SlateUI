@@ -5,9 +5,10 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 
 @Mod(Constants.MOD_ID)
-public class Slateui {
+public class SlateUiNeoForge {
 
-    public Slateui(IEventBus eventBus) {
+    public SlateUiNeoForge(IEventBus eventBus) {
         SlateUI.init();
     }
 }
+

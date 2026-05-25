@@ -16,7 +16,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "top.huliawsl.slateui.Slateui"
+      "top.huliawsl.slateui.SlateUiFabric"
     ]
   },
   "mixins": [
@@ -32,3 +32,4 @@
     "another-mod": "*"
   }
 }
+
