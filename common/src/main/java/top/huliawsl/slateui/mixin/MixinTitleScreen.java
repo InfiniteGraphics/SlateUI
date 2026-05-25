@@ -23,6 +23,6 @@ public abstract class MixinTitleScreen extends Screen {
             return;
         }
         TitleScreen screen = (TitleScreen) (Object) this;
-        addRenderableWidget(SlateDemoEntrypoint.createTitleScreenButton(screen, width / 2 - 62, height / 4 + 96));
+        addRenderableWidget(SlateDemoEntrypoint.createTitleScreenButton(screen, width / 2 - 62, height / 4 + 120));
     }
 }
