@@ -22,6 +22,10 @@ public final class LayoutNode {
         return List.copyOf(children);
     }
 
+    public void clearChildren() {
+        children.clear();
+    }
+
     public void addChild(LayoutNode child) {
         children.add(child);
     }

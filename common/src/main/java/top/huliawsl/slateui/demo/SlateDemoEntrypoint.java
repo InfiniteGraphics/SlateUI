@@ -9,10 +9,8 @@ import top.huliawsl.slateui.api.HorizontalAlign;
 import top.huliawsl.slateui.api.SlateBorder;
 import top.huliawsl.slateui.api.SlateScreen;
 import top.huliawsl.slateui.api.SlateStyle;
-import top.huliawsl.slateui.api.StackDirection;
 import top.huliawsl.slateui.api.VerticalAlign;
 import top.huliawsl.slateui.api.component.Box;
-import top.huliawsl.slateui.api.component.Stack;
 import top.huliawsl.slateui.api.component.Text;
 import top.huliawsl.slateui.command.SlateCommandRegistry;
 import top.huliawsl.slateui.layout.Insets;
@@ -32,6 +30,7 @@ public final class SlateDemoEntrypoint {
 
     public static SlateScreen createDemoScreen() {
         SlateCommandRegistry commands = new SlateCommandRegistry();
+        commands.register("demo.error", context -> context.minecraft().setScreen(createFaultyScreen()));
         SlateStyle rootStyle = SlateStyle.builder()
             .padding(Insets.all(20))
             .backgroundColor(0xFF111827)
@@ -67,6 +66,7 @@ public final class SlateDemoEntrypoint {
                         .border(new SlateBorder(0xFF334155, 1))
                         .build()
                 ),
+                new top.huliawsl.slateui.api.component.Button("Trigger Error Screen", "demo.error", buttonStyle),
                 new top.huliawsl.slateui.api.component.Button("Close Screen", "screen.close", buttonStyle)
             ),
             panelStyle,
@@ -74,6 +74,10 @@ public final class SlateDemoEntrypoint {
         );
 
         Box root = new Box(List.of(panel), rootStyle);
-        return new SlateScreen(DEMO_TITLE, root, commands, false);
+        return new SlateScreen(DEMO_TITLE, root, commands, true);
+    }
+
+    private static SlateScreen createFaultyScreen() {
+        return new SlateScreen(Component.literal("SlateUI Error Demo"), new FaultyComponent(), new SlateCommandRegistry(), true);
     }
 }

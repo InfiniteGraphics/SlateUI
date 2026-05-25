@@ -3,7 +3,6 @@ package top.huliawsl.slateui.api.component;
 import java.util.List;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
-import top.huliawsl.slateui.command.CommandContext;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
@@ -70,7 +69,9 @@ public class Button extends SlateComponent {
     @Override
     public boolean mouseClicked(SlateInteractionContext context, double mouseX, double mouseY, int button) {
         if (bounds().contains(mouseX, mouseY)) {
-            return context.commands().execute(commandId, context.commandContext());
+            boolean handled = context.commands().execute(commandId, context.commandContext());
+            context.commandLogger().accept((handled ? "EXEC " : "MISS ") + commandId);
+            return handled;
         }
         return super.mouseClicked(context, mouseX, mouseY, button);
     }

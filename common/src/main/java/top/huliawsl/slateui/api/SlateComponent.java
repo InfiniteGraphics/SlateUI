@@ -49,11 +49,6 @@ public abstract class SlateComponent {
         this.layoutNode.setMeasuredSize(measuredSize);
     }
 
-    protected final void resetLayoutChildren() {
-        List.copyOf(layoutNode.children()).forEach(child -> {
-        });
-    }
-
     public String debugName() {
         return getClass().getSimpleName();
     }
@@ -133,6 +128,11 @@ public abstract class SlateComponent {
         return builder.toString();
     }
 
+    public final String dumpLayoutTree() {
+        refreshLayoutNodeTree();
+        return layoutNode.dump();
+    }
+
     private void appendComponentTree(StringBuilder builder, int depth) {
         builder.append("  ".repeat(depth))
             .append(debugName())
@@ -141,6 +141,14 @@ public abstract class SlateComponent {
             .append('\n');
         for (SlateComponent child : children()) {
             child.appendComponentTree(builder, depth + 1);
+        }
+    }
+
+    private void refreshLayoutNodeTree() {
+        layoutNode.clearChildren();
+        for (SlateComponent child : children()) {
+            child.refreshLayoutNodeTree();
+            layoutNode.addChild(child.layoutNode());
         }
     }
 }
