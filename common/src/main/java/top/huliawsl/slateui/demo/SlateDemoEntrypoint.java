@@ -18,6 +18,7 @@ import top.huliawsl.slateui.layout.Insets;
 public final class SlateDemoEntrypoint {
 
     private static final Component DEMO_TITLE = Component.literal("SlateUI MVP0");
+    private static final boolean DEMO_DEBUG_OVERLAY = false;
 
     private SlateDemoEntrypoint() {
     }
@@ -74,10 +75,10 @@ public final class SlateDemoEntrypoint {
         );
 
         Box root = new Box(List.of(panel), rootStyle);
-        return new SlateScreen(DEMO_TITLE, root, commands, true);
+        return new SlateScreen(DEMO_TITLE, root, commands, DEMO_DEBUG_OVERLAY);
     }
 
     private static SlateScreen createFaultyScreen() {
-        return new SlateScreen(Component.literal("SlateUI Error Demo"), new FaultyComponent(), new SlateCommandRegistry(), true);
+        return new SlateScreen(Component.literal("SlateUI Error Demo"), new FaultyComponent(), new SlateCommandRegistry(), DEMO_DEBUG_OVERLAY);
     }
 }
