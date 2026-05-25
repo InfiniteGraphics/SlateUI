@@ -13,19 +13,24 @@ public final class MinecraftDrawCommandRenderer {
 
     public static void render(GuiGraphics graphics, Font font, List<DrawCommand> commands) {
         ArrayDeque<Rect> clipStack = new ArrayDeque<>();
-        for (DrawCommand command : commands) {
-            switch (command) {
-                case DrawRectCommand rectCommand -> fill(graphics, rectCommand.rect(), rectCommand.color());
-                case DrawBorderCommand borderCommand -> drawBorder(graphics, borderCommand.rect(), borderCommand.color(), borderCommand.thickness());
-                case DrawTextCommand textCommand -> graphics.drawString(font, textCommand.text(), textCommand.x(), textCommand.y(), textCommand.color(), false);
-                case DrawDebugRectCommand debugRectCommand -> drawBorder(graphics, debugRectCommand.rect(), debugRectCommand.color(), 1);
-                case DrawImageCommand imageCommand -> drawImagePlaceholder(graphics, font, imageCommand);
-                case PushClipCommand pushClipCommand -> pushClip(graphics, clipStack, pushClipCommand.rect());
-                case PopClipCommand ignored -> popClip(graphics, clipStack);
+        graphics.disableScissor();
+        try {
+            for (DrawCommand command : commands) {
+                switch (command) {
+                    case DrawRectCommand rectCommand -> fill(graphics, rectCommand.rect(), rectCommand.color());
+                    case DrawBorderCommand borderCommand -> drawBorder(graphics, borderCommand.rect(), borderCommand.color(), borderCommand.thickness());
+                    case DrawTextCommand textCommand -> graphics.drawString(font, textCommand.text(), textCommand.x(), textCommand.y(), textCommand.color(), false);
+                    case DrawDebugRectCommand debugRectCommand -> drawBorder(graphics, debugRectCommand.rect(), debugRectCommand.color(), 1);
+                    case DrawImageCommand imageCommand -> drawImagePlaceholder(graphics, font, imageCommand);
+                    case PushClipCommand pushClipCommand -> pushClip(graphics, clipStack, pushClipCommand.rect());
+                    case PopClipCommand ignored -> popClip(graphics, clipStack);
+                }
             }
-        }
-        while (!clipStack.isEmpty()) {
-            popClip(graphics, clipStack);
+        } finally {
+            while (!clipStack.isEmpty()) {
+                popClip(graphics, clipStack);
+            }
+            graphics.disableScissor();
         }
     }
 
@@ -54,8 +59,12 @@ public final class MinecraftDrawCommandRenderer {
     }
 
     private static void pushClip(GuiGraphics graphics, ArrayDeque<Rect> clipStack, Rect rect) {
-        clipStack.push(rect);
-        graphics.enableScissor(rect.x(), rect.y(), rect.right(), rect.bottom());
+        Rect nextClip = clipStack.isEmpty() ? rect : clipStack.peek().intersect(rect);
+        clipStack.push(nextClip);
+        graphics.disableScissor();
+        if (nextClip.width() > 0 && nextClip.height() > 0) {
+            graphics.enableScissor(nextClip.x(), nextClip.y(), nextClip.right(), nextClip.bottom());
+        }
     }
 
     private static void popClip(GuiGraphics graphics, ArrayDeque<Rect> clipStack) {
@@ -65,7 +74,9 @@ public final class MinecraftDrawCommandRenderer {
         graphics.disableScissor();
         if (!clipStack.isEmpty()) {
             Rect current = clipStack.peek();
-            graphics.enableScissor(current.x(), current.y(), current.right(), current.bottom());
+            if (current.width() > 0 && current.height() > 0) {
+                graphics.enableScissor(current.x(), current.y(), current.right(), current.bottom());
+            }
         }
     }
 }

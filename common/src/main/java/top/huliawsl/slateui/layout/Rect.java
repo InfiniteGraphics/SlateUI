@@ -31,4 +31,15 @@ public record Rect(int x, int y, int width, int height) {
     public Rect translate(int offsetX, int offsetY) {
         return new Rect(x + offsetX, y + offsetY, width, height);
     }
+
+    public Rect intersect(Rect other) {
+        int nextLeft = Math.max(x, other.x);
+        int nextTop = Math.max(y, other.y);
+        int nextRight = Math.min(right(), other.right());
+        int nextBottom = Math.min(bottom(), other.bottom());
+        if (nextRight <= nextLeft || nextBottom <= nextTop) {
+            return ZERO;
+        }
+        return new Rect(nextLeft, nextTop, nextRight - nextLeft, nextBottom - nextTop);
+    }
 }
