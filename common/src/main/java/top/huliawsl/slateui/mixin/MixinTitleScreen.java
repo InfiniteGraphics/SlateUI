@@ -1,19 +1,17 @@
 package top.huliawsl.slateui.mixin;
 
-import top.huliawsl.slateui.Constants;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import top.huliawsl.slateui.SlateUI;
 
 @Mixin(TitleScreen.class)
 public class MixinTitleScreen {
 
-    @Inject(at = @At("HEAD"), method = "init()V")
-    private void init(CallbackInfo info) {
-        Constants.LOG.info("This line is printed by the SlateUI mixin from Forge!");
-        Constants.LOG.info("MC Version: {}", Minecraft.getInstance().getVersionType());
+    @Inject(method = "init()V", at = @At("TAIL"))
+    private void slateui$onInit(CallbackInfo callbackInfo) {
+        SlateUI.registerTitleScreenHook();
     }
 }

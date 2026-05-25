@@ -3,10 +3,10 @@
   "minVersion": "0.8",
   "package": "top.huliawsl.slateui.mixin",
   "refmap": "${mod_id}.refmap.json",
-  "compatibilityLevel": "JAVA_18",
+  "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [
-    "MixinMinecraft"
+    "MixinTitleScreen"
   ],
   "server": [],
   "injectors": {
