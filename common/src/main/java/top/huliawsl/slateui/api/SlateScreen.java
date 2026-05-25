@@ -20,6 +20,8 @@ import top.huliawsl.slateui.runtime.SlateRenderContext;
 
 public class SlateScreen extends Screen {
 
+    private static final int BACKGROUND_COLOR = 0xFF0B1220;
+
     private final SlateComponent root;
     private final SlateCommandRegistry commands;
     private final boolean debugEnabled;
@@ -56,9 +58,8 @@ public class SlateScreen extends Screen {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         try {
-            renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+            guiGraphics.fill(0, 0, width, height, BACKGROUND_COLOR);
             MinecraftDrawCommandRenderer.render(guiGraphics, font, drawCommands);
-            super.render(guiGraphics, mouseX, mouseY, partialTick);
         } catch (Throwable throwable) {
             openErrorScreen("render", throwable);
         }
