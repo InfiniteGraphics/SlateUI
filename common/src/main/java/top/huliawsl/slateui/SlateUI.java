@@ -1,6 +1,5 @@
 package top.huliawsl.slateui;
 
-import top.huliawsl.slateui.demo.SlateDemoEntrypoint;
 import top.huliawsl.slateui.platform.Services;
 
 public final class SlateUI {
@@ -18,10 +17,7 @@ public final class SlateUI {
         Constants.LOG.info("Initializing SlateUI on {}", Services.PLATFORM.getPlatformName());
     }
 
-    public static void registerTitleScreenHook() {
-        if (!Services.PLATFORM.isDevelopmentEnvironment()) {
-            return;
-        }
-        SlateDemoEntrypoint.markTitleScreenHookAvailable();
+    public static boolean shouldEnableDevScreens() {
+        return Services.PLATFORM.isDevelopmentEnvironment();
     }
 }
