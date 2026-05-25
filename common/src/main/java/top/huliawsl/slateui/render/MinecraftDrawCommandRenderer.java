@@ -8,12 +8,17 @@ import top.huliawsl.slateui.layout.Rect;
 
 public final class MinecraftDrawCommandRenderer {
 
+    private static final class ClipState {
+
+        private final ArrayDeque<Rect> stack = new ArrayDeque<>();
+        private final ArrayDeque<Boolean> enabledStack = new ArrayDeque<>();
+    }
+
     private MinecraftDrawCommandRenderer() {
     }
 
     public static void render(GuiGraphics graphics, Font font, List<DrawCommand> commands) {
-        ArrayDeque<Rect> clipStack = new ArrayDeque<>();
-        graphics.disableScissor();
+        ClipState clipState = new ClipState();
         try {
             for (DrawCommand command : commands) {
                 switch (command) {
@@ -22,15 +27,14 @@ public final class MinecraftDrawCommandRenderer {
                     case DrawTextCommand textCommand -> graphics.drawString(font, textCommand.text(), textCommand.x(), textCommand.y(), textCommand.color(), false);
                     case DrawDebugRectCommand debugRectCommand -> drawBorder(graphics, debugRectCommand.rect(), debugRectCommand.color(), 1);
                     case DrawImageCommand imageCommand -> drawImagePlaceholder(graphics, font, imageCommand);
-                    case PushClipCommand pushClipCommand -> pushClip(graphics, clipStack, pushClipCommand.rect());
-                    case PopClipCommand ignored -> popClip(graphics, clipStack);
+                    case PushClipCommand pushClipCommand -> pushClip(graphics, clipState, pushClipCommand.rect());
+                    case PopClipCommand ignored -> popClip(graphics, clipState);
                 }
             }
         } finally {
-            while (!clipStack.isEmpty()) {
-                popClip(graphics, clipStack);
+            while (!clipState.stack.isEmpty()) {
+                popClip(graphics, clipState);
             }
-            graphics.disableScissor();
         }
     }
 
@@ -58,25 +62,25 @@ public final class MinecraftDrawCommandRenderer {
         graphics.drawString(font, label, command.rect().x() + 4, command.rect().y() + 4, 0xFFFFFFFF, false);
     }
 
-    private static void pushClip(GuiGraphics graphics, ArrayDeque<Rect> clipStack, Rect rect) {
-        Rect nextClip = clipStack.isEmpty() ? rect : clipStack.peek().intersect(rect);
-        clipStack.push(nextClip);
-        graphics.disableScissor();
+    private static void pushClip(GuiGraphics graphics, ClipState clipState, Rect rect) {
+        Rect nextClip = clipState.stack.isEmpty() ? rect : clipState.stack.peek().intersect(rect);
+        clipState.stack.push(nextClip);
         if (nextClip.width() > 0 && nextClip.height() > 0) {
             graphics.enableScissor(nextClip.x(), nextClip.y(), nextClip.right(), nextClip.bottom());
+            clipState.enabledStack.push(true);
+            return;
         }
+        clipState.enabledStack.push(false);
     }
 
-    private static void popClip(GuiGraphics graphics, ArrayDeque<Rect> clipStack) {
-        if (!clipStack.isEmpty()) {
-            clipStack.pop();
+    private static void popClip(GuiGraphics graphics, ClipState clipState) {
+        if (clipState.stack.isEmpty()) {
+            return;
         }
-        graphics.disableScissor();
-        if (!clipStack.isEmpty()) {
-            Rect current = clipStack.peek();
-            if (current.width() > 0 && current.height() > 0) {
-                graphics.enableScissor(current.x(), current.y(), current.right(), current.bottom());
-            }
+        clipState.stack.pop();
+        boolean enabled = clipState.enabledStack.pop();
+        if (enabled) {
+            graphics.disableScissor();
         }
     }
 }

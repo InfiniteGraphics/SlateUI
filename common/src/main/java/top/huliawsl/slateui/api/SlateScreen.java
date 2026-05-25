@@ -85,7 +85,6 @@ public class SlateScreen extends Screen {
             if (runtimeDirty) {
                 rebuildRuntime();
             }
-            guiGraphics.disableScissor();
             guiGraphics.fill(0, 0, width, height, BACKGROUND_COLOR);
             MinecraftDrawCommandRenderer.render(guiGraphics, font, drawCommands);
         } catch (Throwable throwable) {

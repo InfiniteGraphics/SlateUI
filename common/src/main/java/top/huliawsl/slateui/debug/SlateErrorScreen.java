@@ -8,6 +8,8 @@ import net.minecraft.network.chat.Component;
 
 public final class SlateErrorScreen extends Screen {
 
+    private static final int BACKGROUND_COLOR = 0xFF0B1220;
+
     private final String stage;
     private final Throwable throwable;
     private final SlateDiagnostics diagnostics;
@@ -21,7 +23,7 @@ public final class SlateErrorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        guiGraphics.fill(0, 0, width, height, BACKGROUND_COLOR);
         List<String> lines = new ArrayList<>();
         lines.add("SlateUI runtime error");
         lines.add("Stage: " + stage);
@@ -50,7 +52,6 @@ public final class SlateErrorScreen extends Screen {
                 break;
             }
         }
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     private static String safeMessage(Throwable throwable) {
