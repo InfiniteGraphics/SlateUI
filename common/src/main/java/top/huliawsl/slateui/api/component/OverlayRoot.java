@@ -9,11 +9,11 @@ import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
 
-public class Box extends SlateComponent {
+public class OverlayRoot extends SlateComponent {
 
     private final List<SlateComponent> children;
 
-    public Box(List<SlateComponent> children, SlateStyle style) {
+    public OverlayRoot(List<SlateComponent> children, SlateStyle style) {
         super(style);
         this.children = List.copyOf(children);
     }
@@ -25,15 +25,10 @@ public class Box extends SlateComponent {
 
     @Override
     public Size measure(SlateLayoutContext context, Size available) {
-        Size contentAvailable = contentAvailable(available);
-        int maxWidth = 0;
-        int maxHeight = 0;
         for (SlateComponent child : children) {
-            Size childSize = child.measure(context, contentAvailable);
-            maxWidth = Math.max(maxWidth, childSize.width());
-            maxHeight = Math.max(maxHeight, childSize.height());
+            child.measure(context, contentAvailable(available));
         }
-        Size measured = applyStyleSize(addInsets(new Size(maxWidth, maxHeight), style().padding()));
+        Size measured = applyStyleSize(available);
         setMeasuredSize(measured);
         return measured;
     }
@@ -43,19 +38,15 @@ public class Box extends SlateComponent {
         setBounds(bounds);
         Rect contentRect = contentRect(bounds);
         for (SlateComponent child : children) {
-            Rect childBounds = alignChild(contentRect, child.layoutNode().measuredSize());
-            child.layout(context, childBounds);
+            child.layout(context, alignChild(contentRect, child.layoutNode().measuredSize()));
         }
     }
 
     @Override
     public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
         emitBoxChrome(context, commands);
-        Rect contentRect = contentRect(bounds());
-        pushClip(commands, contentRect);
         for (SlateComponent child : children) {
             child.collectDrawCommands(context, commands);
         }
-        popClip(commands);
     }
 }

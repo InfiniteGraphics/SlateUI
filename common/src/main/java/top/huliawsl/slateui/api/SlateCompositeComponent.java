@@ -58,4 +58,29 @@ public abstract class SlateCompositeComponent extends SlateComponent {
     public boolean mouseClicked(SlateInteractionContext context, double mouseX, double mouseY, int button) {
         return resolved().mouseClicked(context, mouseX, mouseY, button);
     }
+
+    @Override
+    public boolean mouseReleased(SlateInteractionContext context, double mouseX, double mouseY, int button) {
+        return resolved().mouseReleased(context, mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseMoved(SlateInteractionContext context, double mouseX, double mouseY) {
+        return resolved().mouseMoved(context, mouseX, mouseY);
+    }
+
+    @Override
+    public boolean mouseScrolled(SlateInteractionContext context, double mouseX, double mouseY, double delta) {
+        return resolved().mouseScrolled(context, mouseX, mouseY, delta);
+    }
+
+    @Override
+    public boolean keyPressed(SlateInteractionContext context, int keyCode, int scanCode, int modifiers) {
+        return resolved().keyPressed(context, keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(SlateInteractionContext context, char codePoint, int modifiers) {
+        return resolved().charTyped(context, codePoint, modifiers);
+    }
 }

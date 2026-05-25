@@ -35,6 +35,12 @@ public final class SlateErrorScreen extends Screen {
         lines.add("");
         lines.add("Command log:");
         appendBlock(lines, diagnostics.commandLogDump(), 4);
+        lines.add("");
+        lines.add("Focus:");
+        appendBlock(lines, diagnostics.focusDump(), 2);
+        lines.add("");
+        lines.add("Diagnostics:");
+        appendBlock(lines, diagnostics.diagnosticsLogDump(), 6);
 
         int y = 16;
         for (String line : lines) {

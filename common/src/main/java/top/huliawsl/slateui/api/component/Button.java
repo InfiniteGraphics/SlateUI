@@ -30,6 +30,11 @@ public class Button extends SlateComponent {
     }
 
     @Override
+    public boolean focusable() {
+        return true;
+    }
+
+    @Override
     public List<SlateComponent> children() {
         return children;
     }
@@ -61,18 +66,22 @@ public class Button extends SlateComponent {
     @Override
     public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
         emitBoxChrome(context, commands);
+        Rect contentRect = contentRect(bounds());
+        pushClip(commands, contentRect);
         for (SlateComponent child : children) {
             child.collectDrawCommands(context, commands);
         }
+        popClip(commands);
     }
 
     @Override
-    public boolean mouseClicked(SlateInteractionContext context, double mouseX, double mouseY, int button) {
-        if (bounds().contains(mouseX, mouseY)) {
-            boolean handled = context.commands().execute(commandId, context.commandContext());
-            context.commandLogger().accept((handled ? "EXEC " : "MISS ") + commandId);
-            return handled;
+    public boolean mouseReleased(SlateInteractionContext context, double mouseX, double mouseY, int button) {
+        boolean handled = super.mouseReleased(context, mouseX, mouseY, button);
+        if (handled && bounds().contains(mouseX, mouseY)) {
+            boolean executed = context.commands().execute(commandId, context.commandContext());
+            context.commandLogger().accept((executed ? "EXEC " : "MISS ") + commandId);
+            return executed;
         }
-        return super.mouseClicked(context, mouseX, mouseY, button);
+        return handled;
     }
 }

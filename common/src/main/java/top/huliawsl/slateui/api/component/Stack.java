@@ -91,8 +91,11 @@ public class Stack extends SlateComponent {
     @Override
     public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
         emitBoxChrome(context, commands);
+        Rect contentRect = contentRect(bounds());
+        pushClip(commands, contentRect);
         for (SlateComponent child : children) {
             child.collectDrawCommands(context, commands);
         }
+        popClip(commands);
     }
 }

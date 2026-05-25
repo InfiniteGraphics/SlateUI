@@ -1,0 +1,34 @@
+plugins {
+    id 'java-library'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.10.1'
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+def slateInputDir = rootProject.file('common/src/main/slate')
+def slateOutputDir = rootProject.file('common/build/generated/resources/slateui')
+
+tasks.register('compileSlate', JavaExec) {
+    group = 'build'
+    description = 'Compile .slate templates into JSON IR resources.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'top.huliawsl.slateui.authoring.SlateCompilerCli'
+    args slateInputDir.absolutePath, slateOutputDir.absolutePath
+    inputs.dir(slateInputDir)
+    outputs.dir(slateOutputDir)
+}
+
+test {
+    useJUnitPlatform()
+}

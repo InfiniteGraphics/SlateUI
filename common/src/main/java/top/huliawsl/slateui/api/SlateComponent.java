@@ -9,6 +9,8 @@ import top.huliawsl.slateui.render.DrawBorderCommand;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.DrawDebugRectCommand;
 import top.huliawsl.slateui.render.DrawRectCommand;
+import top.huliawsl.slateui.render.PopClipCommand;
+import top.huliawsl.slateui.render.PushClipCommand;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -18,6 +20,9 @@ public abstract class SlateComponent {
     private final SlateStyle style;
     private final LayoutNode layoutNode;
     private Rect bounds = Rect.ZERO;
+    private boolean hovered;
+    private boolean pressed;
+    private boolean focused;
 
     protected SlateComponent() {
         this(SlateStyle.EMPTY);
@@ -38,6 +43,41 @@ public abstract class SlateComponent {
 
     public final Rect bounds() {
         return bounds;
+    }
+
+    public final boolean isHovered() {
+        return hovered;
+    }
+
+    public final boolean isPressed() {
+        return pressed;
+    }
+
+    public final boolean isFocused() {
+        return focused;
+    }
+
+    protected final void setHovered(boolean hovered) {
+        this.hovered = hovered;
+    }
+
+    protected final void setPressed(boolean pressed) {
+        this.pressed = pressed;
+    }
+
+    public final void setFocused(boolean focused) {
+        if (this.focused == focused) {
+            return;
+        }
+        this.focused = focused;
+        onFocusChanged(focused);
+    }
+
+    protected void onFocusChanged(boolean focused) {
+    }
+
+    public boolean focusable() {
+        return false;
     }
 
     protected final void setBounds(Rect bounds) {
@@ -64,6 +104,20 @@ public abstract class SlateComponent {
     public abstract void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands);
 
     public boolean mouseClicked(SlateInteractionContext context, double mouseX, double mouseY, int button) {
+        if (style.disabled()) {
+            return false;
+        }
+        if (!bounds.contains(mouseX, mouseY)) {
+            return false;
+        }
+        boolean changed = !pressed;
+        setPressed(true);
+        if (changed) {
+            context.screen().requestRebuild("press:" + debugName());
+        }
+        if (focusable()) {
+            context.requestFocus(this);
+        }
         List<SlateComponent> children = children();
         for (int index = children.size() - 1; index >= 0; index--) {
             if (children.get(index).mouseClicked(context, mouseX, mouseY, button)) {
@@ -73,10 +127,74 @@ public abstract class SlateComponent {
         return false;
     }
 
+    public boolean mouseReleased(SlateInteractionContext context, double mouseX, double mouseY, int button) {
+        boolean wasPressed = pressed;
+        setPressed(false);
+        if (wasPressed) {
+            context.screen().requestRebuild("release:" + debugName());
+        }
+        List<SlateComponent> children = children();
+        for (int index = children.size() - 1; index >= 0; index--) {
+            if (children.get(index).mouseReleased(context, mouseX, mouseY, button)) {
+                return true;
+            }
+        }
+        return wasPressed && bounds.contains(mouseX, mouseY);
+    }
+
+    public boolean mouseMoved(SlateInteractionContext context, double mouseX, double mouseY) {
+        boolean childHovered = false;
+        List<SlateComponent> children = children();
+        for (int index = children.size() - 1; index >= 0; index--) {
+            childHovered |= children.get(index).mouseMoved(context, mouseX, mouseY);
+        }
+        boolean localHovered = bounds.contains(mouseX, mouseY);
+        boolean changed = hovered != localHovered;
+        setHovered(localHovered);
+        if (changed) {
+            context.screen().requestRebuild("hover:" + debugName());
+        }
+        return localHovered || childHovered;
+    }
+
+    public boolean mouseScrolled(SlateInteractionContext context, double mouseX, double mouseY, double delta) {
+        List<SlateComponent> children = children();
+        for (int index = children.size() - 1; index >= 0; index--) {
+            if (children.get(index).mouseScrolled(context, mouseX, mouseY, delta)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean keyPressed(SlateInteractionContext context, int keyCode, int scanCode, int modifiers) {
+        List<SlateComponent> children = children();
+        for (int index = children.size() - 1; index >= 0; index--) {
+            if (children.get(index).keyPressed(context, keyCode, scanCode, modifiers)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean charTyped(SlateInteractionContext context, char codePoint, int modifiers) {
+        List<SlateComponent> children = children();
+        for (int index = children.size() - 1; index >= 0; index--) {
+            if (children.get(index).charTyped(context, codePoint, modifiers)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     protected final Size applyStyleSize(Size base) {
         int width = style.width() != null ? style.width() : base.width();
         int height = style.height() != null ? style.height() : base.height();
-        return new Size(width, height);
+        int minWidth = style.minWidth() != null ? style.minWidth() : 0;
+        int minHeight = style.minHeight() != null ? style.minHeight() : 0;
+        int maxWidth = style.maxWidth() != null ? style.maxWidth() : Integer.MAX_VALUE;
+        int maxHeight = style.maxHeight() != null ? style.maxHeight() : Integer.MAX_VALUE;
+        return new Size(width, height).clamp(new Size(minWidth, minHeight), new Size(maxWidth, maxHeight));
     }
 
     protected final Size addInsets(Size size, Insets insets) {
@@ -110,12 +228,38 @@ public abstract class SlateComponent {
         return new Rect(x, y, Math.max(0, width), Math.max(0, height));
     }
 
-    protected final void emitBoxChrome(SlateRenderContext context, List<DrawCommand> commands) {
-        if (style.backgroundColor() != null) {
-            commands.add(new DrawRectCommand(bounds, style.backgroundColor()));
+    protected final int resolveGap(Theme theme) {
+        return theme.resolveSpacing(style.gap(), style.gapToken(), style.gap());
+    }
+
+    protected final int resolveTextColor(Theme theme) {
+        return theme.resolveColor(style.textColor(), style.textColorToken(), 0xFFFFFFFF);
+    }
+
+    protected final void pushClip(List<DrawCommand> commands, Rect rect) {
+        if (style.clipContent()) {
+            commands.add(new PushClipCommand(rect));
         }
-        if (style.border().thickness() > 0) {
-            commands.add(new DrawBorderCommand(bounds, style.border().color(), style.border().thickness()));
+    }
+
+    protected final void popClip(List<DrawCommand> commands) {
+        if (style.clipContent()) {
+            commands.add(new PopClipCommand());
+        }
+    }
+
+    protected final void emitBoxChrome(SlateRenderContext context, List<DrawCommand> commands) {
+        Theme theme = context.theme();
+        Integer backgroundOverride = pressed ? style.activeBackgroundColor() : hovered ? style.hoverBackgroundColor() : style.backgroundColor();
+        String backgroundToken = pressed ? style.activeBackgroundToken() : hovered ? style.hoverBackgroundToken() : style.backgroundToken();
+        int backgroundColor = theme.resolveColor(backgroundOverride, backgroundToken, Integer.MIN_VALUE);
+        if (backgroundColor != Integer.MIN_VALUE) {
+            commands.add(new DrawRectCommand(bounds, backgroundColor));
+        }
+        SlateBorder border = focused && style.focusBorder().thickness() > 0 ? style.focusBorder() : style.border();
+        String borderToken = focused && style.focusBorder().thickness() > 0 ? style.focusBorderColorToken() : style.borderColorToken();
+        if (border.thickness() > 0) {
+            commands.add(new DrawBorderCommand(bounds, theme.resolveColor(border.color(), borderToken, border.color()), border.thickness()));
         }
         if (context.debugEnabled()) {
             commands.add(new DrawDebugRectCommand(bounds, 0x66FF00FF));
@@ -138,6 +282,12 @@ public abstract class SlateComponent {
             .append(debugName())
             .append(" rect=")
             .append(bounds)
+            .append(" hovered=")
+            .append(hovered)
+            .append(" pressed=")
+            .append(pressed)
+            .append(" focused=")
+            .append(focused)
             .append('\n');
         for (SlateComponent child : children()) {
             child.appendComponentTree(builder, depth + 1);

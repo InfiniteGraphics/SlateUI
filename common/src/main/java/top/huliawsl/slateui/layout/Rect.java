@@ -27,4 +27,8 @@ public record Rect(int x, int y, int width, int height) {
         int nextHeight = Math.max(0, height - insets.vertical());
         return new Rect(x + insets.left(), y + insets.top(), nextWidth, nextHeight);
     }
+
+    public Rect translate(int offsetX, int offsetY) {
+        return new Rect(x + offsetX, y + offsetY, width, height);
+    }
 }

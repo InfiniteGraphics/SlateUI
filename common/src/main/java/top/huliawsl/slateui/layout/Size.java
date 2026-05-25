@@ -25,4 +25,11 @@ public record Size(int width, int height) {
     public Size clamp(Size max) {
         return new Size(Math.min(width, max.width), Math.min(height, max.height));
     }
+
+    public Size clamp(Size min, Size max) {
+        return new Size(
+            Math.max(min.width, Math.min(width, max.width)),
+            Math.max(min.height, Math.min(height, max.height))
+        );
+    }
 }
