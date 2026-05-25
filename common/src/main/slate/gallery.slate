@@ -2,18 +2,18 @@
   <OverlayRoot>
     <ScrollView style-width="360" style-height="220">
       <Stack direction="column" class="gallery">
-        <Box class="panel">
+        <Stack direction="column" class="panel">
           <Text value="Authoring Gallery" />
           <Text value="{settings.playerName + ' / ' + settings.status}" />
-        </Box>
-        <Box class="panel">
+        </Stack>
+        <Stack direction="column" class="panel">
           <Input placeholder="Authoring player name" value="{settings.playerName}" onChange="authoring.name" style-width="300" />
           <Button label="Reload Slate" command="slate.reload" />
           <Button label="Close" command="screen.close" />
-        </Box>
-        <Box class="panel">
+        </Stack>
+        <Stack direction="column" class="panel">
           <Image resource="minecraft:textures/gui/options_background.png" style-width="300" style-height="64" />
-        </Box>
+        </Stack>
       </Stack>
     </ScrollView>
   </OverlayRoot>

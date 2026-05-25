@@ -6,7 +6,6 @@ import top.huliawsl.slateui.api.SlateCompositeComponent;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.api.StackDirection;
-import top.huliawsl.slateui.api.component.Box;
 import top.huliawsl.slateui.api.component.Stack;
 import top.huliawsl.slateui.api.component.Text;
 
@@ -28,6 +27,6 @@ public final class DemoPanel extends SlateCompositeComponent {
         List<SlateComponent> content = new ArrayList<>();
         content.add(new Text(title));
         content.add(new Stack(StackDirection.COLUMN, slotChildren(), contentStyle));
-        return new Box(content, panelStyle);
+        return new Stack(StackDirection.COLUMN, content, panelStyle);
     }
 }

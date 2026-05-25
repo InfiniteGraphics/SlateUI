@@ -36,7 +36,7 @@ public class Text extends SlateComponent {
 
     @Override
     public Size measure(SlateLayoutContext context, Size available) {
-        resolvedText = textResolver.apply(StateProvider.EMPTY);
+        resolvedText = safeText(textResolver.apply(StateProvider.EMPTY));
         Size measured = applyStyleSize(addInsets(new Size(context.textWidth(resolvedText), context.lineHeight()), style().padding()));
         setMeasuredSize(measured);
         return measured;
@@ -52,5 +52,9 @@ public class Text extends SlateComponent {
         emitBoxChrome(context, commands);
         Rect contentRect = contentRect(bounds());
         commands.add(new DrawTextCommand(contentRect.x(), contentRect.y(), resolvedText, resolveTextColor(context.theme())));
+    }
+
+    private static String safeText(String value) {
+        return value == null ? "" : value;
     }
 }

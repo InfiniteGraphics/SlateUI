@@ -86,10 +86,18 @@ public class SlateScreen extends Screen {
                 rebuildRuntime();
             }
             guiGraphics.fill(0, 0, width, height, BACKGROUND_COLOR);
-            root.mouseMoved(createInteractionContext(), mouseX, mouseY);
             MinecraftDrawCommandRenderer.render(guiGraphics, font, drawCommands);
         } catch (Throwable throwable) {
             openErrorScreen("render", throwable);
+        }
+    }
+
+    @Override
+    public void mouseMoved(double mouseX, double mouseY) {
+        try {
+            root.mouseMoved(createInteractionContext(), mouseX, mouseY);
+        } catch (Throwable throwable) {
+            openErrorScreen("mouseMoved", throwable);
         }
     }
 
