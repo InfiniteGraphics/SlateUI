@@ -2,6 +2,7 @@ package top.huliawsl.slateui.authoring;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -28,13 +29,11 @@ public final class SlateIrLoader {
     }
 
     private static JsonObject readResource(String resourcePath) {
-        try (InputStreamReader reader = new InputStreamReader(
-            SlateIrLoader.class.getClassLoader().getResourceAsStream(resourcePath),
-            StandardCharsets.UTF_8
-        )) {
-            if (reader == null) {
-                throw new IllegalArgumentException("Missing Slate IR resource: " + resourcePath);
-            }
+        InputStream stream = SlateIrLoader.class.getClassLoader().getResourceAsStream(resourcePath);
+        if (stream == null) {
+            throw new IllegalStateException("Missing Slate IR resource: " + resourcePath + ". Run compileSlate before opening the authoring screen.");
+        }
+        try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
             return GSON.fromJson(reader, JsonObject.class);
         } catch (Exception exception) {
             throw new IllegalStateException("Failed to load Slate IR resource: " + resourcePath, exception);

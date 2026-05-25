@@ -50,9 +50,13 @@ public final class SlateDemoEntrypoint {
     }
 
     public static SlateScreen createGalleryScreen(boolean debugEnabled) {
+        return createGalleryScreen(debugEnabled, "Ready");
+    }
+
+    private static SlateScreen createGalleryScreen(boolean debugEnabled, String status) {
         MutableStateProvider provider = new MutableStateProvider()
             .set("settings.playerName", "Slate Tester")
-            .set("settings.status", "Ready")
+            .set("settings.status", status)
             .set("settings.mode", debugEnabled ? "Debug" : "Normal")
             .set("theme.name", debugEnabled ? "Debug Theme" : "Default Theme");
         Theme theme = createTheme(debugEnabled);
@@ -169,6 +173,9 @@ public final class SlateDemoEntrypoint {
     }
 
     public static SlateScreen createAuthoringScreen(boolean debugEnabled) {
+        if (!SlateIrLoader.resourceExists(AUTHORING_RESOURCE)) {
+            return createGalleryScreen(debugEnabled, "Authoring screen unavailable. Run compileSlate first.");
+        }
         MutableStateProvider provider = new MutableStateProvider()
             .set("settings.playerName", "Slate Author")
             .set("settings.status", debugEnabled ? "Debug authoring" : "Authoring ready");
