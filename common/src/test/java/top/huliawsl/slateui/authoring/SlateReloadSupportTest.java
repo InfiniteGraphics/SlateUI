@@ -114,6 +114,16 @@ class SlateReloadSupportTest {
         assertNull(SlateReloadSupport.findProjectRoot(root.resolve("common").toFile()));
     }
 
+    @Test
+    void fastCompileReportsUnavailableWhenCompilerClassesAreMissing() throws Exception {
+        java.nio.file.Path root = tempDir.resolve("SlateUI");
+        java.nio.file.Files.createDirectories(root.resolve("common/src/main/slate"));
+
+        SlateReloadSupport.CompileResult result = SlateReloadSupport.runFastCompileSlate(root.toFile());
+
+        assertEquals(SlateReloadSupport.CompileStatus.UNAVAILABLE, result.status());
+    }
+
     private static SlateScreen createStubScreen() {
         return new SlateScreen(
             Component.literal("Stub"),
