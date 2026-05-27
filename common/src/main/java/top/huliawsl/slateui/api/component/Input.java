@@ -12,6 +12,8 @@ import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.DrawTextCommand;
+import top.huliawsl.slateui.render.PopClipCommand;
+import top.huliawsl.slateui.render.PushClipCommand;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -75,9 +77,11 @@ public class Input extends SlateComponent {
     public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
         emitBoxChrome(context, commands);
         Rect content = contentRect(bounds());
+        commands.add(new PushClipCommand(content));
         String text = draft.isEmpty() ? placeholder : draft;
         int color = draft.isEmpty() ? 0xFF94A3B8 : resolveTextColor(context.theme());
         commands.add(new DrawTextCommand(content.x() + 2, content.y() + 2, text + (isFocused() ? "|" : ""), color));
+        commands.add(new PopClipCommand());
     }
 
     @Override

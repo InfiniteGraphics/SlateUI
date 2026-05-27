@@ -117,11 +117,15 @@ public final class SlateDemoEntrypoint {
                 new Text(ignored -> "Summary: " + provider.get("settings.summary"), SlateStyle.EMPTY),
                 new Input("Enter player name", ignored -> String.valueOf(provider.get("settings.playerName")), null, playerNameHandler, fieldStyle),
                 new Input("Update status", ignored -> String.valueOf(provider.get("settings.status")), null, statusHandler, fieldStyle),
-                new Stack(StackDirection.ROW, List.of(
-                    new top.huliawsl.slateui.api.component.Button("Open Error Page", "demo.error", primaryButtonStyle),
-                    new top.huliawsl.slateui.api.component.Button(debugEnabled ? "Normal Mode" : "Debug Mode", debugEnabled ? "demo.normal" : "demo.debug", primaryButtonStyle),
-                    new top.huliawsl.slateui.api.component.Button("Open .slate Screen", "demo.authoring", primaryButtonStyle),
-                    new top.huliawsl.slateui.api.component.Button("Inspect Runtime", "screen.inspect", primaryButtonStyle)
+                new Stack(StackDirection.COLUMN, List.of(
+                    new Stack(StackDirection.ROW, List.of(
+                        new top.huliawsl.slateui.api.component.Button("Open Error Page", "demo.error", primaryButtonStyle),
+                        new top.huliawsl.slateui.api.component.Button(debugEnabled ? "Normal Mode" : "Debug Mode", debugEnabled ? "demo.normal" : "demo.debug", primaryButtonStyle)
+                    ), SlateStyle.builder().gap(8).build()),
+                    new Stack(StackDirection.ROW, List.of(
+                        new top.huliawsl.slateui.api.component.Button("Open .slate Screen", "demo.authoring", primaryButtonStyle),
+                        new top.huliawsl.slateui.api.component.Button("Inspect Runtime", "screen.inspect", primaryButtonStyle)
+                    ), SlateStyle.builder().gap(8).build())
                 ), SlateStyle.builder().gap(8).build())
             ),
             panelStyle,

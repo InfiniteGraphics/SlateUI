@@ -9,10 +9,15 @@ import top.huliawsl.slateui.api.MutableStateProvider;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.api.StackDirection;
+import top.huliawsl.slateui.api.component.Input;
+import top.huliawsl.slateui.api.component.Text;
 import top.huliawsl.slateui.api.component.ScrollView;
 import top.huliawsl.slateui.api.component.Stack;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
+import top.huliawsl.slateui.render.DrawCommand;
+import top.huliawsl.slateui.render.PopClipCommand;
+import top.huliawsl.slateui.render.PushClipCommand;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
 
@@ -43,6 +48,44 @@ class RuntimeComponentsTest {
         scrollView.layout(new SlateLayoutContext(null), new Rect(0, 0, 120, 80));
 
         assertTrue(scrollView.dumpComponentTree().contains("ScrollView rect=Rect[x=0, y=0, width=120, height=80]"));
+    }
+
+    @Test
+    void textWrapsWithinAvailableWidth() {
+        Text text = new Text("Slate Tester / Ready");
+
+        Size measured = text.measure(new SlateLayoutContext(null), new Size(42, 100));
+
+        assertTrue(measured.height() > 9);
+        assertTrue(measured.width() <= 42);
+    }
+
+    @Test
+    void inputClipsOverflowingContent() {
+        Input input = new Input("placeholder", "Slate Tester sssssssssssssssssssssssssssssssss", null, SlateStyle.builder().width(80).padding(top.huliawsl.slateui.layout.Insets.all(4)).build());
+        Size measured = input.measure(new SlateLayoutContext(null), new Size(80, 100));
+        input.layout(new SlateLayoutContext(null), new Rect(0, 0, measured.width(), measured.height()));
+
+        List<DrawCommand> commands = new java.util.ArrayList<>();
+        input.collectDrawCommands(new SlateRenderContext(false, top.huliawsl.slateui.api.Theme.DEFAULT), commands);
+
+        int pushIndex = -1;
+        int textIndex = -1;
+        int popIndex = -1;
+        for (int index = 0; index < commands.size(); index++) {
+            DrawCommand command = commands.get(index);
+            if (command instanceof PushClipCommand) {
+                pushIndex = index;
+            } else if (command instanceof top.huliawsl.slateui.render.DrawTextCommand) {
+                textIndex = index;
+            } else if (command instanceof PopClipCommand) {
+                popIndex = index;
+            }
+        }
+
+        assertTrue(pushIndex >= 0);
+        assertTrue(textIndex > pushIndex);
+        assertTrue(popIndex > textIndex);
     }
 
     @Test
