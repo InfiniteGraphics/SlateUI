@@ -1,6 +1,5 @@
 package top.huliawsl.slateui.render;
 
-import java.util.ArrayDeque;
 import java.util.List;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -8,32 +7,29 @@ import top.huliawsl.slateui.layout.Rect;
 
 public final class MinecraftDrawCommandRenderer {
 
-    private static final class ClipState {
-
-        private final ArrayDeque<Rect> stack = new ArrayDeque<>();
-        private final ArrayDeque<Boolean> enabledStack = new ArrayDeque<>();
-    }
-
     private MinecraftDrawCommandRenderer() {
     }
 
     public static void render(GuiGraphics graphics, Font font, List<DrawCommand> commands) {
-        ClipState clipState = new ClipState();
+        ClipStack clipStack = new ClipStack();
         try {
             for (DrawCommand command : commands) {
+                if (clipStack.shouldSkip(command)) {
+                    continue;
+                }
                 switch (command) {
                     case DrawRectCommand rectCommand -> fill(graphics, rectCommand.rect(), rectCommand.color());
                     case DrawBorderCommand borderCommand -> drawBorder(graphics, borderCommand.rect(), borderCommand.color(), borderCommand.thickness());
                     case DrawTextCommand textCommand -> graphics.drawString(font, textCommand.text(), textCommand.x(), textCommand.y(), textCommand.color(), false);
                     case DrawDebugRectCommand debugRectCommand -> drawBorder(graphics, debugRectCommand.rect(), debugRectCommand.color(), 1);
                     case DrawImageCommand imageCommand -> drawImagePlaceholder(graphics, font, imageCommand);
-                    case PushClipCommand pushClipCommand -> pushClip(graphics, clipState, pushClipCommand.rect());
-                    case PopClipCommand ignored -> popClip(graphics, clipState);
+                    case PushClipCommand pushClipCommand -> pushClip(graphics, clipStack, pushClipCommand.rect());
+                    case PopClipCommand ignored -> popClip(graphics, clipStack);
                 }
             }
         } finally {
-            while (!clipState.stack.isEmpty()) {
-                popClip(graphics, clipState);
+            while (!clipStack.isEmpty()) {
+                popClip(graphics, clipStack);
             }
         }
     }
@@ -62,24 +58,16 @@ public final class MinecraftDrawCommandRenderer {
         graphics.drawString(font, label, command.rect().x() + 4, command.rect().y() + 4, 0xFFFFFFFF, false);
     }
 
-    private static void pushClip(GuiGraphics graphics, ClipState clipState, Rect rect) {
-        Rect nextClip = clipState.stack.isEmpty() ? rect : clipState.stack.peek().intersect(rect);
-        clipState.stack.push(nextClip);
-        if (nextClip.width() > 0 && nextClip.height() > 0) {
+    private static void pushClip(GuiGraphics graphics, ClipStack clipStack, Rect rect) {
+        ClipStack.Entry entry = clipStack.push(rect);
+        if (entry.enabled()) {
+            Rect nextClip = entry.rect();
             graphics.enableScissor(nextClip.x(), nextClip.y(), nextClip.right(), nextClip.bottom());
-            clipState.enabledStack.push(true);
-            return;
         }
-        clipState.enabledStack.push(false);
     }
 
-    private static void popClip(GuiGraphics graphics, ClipState clipState) {
-        if (clipState.stack.isEmpty()) {
-            return;
-        }
-        clipState.stack.pop();
-        boolean enabled = clipState.enabledStack.pop();
-        if (enabled) {
+    private static void popClip(GuiGraphics graphics, ClipStack clipStack) {
+        if (clipStack.popEnabled()) {
             graphics.disableScissor();
         }
     }

@@ -39,7 +39,9 @@ configurations {
 
 sourceSets {
     test {
+        compileClasspath += sourceSets.main.output
         compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output
         runtimeClasspath += sourceSets.main.runtimeClasspath
     }
 }
