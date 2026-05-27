@@ -130,8 +130,19 @@ public class Input extends SlateComponent {
         }
         if (changeCommand != null && !changeCommand.isBlank()) {
             boolean executed = context.commands().execute(changeCommand, context.commandContext());
-            context.commandLogger().accept((executed ? "EXEC " : "MISS ") + changeCommand + " value=" + draft);
+            context.commandLogger().accept((executed ? "EXEC " : "MISS ") + changeCommand + " value=" + summarizeValue(draft));
         }
-        context.logDiagnostic("INPUT commit=" + draft);
+        context.logDiagnostic("INPUT commit=" + summarizeValue(draft));
+    }
+
+    private static String summarizeValue(String value) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = value.replace("\r", "\\r").replace("\n", "\\n");
+        if (normalized.length() <= 48) {
+            return normalized;
+        }
+        return normalized.substring(0, 48) + "...";
     }
 }

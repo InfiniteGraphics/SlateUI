@@ -2,6 +2,7 @@ package top.huliawsl.slateui.authoring;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import net.minecraft.network.chat.Component;
 import top.huliawsl.slateui.api.SlateScreen;
 import top.huliawsl.slateui.api.SlateStyle;
@@ -18,6 +20,9 @@ import top.huliawsl.slateui.api.component.Box;
 import top.huliawsl.slateui.command.SlateCommandRegistry;
 
 class SlateReloadSupportTest {
+
+    @TempDir
+    java.nio.file.Path tempDir;
 
     @Test
     void failedCompileStopsBeforeCacheClearAndScreenCreate() {
@@ -85,6 +90,28 @@ class SlateReloadSupportTest {
 
         assertTrue(exception.getMessage().contains("compileSlate failed during reload"));
         assertEquals("boom", exception.getCause().getMessage());
+    }
+
+    @Test
+    void projectRootCanBeFoundFromNestedIdeaWorkingDirectory() throws Exception {
+        java.nio.file.Path root = tempDir.resolve("SlateUI");
+        java.nio.file.Files.createDirectories(root.resolve("common/build/classes/java/main"));
+        java.nio.file.Files.writeString(root.resolve("settings.gradle"), "rootProject.name='SlateUI'");
+        java.nio.file.Files.writeString(root.resolve("gradlew.bat"), "@echo off");
+
+        assertEquals(
+            root.toFile().getAbsoluteFile(),
+            SlateReloadSupport.findProjectRoot(root.resolve("common/build/classes/java/main").toFile())
+        );
+    }
+
+    @Test
+    void projectRootSearchReturnsNullWhenWrapperIsMissing() throws Exception {
+        java.nio.file.Path root = tempDir.resolve("SlateUI");
+        java.nio.file.Files.createDirectories(root.resolve("common"));
+        java.nio.file.Files.writeString(root.resolve("settings.gradle"), "rootProject.name='SlateUI'");
+
+        assertNull(SlateReloadSupport.findProjectRoot(root.resolve("common").toFile()));
     }
 
     private static SlateScreen createStubScreen() {

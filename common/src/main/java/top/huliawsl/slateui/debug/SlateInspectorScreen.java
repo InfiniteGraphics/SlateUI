@@ -14,6 +14,7 @@ public final class SlateInspectorScreen extends Screen {
 
     private final SlateScreen source;
     private final SlateDiagnostics diagnostics;
+    private int scrollOffset;
 
     public SlateInspectorScreen(SlateScreen source, SlateDiagnostics diagnostics) {
         super(Component.literal("SlateUI Inspector"));
@@ -29,6 +30,19 @@ public final class SlateInspectorScreen extends Screen {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         guiGraphics.fill(0, 0, width, height, BACKGROUND_COLOR);
+        List<String> lines = SlateDebugText.wrap(lines(), font, width);
+        scrollOffset = SlateDebugText.clampScroll(scrollOffset, lines.size(), height);
+        SlateDebugText.draw(guiGraphics, font, lines, scrollOffset, height);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        List<String> lines = SlateDebugText.wrap(lines(), font, width);
+        scrollOffset = SlateDebugText.clampScroll(scrollOffset + SlateDebugText.scrollStep(scrollY), lines.size(), height);
+        return true;
+    }
+
+    private List<String> lines() {
         List<String> lines = new ArrayList<>();
         lines.add("SlateUI Inspector");
         lines.add("Press ESC to return");
@@ -56,15 +70,7 @@ public final class SlateInspectorScreen extends Screen {
         lines.add("");
         lines.add("Diagnostics:");
         appendBlock(lines, diagnostics.diagnosticsLogDump(), 6);
-
-        int y = 16;
-        for (String line : lines) {
-            guiGraphics.drawString(font, line, 16, y, 0xFFFFFFFF, false);
-            y += 10;
-            if (y > height - 10) {
-                break;
-            }
-        }
+        return lines;
     }
 
     private static void appendBlock(List<String> lines, String block, int maxLines) {
