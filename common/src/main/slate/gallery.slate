@@ -1,25 +1,35 @@
 <template>
   <OverlayRoot>
-    <ScrollView style-width="360" style-height="220">
+    <ScrollView style-width="360" style-height="240">
       <Stack direction="column" class="gallery">
-        <Stack direction="column" class="panel">
-          <Text value="Authoring Gallery" />
+        <Panel title="Authoring Gallery" class="panel">
           <Text value="{settings.playerName + ' / ' + settings.status}" />
-        </Stack>
-        <Stack direction="column" class="panel">
-          <Input placeholder="Authoring player name" value="{settings.playerName}" onChange="authoring.name" style-width="300" />
+          <Toggle label="Enable feature" checked="{settings.enabled}" />
+        </Panel>
+        <Panel title="Controls" class="panel">
+          <Input id="authoringName" placeholder="Authoring player name" value="{settings.playerName}" onChange="authoring.name" style-width="300" />
           <Button label="Reload Slate" command="slate.reload" />
           <Button label="Close" command="screen.close" />
-        </Stack>
-        <Stack direction="column" class="panel">
+        </Panel>
+        <Panel title="List smoke test" class="panel">
+          <List style-height="72" itemGap="4">
+            <Text value="Settings example" />
+            <Text value="Form example" />
+            <Text value="Container example" />
+          </List>
+        </Panel>
+        <Panel title="Image" class="panel">
           <Image resource="minecraft:textures/gui/options_background.png" style-width="300" style-height="64" />
-        </Stack>
+        </Panel>
       </Stack>
     </ScrollView>
   </OverlayRoot>
 </template>
 
 <style scoped>
+  OverlayRoot {
+    padding: 12;
+  }
   .gallery {
     gap: 12;
   }
@@ -28,6 +38,16 @@
     backgroundToken: color.panel;
     borderColorToken: color.border;
     borderThickness: 1;
+    borderRadius: 8;
     gap: 8;
+  }
+  .panel:hover {
+    background: #111827;
+  }
+  #authoringName:focus {
+    focusBorderColor: #60A5FA;
+  }
+  Button:hover {
+    background: #2563EB;
   }
 </style>

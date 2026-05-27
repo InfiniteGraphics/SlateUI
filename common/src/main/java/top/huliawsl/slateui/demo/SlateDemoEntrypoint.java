@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 import top.huliawsl.slateui.api.ComputedStateProvider;
 import top.huliawsl.slateui.api.HorizontalAlign;
 import top.huliawsl.slateui.api.InputValueHandler;
+import top.huliawsl.slateui.api.ToggleValueHandler;
 import top.huliawsl.slateui.api.SlateBorder;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateScreen;
@@ -30,6 +31,7 @@ import top.huliawsl.slateui.api.component.SlotGrid;
 import top.huliawsl.slateui.api.component.Stack;
 import top.huliawsl.slateui.api.component.Text;
 import top.huliawsl.slateui.api.component.Tooltip;
+import top.huliawsl.slateui.api.component.Toggle;
 import top.huliawsl.slateui.authoring.SlateIrLoader;
 import top.huliawsl.slateui.authoring.SlateIrRuntimeFactory;
 import top.huliawsl.slateui.authoring.SlateReloadSupport;
@@ -65,6 +67,7 @@ public final class SlateDemoEntrypoint {
             .set("gallery.page", "settings")
             .set("settings.playerName", "Slate Tester")
             .set("settings.status", status)
+            .set("settings.enabled", true)
             .set("settings.mode", debugEnabled ? "Debug" : "Normal")
             .set("form.email", "alex@example.com")
             .set("form.query", "diamond pickaxe")
@@ -82,6 +85,7 @@ public final class SlateDemoEntrypoint {
         InputValueHandler statusHandler = (context, value) -> provider.set("settings.status", value);
         InputValueHandler emailHandler = (context, value) -> provider.set("form.email", value);
         InputValueHandler queryHandler = (context, value) -> provider.set("form.query", value);
+        ToggleValueHandler enabledHandler = (context, checked) -> provider.set("settings.enabled", checked);
 
         SlateStyle rootStyle = SlateStyle.builder()
             .padding(Insets.all(16))
@@ -164,11 +168,13 @@ public final class SlateDemoEntrypoint {
         settingsChildren.add(new Text(ignored -> "Player: " + provider.get("settings.playerName"), SlateStyle.EMPTY));
         settingsChildren.add(new Text(ignored -> "Status: " + provider.get("settings.status"), SlateStyle.EMPTY));
         settingsChildren.add(new Text(ignored -> "Summary: " + provider.get("settings.summary"), SlateStyle.EMPTY));
+        settingsChildren.add(new Text(ignored -> "Enabled: " + provider.get("settings.enabled"), SlateStyle.EMPTY));
         if (notice != null && !notice.isBlank()) {
             settingsChildren.add(new Text(notice, noticeStyle));
         }
         settingsChildren.add(new Input("Enter player name", ignored -> String.valueOf(provider.get("settings.playerName")), null, playerNameHandler, fieldStyle));
         settingsChildren.add(new Input("Update status", ignored -> String.valueOf(provider.get("settings.status")), null, statusHandler, fieldStyle));
+        settingsChildren.add(new Toggle(provider, "Enable feature", ignored -> Boolean.TRUE.equals(provider.get("settings.enabled")), null, enabledHandler, subtleButtonStyle));
         settingsChildren.add(new Stack(StackDirection.COLUMN, List.of(
             new top.huliawsl.slateui.api.component.Button("Open .slate Screen", "demo.authoring", primaryButtonStyle),
             new top.huliawsl.slateui.api.component.Button("Open Error Page", "demo.error", primaryButtonStyle)
@@ -210,8 +216,8 @@ public final class SlateDemoEntrypoint {
         DemoPanel listPage = new DemoPanel(
             "List Page",
             List.of(
-                new ScrollView(
-                    new Stack(StackDirection.COLUMN, scrollItems, SlateStyle.builder().gap(6).build()),
+                new top.huliawsl.slateui.api.component.SlateList(
+                    scrollItems,
                     SlateStyle.builder().height(160).padding(Insets.all(8)).backgroundColor(0xFF020617).border(new SlateBorder(0xFF334155, 1)).borderRadiusToken("radius.md").clipContent(true).build()
                 )
             ),
@@ -284,6 +290,7 @@ public final class SlateDemoEntrypoint {
         ComputedStateProvider provider = new ComputedStateProvider()
             .set("settings.playerName", "Slate Author")
             .set("settings.status", debugEnabled ? "Debug authoring" : "Authoring ready")
+            .set("settings.enabled", true)
             .registerComputed("settings.summary", List.of("settings.playerName", "settings.status"), state ->
                 state.get("settings.playerName") + " / " + state.get("settings.status"));
         Theme theme = createTheme(debugEnabled);
@@ -301,7 +308,7 @@ public final class SlateDemoEntrypoint {
         commands.register("demo.page.list", context -> provider.set("gallery.page", "list"));
         commands.register("demo.page.container", context -> provider.set("gallery.page", "container"));
         commands.register("demo.form.submit", context -> provider.set("settings.status", "Form submitted"));
-        commands.register("demo.slot.click", context -> provider.set("settings.status", "Slot clicked"));
+        commands.register("demo.slot.click", context -> provider.set("settings.status", "Slot clicked: #" + context.payloadInt("slotIndex", -1) + " " + context.payloadString("itemId", "")));
         commands.register("demo.popup.toggle", context -> provider.set("ui.popupOpen", !(Boolean) provider.get("ui.popupOpen")));
         commands.register("demo.modal.open", context -> provider.set("ui.modalOpen", true));
         commands.register("demo.modal.close", context -> provider.set("ui.modalOpen", false));

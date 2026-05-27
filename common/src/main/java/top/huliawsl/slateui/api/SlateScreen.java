@@ -117,7 +117,10 @@ public class SlateScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         try {
-            return root.mouseClicked(createInteractionContext(), mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
+            String path = diagnostics.componentPathAt(mouseX, mouseY);
+            boolean handled = root.mouseClicked(createInteractionContext(), mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
+            diagnostics.captureEvent("mouseClicked", path, handled);
+            return handled;
         } catch (Throwable throwable) {
             openErrorScreen("mouseClicked", throwable);
             return true;
@@ -127,7 +130,10 @@ public class SlateScreen extends Screen {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         try {
-            return root.mouseReleased(createInteractionContext(), mouseX, mouseY, button) || super.mouseReleased(mouseX, mouseY, button);
+            String path = diagnostics.componentPathAt(mouseX, mouseY);
+            boolean handled = root.mouseReleased(createInteractionContext(), mouseX, mouseY, button) || super.mouseReleased(mouseX, mouseY, button);
+            diagnostics.captureEvent("mouseReleased", path, handled);
+            return handled;
         } catch (Throwable throwable) {
             openErrorScreen("mouseReleased", throwable);
             return true;
@@ -137,7 +143,10 @@ public class SlateScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         try {
-            return root.mouseScrolled(createInteractionContext(), mouseX, mouseY, scrollY) || super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+            String path = diagnostics.componentPathAt(mouseX, mouseY);
+            boolean handled = root.mouseScrolled(createInteractionContext(), mouseX, mouseY, scrollY) || super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+            diagnostics.captureEvent("mouseScrolled", path, handled);
+            return handled;
         } catch (Throwable throwable) {
             openErrorScreen("mouseScrolled", throwable);
             return true;
@@ -147,8 +156,18 @@ public class SlateScreen extends Screen {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         try {
-            if (keyCode == GLFW.GLFW_KEY_F6) {
+            if (keyCode == GLFW.GLFW_KEY_F6 || keyCode == GLFW.GLFW_KEY_F8 || keyCode == GLFW.GLFW_KEY_F11) {
                 Minecraft.getInstance().setScreen(new SlateInspectorScreen(this, diagnostics));
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_F9) {
+                diagnostics.logDiagnostic("DEBUG toggle bounds requested");
+                requestRebuild("debug-bounds");
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_F10) {
+                diagnostics.logDiagnostic("DEBUG toggle hit regions requested");
+                requestRebuild("debug-hit-regions");
                 return true;
             }
             if (focusedComponent != null && focusedComponent.keyPressed(createInteractionContext(), keyCode, scanCode, modifiers)) {
@@ -204,7 +223,7 @@ public class SlateScreen extends Screen {
         focusedComponent = component;
         if (focusedComponent != null) {
             focusedComponent.setFocused(true);
-            diagnostics.logDiagnostic("FOCUS " + focusedComponent.debugName());
+            diagnostics.logDiagnostic("FOCUS " + focusedComponent.debugPath());
         }
         requestRebuild("focus-change");
     }

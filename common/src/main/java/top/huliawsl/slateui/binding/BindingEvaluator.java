@@ -24,6 +24,14 @@ public final class BindingEvaluator {
     }
 
     public static Object evaluate(String expression, StateProvider provider) {
+        return evaluateInternal(expression, provider, false);
+    }
+
+    public static Object evaluateStrict(String expression, StateProvider provider) {
+        return evaluateInternal(expression, provider, true);
+    }
+
+    private static Object evaluateInternal(String expression, StateProvider provider, boolean strict) {
         String trimmed = BindingParser.normalize(expression);
         if (trimmed.isEmpty()) {
             return "";
@@ -32,15 +40,15 @@ public final class BindingEvaluator {
         if (concatParts.size() > 1) {
             StringBuilder builder = new StringBuilder();
             for (String part : concatParts) {
-                Object value = evaluate(part, provider);
+                Object value = evaluateInternal(part, provider, strict);
                 builder.append(value == null ? "null" : value);
             }
             return builder.toString();
         }
         Matcher matcher = COMPARISON.matcher(trimmed);
         if (matcher.matches()) {
-            Object left = evaluate(matcher.group(1), provider);
-            Object right = evaluate(matcher.group(3), provider);
+            Object left = evaluateInternal(matcher.group(1), provider, strict);
+            Object right = evaluateInternal(matcher.group(3), provider, strict);
             return compare(left, right, matcher.group(2));
         }
         if ((trimmed.startsWith("\"") && trimmed.endsWith("\"")) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
@@ -58,6 +66,9 @@ public final class BindingEvaluator {
         Object resolved = resolvePath(provider, trimmed);
         if (resolved != UNRESOLVED) {
             return resolved;
+        }
+        if (strict) {
+            throw new IllegalArgumentException("missing key '" + trimmed + "'");
         }
         return trimmed;
     }

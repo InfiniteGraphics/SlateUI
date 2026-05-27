@@ -83,4 +83,63 @@ class SlateCompilerTest {
         SlateCompileException exception = assertThrows(SlateCompileException.class, () -> new SlateCompiler().compileFile(input, output));
         assertTrue(exception.getMessage().contains("Unknown component"));
     }
+    @Test
+    void compilesPanelToggleListAndStateSelectors() throws Exception {
+        Path input = Files.createTempFile("authoring-v01", ".slate");
+        Path output = Files.createTempFile("authoring-v01-out", ".json");
+        Files.writeString(input, """
+            <template>
+              <Panel id="settings" title="Settings">
+                <Toggle label="Enabled" checked="{settings.enabled}" />
+                <List itemGap="4">
+                  <Text value="Row" />
+                </List>
+              </Panel>
+            </template>
+            <style scoped>
+              Panel { padding: 12; }
+              #settings:focus { focusBorderColor: #60A5FA; }
+              .primary:hover { background: #2563EB; }
+            </style>
+            """);
+
+        new SlateCompiler().compileFile(input, output);
+
+        String json = Files.readString(output);
+        assertTrue(json.contains("\"componentType\": \"Panel\""));
+        assertTrue(json.contains("\"componentType\": \"Toggle\""));
+        assertTrue(json.contains("\"componentType\": \"List\""));
+        assertTrue(json.contains("\"#settings:focus\""));
+        assertTrue(json.contains("\"primary:hover\""));
+    }
+
+    @Test
+    void rejectsInvalidStylePropertyWithLocation() throws Exception {
+        Path input = Files.createTempFile("broken-style-property", ".slate");
+        Path output = Files.createTempFile("broken-style-property-out", ".json");
+        Files.writeString(input, """
+            <template>
+              <Text value="Broken" style-borderRaduis="8" />
+            </template>
+            """);
+
+        SlateCompileException exception = assertThrows(SlateCompileException.class, () -> new SlateCompiler().compileFile(input, output));
+        assertTrue(exception.getMessage().contains("Unknown style property"));
+        assertTrue(exception.getMessage().contains(":"));
+    }
+
+    @Test
+    void rejectsInvalidStyleValueWithExpectedType() throws Exception {
+        Path input = Files.createTempFile("broken-style-value", ".slate");
+        Path output = Files.createTempFile("broken-style-value-out", ".json");
+        Files.writeString(input, """
+            <template>
+              <Text value="Broken" style-width="wide" />
+            </template>
+            """);
+
+        SlateCompileException exception = assertThrows(SlateCompileException.class, () -> new SlateCompiler().compileFile(input, output));
+        assertTrue(exception.getMessage().contains("Invalid style value"));
+    }
+
 }

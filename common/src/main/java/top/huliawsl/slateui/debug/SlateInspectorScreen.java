@@ -56,11 +56,17 @@ public final class SlateInspectorScreen extends Screen {
         lines.add("Hit regions / chrome:");
         appendBlock(lines, diagnostics.hitRegionDump(), 12);
         lines.add("");
+        lines.add("Events:");
+        appendBlock(lines, diagnostics.lastEventDump(), 4);
+        lines.add("");
         lines.add("Component tree:");
         appendBlock(lines, diagnostics.componentTreeDump(), 10);
         lines.add("");
         lines.add("Layout:");
         appendBlock(lines, diagnostics.layoutDump(), 8);
+        lines.add("");
+        lines.add("Computed style:");
+        appendBlock(lines, diagnostics.styleDump(), 10);
         lines.add("");
         lines.add("Draw commands:");
         appendBlock(lines, diagnostics.drawCommandDump(), 8);

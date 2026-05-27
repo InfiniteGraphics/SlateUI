@@ -18,6 +18,8 @@ public final class SlateDiagnostics {
     private String stateDump = "";
     private String hitTestDump = "";
     private String hitRegionDump = "";
+    private String styleDump = "";
+    private String lastEventDump = "";
     private int componentCount;
     private int drawCommandCount;
     private SlateComponent capturedRoot;
@@ -29,10 +31,15 @@ public final class SlateDiagnostics {
     }
 
     public void capture(SlateComponent root, List<DrawCommand> drawCommands, String focusDump, String bindingDump, String stateDump, Theme theme) {
+        capture(root, drawCommands, focusDump, bindingDump, stateDump, theme, root.dumpStyleTree(theme));
+    }
+
+    public void capture(SlateComponent root, List<DrawCommand> drawCommands, String focusDump, String bindingDump, String stateDump, Theme theme, String styleDump) {
         this.capturedRoot = root;
         this.componentTreeDump = root.dumpComponentTree();
         this.layoutDump = root.dumpLayoutTree();
         this.hitRegionDump = root.dumpHitRegionTree(theme);
+        this.styleDump = styleDump == null ? "" : styleDump;
         this.drawCommandDump = drawCommands.stream()
             .map(DrawCommand::describe)
             .reduce((left, right) -> left + "\n" + right)
@@ -65,6 +72,13 @@ public final class SlateDiagnostics {
 
     public void logDiagnostic(String entry) {
         append(diagnosticsLog, entry);
+    }
+
+    public void captureEvent(String type, String path, boolean consumed) {
+        lastEventDump = "type=" + (type == null ? "event" : type)
+            + " path=" + (path == null || path.isBlank() ? "<none>" : path)
+            + " phase=target"
+            + " consumed=" + consumed;
     }
 
     private static boolean appendHitPath(SlateComponent component, double mouseX, double mouseY, List<String> path) {
@@ -104,6 +118,8 @@ public final class SlateDiagnostics {
     public String stateDump() { return stateDump; }
     public String hitTestDump() { return hitTestDump; }
     public String hitRegionDump() { return hitRegionDump; }
+    public String styleDump() { return styleDump; }
+    public String lastEventDump() { return lastEventDump; }
     public String runtimeSummaryDump() { return "components=" + componentCount + "\ndrawCommands=" + drawCommandCount; }
     public String commandLogDump() { return join(commandLog); }
     public String diagnosticsLogDump() { return join(diagnosticsLog); }

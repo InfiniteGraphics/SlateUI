@@ -221,6 +221,37 @@ public final class SlateStyle {
         return clipContent;
     }
 
+
+    public String describe(Theme theme) {
+        Theme resolvedTheme = theme == null ? Theme.DEFAULT : theme;
+        int resolvedBackground = resolvedTheme.resolveColor(backgroundColor, backgroundToken, Integer.MIN_VALUE);
+        int resolvedText = resolvedTheme.resolveColor(textColor, textColorToken, 0xFFFFFFFF);
+        int resolvedRadius = resolvedTheme.resolveRadius(borderRadius, borderRadiusToken, 0);
+        int resolvedGap = resolvedTheme.resolveSpacing(gap, gapToken, gap);
+        String background = resolvedBackground == Integer.MIN_VALUE ? "<none>" : String.format("#%08X", resolvedBackground);
+        return "size=" + nullable(width) + "x" + nullable(height)
+            + " min=" + nullable(minWidth) + "x" + nullable(minHeight)
+            + " max=" + nullable(maxWidth) + "x" + nullable(maxHeight)
+            + " padding=" + padding
+            + " gap=" + resolvedGap + originSuffix(gapToken)
+            + " background=" + background + originSuffix(backgroundToken)
+            + " border=" + border.thickness() + "/" + String.format("#%08X", border.color()) + originSuffix(borderColorToken)
+            + " radius=" + resolvedRadius + originSuffix(borderRadiusToken)
+            + " focusBorder=" + focusBorder.thickness()
+            + " text=" + String.format("#%08X", resolvedText) + originSuffix(textColorToken)
+            + " align=" + horizontalAlign + "/" + verticalAlign
+            + " clip=" + clipContent
+            + " disabled=" + disabled;
+    }
+
+    private static String nullable(Integer value) {
+        return value == null ? "auto" : String.valueOf(value);
+    }
+
+    private static String originSuffix(String token) {
+        return token == null || token.isBlank() ? "" : " token=" + token;
+    }
+
     public static final class Builder {
 
         private Integer width;

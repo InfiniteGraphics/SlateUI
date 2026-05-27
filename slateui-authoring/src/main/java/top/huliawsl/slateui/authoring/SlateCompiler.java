@@ -26,18 +26,35 @@ public final class SlateCompiler {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Pattern STYLE_PATTERN = Pattern.compile("<style\\s+scoped>(.*?)</style>", Pattern.DOTALL);
-    private static final Pattern STYLE_RULE_PATTERN = Pattern.compile("\\.(?<name>[a-zA-Z0-9_-]+)\\s*\\{(?<body>.*?)\\}", Pattern.DOTALL);
+    private static final Pattern STYLE_RULE_PATTERN = Pattern.compile("(?<selector>(?:\\.[a-zA-Z0-9_-]+)|(?:#[a-zA-Z0-9_-]+)|(?:[A-Z][a-zA-Z0-9_-]*))(?::(?<state>hover|focus|pressed|active|disabled))?\\s*\\{(?<body>.*?)\\}", Pattern.DOTALL);
     private static final Pattern SLOT_SHORTHAND_PATTERN = Pattern.compile("<template\\s+#([a-zA-Z0-9_-]+)([^>]*)>");
-    private static final Set<String> BUILTIN_COMPONENTS = Set.of("OverlayRoot", "Box", "Stack", "Text", "Button", "Input", "ScrollView", "Image", "Tooltip", "Popup", "Modal", "SlotGrid");
+    private static final Set<String> BUILTIN_COMPONENTS = Set.of("OverlayRoot", "Box", "Panel", "Stack", "Text", "Button", "Input", "Toggle", "List", "ScrollView", "Image", "Tooltip", "Popup", "Modal", "SlotGrid");
     private static final Set<String> BUILTIN_ONLY_SLOTS = Set.of("tooltip", "popup", "modal");
+    private static final Set<String> STYLE_PROPERTIES = Set.of(
+        "width", "height", "minwidth", "min-height", "minheight", "min-width", "maxwidth", "max-height", "maxheight", "max-width",
+        "padding", "margin", "gap", "gaptoken", "gap-token",
+        "background", "backgroundcolor", "background-color", "backgroundtoken", "background-token",
+        "hoverbackground", "hover-background", "hoverbackgroundcolor", "hover-background-color", "hoverbackgroundtoken", "hover-background-token",
+        "activebackground", "active-background", "activebackgroundcolor", "active-background-color", "activebackgroundtoken", "active-background-token",
+        "bordercolor", "border-color", "bordercolortoken", "border-color-token", "borderthickness", "border-thickness",
+        "borderradius", "border-radius", "radius", "borderradiustoken", "border-radius-token", "radiustoken", "radius-token",
+        "focusbordercolor", "focus-border-color", "focusbordercolortoken", "focus-border-color-token", "focusborderthickness", "focus-border-thickness",
+        "horizontalalign", "horizontal-align", "alignx", "align-x", "align",
+        "verticalalign", "vertical-align", "aligny", "align-y", "justify",
+        "textcolor", "text-color", "textcolortoken", "text-color-token",
+        "clipcontent", "clip-content", "disabled"
+    );
     private static final Set<String> DIRECTIVES = Set.of("if", "for", "key");
     private static final Map<String, Set<String>> PROPS = Map.ofEntries(
         Map.entry("OverlayRoot", Set.of("class")),
         Map.entry("Box", Set.of("class")),
+        Map.entry("Panel", Set.of("class", "title", "contentGap")),
         Map.entry("Stack", Set.of("class", "direction")),
         Map.entry("Text", Set.of("class", "value")),
         Map.entry("Button", Set.of("class", "label", "command")),
         Map.entry("Input", Set.of("class", "placeholder", "value", "onChange")),
+        Map.entry("Toggle", Set.of("class", "label", "checked", "onChange", "command")),
+        Map.entry("List", Set.of("class", "itemGap")),
         Map.entry("ScrollView", Set.of("class")),
         Map.entry("Image", Set.of("class", "resource")),
         Map.entry("Tooltip", Set.of("class")),
@@ -96,6 +113,8 @@ public final class SlateCompiler {
             String name = attribute.getNodeName();
             String value = attribute.getNodeValue().trim();
             if (name.startsWith("style-")) {
+                String propertyName = name.substring("style-".length());
+                validateStyleDeclaration(inputFile, source, propertyName, value, name + "=\"");
                 props.addProperty(name, value);
                 continue;
             }
@@ -107,7 +126,7 @@ public final class SlateCompiler {
                 }
                 continue;
             }
-            if (isBuiltin(componentType) && !PROPS.getOrDefault(componentType, Set.of()).contains(name)) {
+            if (isBuiltin(componentType) && !"id".equals(name) && !PROPS.getOrDefault(componentType, Set.of()).contains(name)) {
                 throw error(inputFile, source, name + "=\"", "Unknown prop '" + name + "' on component '" + componentType + "'");
             }
             if (value.startsWith("{") && value.endsWith("}")) {
@@ -143,7 +162,7 @@ public final class SlateCompiler {
                 if (slotName == null || slotName.isBlank()) {
                     throw error(inputFile, source, "<template", "Named slot template requires a slot name");
                 }
-                if (isBuiltin(componentType) && !"default".equals(slotName) && !BUILTIN_ONLY_SLOTS.contains(slotName)) {
+                if (isBuiltin(componentType) && !isAllowedBuiltinSlot(componentType, slotName)) {
                     throw error(inputFile, source, "<template", "Unknown slot '" + slotName + "' on component '" + componentType + "'");
                 }
                 JsonArray slotChildren = slots.has(slotName) ? slots.getAsJsonArray(slotName) : new JsonArray();
@@ -197,11 +216,105 @@ public final class SlateCompiler {
                 if (parts.length != 2) {
                     throw error(inputFile, source, trimmed, "Invalid style declaration '" + trimmed + "'");
                 }
-                rule.addProperty(parts[0].trim(), parts[1].trim());
+                String propertyName = parts[0].trim();
+                String value = parts[1].trim();
+                validateStyleDeclaration(inputFile, source, propertyName, value, propertyName);
+                rule.addProperty(propertyName, value);
             }
-            scopedStyle.add(matcher.group("name"), rule);
+            String selector = matcher.group("selector");
+            String styleName = normalizeSelector(selector);
+            if (matcher.group("state") != null) {
+                styleName = styleName + ":" + matcher.group("state");
+            }
+            scopedStyle.add(styleName, rule);
         }
         return scopedStyle;
+    }
+
+    private static void validateStyleDeclaration(Path inputFile, String source, String propertyName, String value, String needle) {
+        String normalized = propertyName.replace("_", "-").toLowerCase();
+        if (!STYLE_PROPERTIES.contains(normalized)) {
+            throw error(inputFile, source, needle, "Unknown style property '" + propertyName + "'");
+        }
+        try {
+            if (isIntegerStyle(normalized)) {
+                Integer.parseInt(value);
+                return;
+            }
+            if (isBooleanStyle(normalized)) {
+                if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
+                    throw new IllegalArgumentException("expected true | false");
+                }
+                return;
+            }
+            if (isColorStyle(normalized)) {
+                parseColor(value);
+                return;
+            }
+            if (isHorizontalAlignStyle(normalized)) {
+                parseAllowed(value, Set.of("start", "center", "end", "stretch"));
+                return;
+            }
+            if (isVerticalAlignStyle(normalized)) {
+                parseAllowed(value, Set.of("start", "center", "end", "stretch"));
+            }
+        } catch (RuntimeException exception) {
+            throw error(inputFile, source, needle, "Invalid style value for '" + propertyName + "': '" + value + "' (" + exception.getMessage() + ")");
+        }
+    }
+
+    private static boolean isIntegerStyle(String property) {
+        return Set.of("width", "height", "minwidth", "min-width", "minheight", "min-height", "maxwidth", "max-width", "maxheight", "max-height", "padding", "margin", "gap", "borderthickness", "border-thickness", "borderradius", "border-radius", "radius", "focusborderthickness", "focus-border-thickness").contains(property);
+    }
+
+    private static boolean isBooleanStyle(String property) {
+        return Set.of("clipcontent", "clip-content", "disabled").contains(property);
+    }
+
+    private static boolean isColorStyle(String property) {
+        if (property.contains("token")) {
+            return false;
+        }
+        return property.contains("color") || Set.of("background", "hoverbackground", "hover-background", "activebackground", "active-background").contains(property);
+    }
+
+    private static boolean isHorizontalAlignStyle(String property) {
+        return Set.of("horizontalalign", "horizontal-align", "alignx", "align-x", "align").contains(property);
+    }
+
+    private static boolean isVerticalAlignStyle(String property) {
+        return Set.of("verticalalign", "vertical-align", "aligny", "align-y", "justify").contains(property);
+    }
+
+    private static void parseAllowed(String value, Set<String> allowed) {
+        if (!allowed.contains(value.trim().toLowerCase())) {
+            throw new IllegalArgumentException("expected " + String.join(" | ", allowed));
+        }
+    }
+
+    private static int parseColor(String value) {
+        String text = value.trim();
+        if (text.startsWith("#")) {
+            String hex = text.substring(1);
+            if (hex.length() == 6) {
+                return (int) (0xFF000000L | Long.parseLong(hex, 16));
+            }
+            if (hex.length() == 8) {
+                return (int) Long.parseLong(hex, 16);
+            }
+            throw new IllegalArgumentException("expected #RRGGBB or #AARRGGBB");
+        }
+        return Integer.decode(text);
+    }
+
+    private static String normalizeSelector(String selector) {
+        if (selector == null || selector.isBlank()) {
+            return "";
+        }
+        if (selector.startsWith(".")) {
+            return selector.substring(1);
+        }
+        return selector;
     }
 
     private static JsonObject sourceMapEntry(String path, String componentType, String source, Path inputFile, String needle) {
@@ -264,6 +377,16 @@ public final class SlateCompiler {
 
     private static String preprocess(String source) {
         return SLOT_SHORTHAND_PATTERN.matcher(source).replaceAll("<template slot=\"$1\"$2>");
+    }
+
+    private static boolean isAllowedBuiltinSlot(String componentType, String slotName) {
+        if ("default".equals(slotName)) {
+            return true;
+        }
+        if ("Panel".equals(componentType)) {
+            return Set.of("header", "footer").contains(slotName);
+        }
+        return BUILTIN_ONLY_SLOTS.contains(slotName);
     }
 
     private static boolean isBuiltin(String componentType) {

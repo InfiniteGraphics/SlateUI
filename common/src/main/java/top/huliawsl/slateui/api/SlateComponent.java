@@ -353,6 +353,25 @@ public abstract class SlateComponent {
         return builder.toString();
     }
 
+    public final String dumpStyleTree(Theme theme) {
+        refreshLayoutNodeTree();
+        StringBuilder builder = new StringBuilder();
+        appendStyleTree(builder, 0, theme == null ? Theme.DEFAULT : theme);
+        return builder.toString();
+    }
+
+    private void appendStyleTree(StringBuilder builder, int depth, Theme theme) {
+        builder.append("  ".repeat(depth))
+            .append(debugPath())
+            .append(" ")
+            .append(style.describe(theme))
+            .append('
+');
+        for (SlateComponent child : children()) {
+            child.appendStyleTree(builder, depth + 1, theme);
+        }
+    }
+
     private void appendComponentTree(StringBuilder builder, int depth) {
         builder.append("  ".repeat(depth))
             .append(debugName())

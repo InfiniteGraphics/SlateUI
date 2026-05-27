@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
+import top.huliawsl.slateui.api.MutableStateProvider;
 import top.huliawsl.slateui.api.SlateBorder;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateScreen;
@@ -21,13 +22,16 @@ import top.huliawsl.slateui.api.StateProvider;
 import top.huliawsl.slateui.api.Theme;
 import top.huliawsl.slateui.api.component.Box;
 import top.huliawsl.slateui.api.component.Button;
+import top.huliawsl.slateui.api.component.Panel;
 import top.huliawsl.slateui.api.component.SlotGrid;
 import top.huliawsl.slateui.api.component.Stack;
+import top.huliawsl.slateui.api.component.Toggle;
 import top.huliawsl.slateui.api.container.ContainerSlot;
 import top.huliawsl.slateui.api.container.StaticContainerSlotProvider;
 import top.huliawsl.slateui.authoring.SlateIrRuntimeFactory;
 import top.huliawsl.slateui.command.CommandContext;
 import top.huliawsl.slateui.command.SlateCommandRegistry;
+import top.huliawsl.slateui.debug.SlateRuntimeException;
 import top.huliawsl.slateui.layout.Insets;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
@@ -129,7 +133,7 @@ class P0RegressionTest {
         )), 2, 18, 2, "slot.click", SlateStyle.EMPTY);
         Size measured = grid.measure(new SlateLayoutContext(null), new Size(100, 100));
         grid.layout(new SlateLayoutContext(null), new Rect(0, 0, measured.width(), measured.height()));
-        SlateCommandRegistry commands = new SlateCommandRegistry().register("slot.click", ignored -> slotClicked.set(1));
+        SlateCommandRegistry commands = new SlateCommandRegistry().register("slot.click", context -> slotClicked.set(context.payloadInt("slotIndex", -1)));
         TestScreen screen = new TestScreen(grid, commands);
         SlateInteractionContext interaction = interaction(screen, commands);
 
@@ -141,6 +145,54 @@ class P0RegressionTest {
         assertEquals(grid, screen.focusedComponent());
     }
 
+
+    @Test
+    void toggleUpdatesMutableBindingAndDispatchesPayload() {
+        MutableStateProvider provider = new MutableStateProvider().set("settings.enabled", false);
+        AtomicInteger commandValue = new AtomicInteger();
+        Toggle toggle = new Toggle(provider, "Enable", ignored -> Boolean.TRUE.equals(provider.get("settings.enabled")), "settings.toggle",
+            (context, checked) -> provider.set("settings.enabled", checked), SlateStyle.EMPTY);
+        toggle.measure(new SlateLayoutContext(null), new Size(120, 40));
+        toggle.layout(new SlateLayoutContext(null), new Rect(0, 0, 120, 24));
+        SlateCommandRegistry commands = new SlateCommandRegistry().register("settings.toggle", context -> commandValue.set(context.payloadBoolean("checked", false) ? 1 : 0));
+        TestScreen screen = new TestScreen(toggle, commands);
+        SlateInteractionContext interaction = new SlateInteractionContext(commands, new CommandContext(null, screen), ignored -> {}, ignored -> {}, screen, provider, Theme.DEFAULT);
+
+        toggle.mouseClicked(interaction, 4, 4, 0);
+        assertTrue(toggle.mouseReleased(interaction, 4, 4, 0));
+
+        assertEquals(true, provider.get("settings.enabled"));
+        assertEquals(1, commandValue.get());
+    }
+
+    @Test
+    void panelComposesHeaderContentAndChrome() {
+        Panel panel = new Panel("Settings", List.of(new FixedComponent("content", 30, 10)), SlateStyle.EMPTY);
+        Size measured = panel.measure(new SlateLayoutContext(null), new Size(120, 80));
+        panel.layout(new SlateLayoutContext(null), new Rect(0, 0, measured.width(), measured.height()));
+
+        assertTrue(measured.width() >= 30);
+        assertTrue(panel.dumpComponentTree().contains("Panel"));
+        assertTrue(collect(panel).stream().anyMatch(DrawBorderCommand.class::isInstance));
+    }
+
+    @Test
+    void missingRuntimeBindingReportsComponentPathAndKey() {
+        JsonObject root = new JsonObject();
+        root.addProperty("componentType", "Text");
+        root.add("children", new JsonArray());
+        JsonObject bindings = new JsonObject();
+        bindings.addProperty("value", "{settings.missing}");
+        root.add("bindings", bindings);
+        root.add("props", new JsonObject());
+
+        SlateRuntimeException exception = org.junit.jupiter.api.Assertions.assertThrows(SlateRuntimeException.class, () ->
+            new SlateIrRuntimeFactory().buildComponentTree(root, StateProvider.EMPTY, Theme.DEFAULT).measure(new SlateLayoutContext(null), new Size(100, 20))
+        );
+
+        assertEquals("binding", exception.stage());
+        assertTrue(exception.detail().contains("settings.missing"));
+    }
     private static List<DrawCommand> collect(SlateComponent component) {
         List<DrawCommand> commands = new ArrayList<>();
         component.collectDrawCommands(new SlateRenderContext(false, Theme.DEFAULT), commands);

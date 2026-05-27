@@ -61,13 +61,13 @@ public final class SlateCommandRegistry {
     public boolean execute(String id, SlateInteractionContext context, Map<String, Object> payload) {
         Consumer<CommandContext> handler = commands.get(id);
         if (handler != null) {
-            handler.accept(context.commandContext());
+            handler.accept(context.commandContext().withPayload(payload));
             return true;
         }
         if (!serverIntentCommands.contains(id)) {
             return false;
         }
-        CommandContext commandContext = context.commandContext();
+        CommandContext commandContext = context.commandContext().withPayload(payload);
         String title = commandContext.screen() == null ? "" : commandContext.screen().getTitle().getString();
         serverIntentBridge.send(SlateServerIntent.now(id, title, payload, context.stateProvider().snapshot()), commandContext);
         return true;
