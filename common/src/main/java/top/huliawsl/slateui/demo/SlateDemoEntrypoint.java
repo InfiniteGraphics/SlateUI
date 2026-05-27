@@ -53,10 +53,10 @@ public final class SlateDemoEntrypoint {
     }
 
     public static SlateScreen createGalleryScreen(boolean debugEnabled) {
-        return createGalleryScreen(debugEnabled, "Ready");
+        return createGalleryScreen(debugEnabled, "Ready", null);
     }
 
-    private static SlateScreen createGalleryScreen(boolean debugEnabled, String status) {
+    static SlateScreen createGalleryScreen(boolean debugEnabled, String status, String notice) {
         ComputedStateProvider provider = new ComputedStateProvider()
             .set("settings.playerName", "Slate Tester")
             .set("settings.status", status)
@@ -100,6 +100,12 @@ public final class SlateDemoEntrypoint {
             .horizontalAlign(HorizontalAlign.CENTER)
             .focusBorder(new SlateBorder(0xFFFFFFFF, 1))
             .build();
+        SlateStyle noticeStyle = SlateStyle.builder()
+            .padding(Insets.symmetric(8, 6))
+            .backgroundColor(0xFF1E293B)
+            .border(new SlateBorder(0xFF64748B, 1))
+            .textColor(0xFFCBD5E1)
+            .build();
         SlateStyle fieldStyle = SlateStyle.builder()
             .padding(Insets.symmetric(8, 6))
             .backgroundColor(0xFF0F172A)
@@ -109,25 +115,24 @@ public final class SlateDemoEntrypoint {
             .build();
 
         List<SlateComponent> sections = new ArrayList<>();
+        List<SlateComponent> settingsChildren = new ArrayList<>();
+        settingsChildren.add(new Text(ignored -> "Player: " + provider.get("settings.playerName"), SlateStyle.EMPTY));
+        settingsChildren.add(new Text(ignored -> "Status: " + provider.get("settings.status"), SlateStyle.EMPTY));
+        settingsChildren.add(new Text(ignored -> "Summary: " + provider.get("settings.summary"), SlateStyle.EMPTY));
+        if (notice != null && !notice.isBlank()) {
+            settingsChildren.add(new Text(notice, noticeStyle));
+        }
+        settingsChildren.add(new Stack(StackDirection.COLUMN, List.of(
+            new top.huliawsl.slateui.api.component.Button("Open .slate Screen", "demo.authoring", primaryButtonStyle),
+            new top.huliawsl.slateui.api.component.Button("Inspect Runtime", "screen.inspect", primaryButtonStyle),
+            new top.huliawsl.slateui.api.component.Button("Open Error Page", "demo.error", primaryButtonStyle),
+            new top.huliawsl.slateui.api.component.Button(debugEnabled ? "Normal Mode" : "Debug Mode", debugEnabled ? "demo.normal" : "demo.debug", primaryButtonStyle)
+        ), SlateStyle.builder().gap(8).build()));
+        settingsChildren.add(new Input("Enter player name", ignored -> String.valueOf(provider.get("settings.playerName")), null, playerNameHandler, fieldStyle));
+        settingsChildren.add(new Input("Update status", ignored -> String.valueOf(provider.get("settings.status")), null, statusHandler, fieldStyle));
         sections.add(new DemoPanel(
             "Settings Page",
-            List.of(
-                new Text(ignored -> "Player: " + provider.get("settings.playerName"), SlateStyle.EMPTY),
-                new Text(ignored -> "Status: " + provider.get("settings.status"), SlateStyle.EMPTY),
-                new Text(ignored -> "Summary: " + provider.get("settings.summary"), SlateStyle.EMPTY),
-                new Input("Enter player name", ignored -> String.valueOf(provider.get("settings.playerName")), null, playerNameHandler, fieldStyle),
-                new Input("Update status", ignored -> String.valueOf(provider.get("settings.status")), null, statusHandler, fieldStyle),
-                new Stack(StackDirection.COLUMN, List.of(
-                    new Stack(StackDirection.ROW, List.of(
-                        new top.huliawsl.slateui.api.component.Button("Open Error Page", "demo.error", primaryButtonStyle),
-                        new top.huliawsl.slateui.api.component.Button(debugEnabled ? "Normal Mode" : "Debug Mode", debugEnabled ? "demo.normal" : "demo.debug", primaryButtonStyle)
-                    ), SlateStyle.builder().gap(8).build()),
-                    new Stack(StackDirection.ROW, List.of(
-                        new top.huliawsl.slateui.api.component.Button("Open .slate Screen", "demo.authoring", primaryButtonStyle),
-                        new top.huliawsl.slateui.api.component.Button("Inspect Runtime", "screen.inspect", primaryButtonStyle)
-                    ), SlateStyle.builder().gap(8).build())
-                ), SlateStyle.builder().gap(8).build())
-            ),
+            settingsChildren,
             panelStyle,
             SlateStyle.builder().gap(8).build()
         ));
@@ -212,7 +217,7 @@ public final class SlateDemoEntrypoint {
 
     public static SlateScreen createAuthoringScreen(boolean debugEnabled) {
         if (!SlateIrLoader.resourceExists(AUTHORING_RESOURCE)) {
-            return createGalleryScreen(debugEnabled, "Authoring screen unavailable. Run compileSlate first.");
+            return createGalleryScreen(debugEnabled, "Ready", "Authoring screen unavailable. Run compileSlate first.");
         }
         ComputedStateProvider provider = new ComputedStateProvider()
             .set("settings.playerName", "Slate Author")

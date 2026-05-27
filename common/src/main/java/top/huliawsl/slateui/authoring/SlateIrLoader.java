@@ -4,12 +4,17 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.charset.StandardCharsets;
+import java.security.CodeSource;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class SlateIrLoader {
@@ -59,17 +64,59 @@ public final class SlateIrLoader {
     }
 
     private static Path resolveLocalResource(String resourcePath) {
-        for (Path root : List.of(
-            Paths.get("common", "build", "generated", "resources"),
-            Paths.get("common", "build", "resources", "main"),
-            Paths.get("build", "generated", "resources"),
-            Paths.get("build", "resources", "main")
-        )) {
+        return resolveLocalResource(Paths.get("").toAbsolutePath(), resourcePath);
+    }
+
+    static Path resolveLocalResource(Path workingDirectory, String resourcePath) {
+        for (Path root : candidateResourceRoots(workingDirectory)) {
             Path candidate = root.resolve(resourcePath);
             if (Files.exists(candidate)) {
                 return candidate;
             }
         }
         return null;
+    }
+
+    private static List<Path> candidateResourceRoots(Path workingDirectory) {
+        Set<Path> roots = new LinkedHashSet<>();
+        for (Path base : candidateBaseDirectories(workingDirectory)) {
+            Path current = base.toAbsolutePath().normalize();
+            while (current != null) {
+                roots.add(current.resolve(Paths.get("common", "build", "generated", "resources")));
+                roots.add(current.resolve(Paths.get("common", "build", "resources", "main")));
+                roots.add(current.resolve(Paths.get("build", "generated", "resources")));
+                roots.add(current.resolve(Paths.get("build", "resources", "main")));
+                current = current.getParent();
+            }
+        }
+        return new ArrayList<>(roots);
+    }
+
+    private static List<Path> candidateBaseDirectories(Path workingDirectory) {
+        List<Path> bases = new ArrayList<>();
+        if (workingDirectory != null) {
+            bases.add(workingDirectory);
+        }
+        Path codeSource = codeSourcePath();
+        if (codeSource != null) {
+            Path base = Files.isDirectory(codeSource) ? codeSource : codeSource.getParent();
+            if (base != null) {
+                bases.add(base);
+            }
+        }
+        return bases;
+    }
+
+    private static Path codeSourcePath() {
+        try {
+            CodeSource codeSource = SlateIrLoader.class.getProtectionDomain().getCodeSource();
+            if (codeSource == null || codeSource.getLocation() == null) {
+                return null;
+            }
+            URI uri = codeSource.getLocation().toURI();
+            return Paths.get(uri);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 }
