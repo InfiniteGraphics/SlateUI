@@ -66,10 +66,14 @@ public class ScrollView extends SlateComponent {
 
     @Override
     public boolean mouseScrolled(SlateInteractionContext context, double mouseX, double mouseY, double delta) {
-        if (!bounds().contains(mouseX, mouseY)) {
+        Rect viewport = contentRect(bounds());
+        if (!viewport.contains(mouseX, mouseY)) {
             return false;
         }
-        int viewportHeight = contentRect(bounds()).height();
+        if (content.mouseScrolled(context, mouseX, mouseY, delta)) {
+            return true;
+        }
+        int viewportHeight = viewport.height();
         int maxOffset = Math.max(0, contentHeight - viewportHeight);
         int nextOffset = Math.max(0, Math.min(scrollOffset - (int) Math.signum(delta) * scrollStep, maxOffset));
         if (nextOffset != scrollOffset) {

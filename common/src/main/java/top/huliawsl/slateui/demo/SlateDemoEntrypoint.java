@@ -195,11 +195,12 @@ public final class SlateDemoEntrypoint {
 
         List<SlateComponent> scrollItems = new ArrayList<>();
         for (int index = 1; index <= 24; index++) {
-            scrollItems.add(new Box(List.of(
+            scrollItems.add(new Stack(StackDirection.COLUMN, List.of(
                 new Text("List row #" + index),
                 new Text("Nested row content with fixed width and clipped border chrome.", SlateStyle.builder().textColor(0xFFCBD5E1).build())
             ), SlateStyle.builder()
                 .padding(Insets.symmetric(8, 6))
+                .gap(4)
                 .backgroundColor(index % 2 == 0 ? 0xFF111827 : 0xFF0F172A)
                 .border(new SlateBorder(0xFF334155, 1))
                 .borderRadiusToken("radius.sm")

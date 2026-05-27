@@ -19,6 +19,7 @@ import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.PopClipCommand;
 import top.huliawsl.slateui.render.PushClipCommand;
+import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
 
@@ -49,6 +50,43 @@ class RuntimeComponentsTest {
         scrollView.layout(new SlateLayoutContext(null), new Rect(0, 0, 120, 80));
 
         assertTrue(scrollView.dumpComponentTree().contains("ScrollView rect=Rect[x=0, y=0, width=120, height=80]"));
+    }
+
+    @Test
+    void nestedScrollViewHandlesWheelBeforeOuterViewport() {
+        ScrollView inner = new ScrollView(new Stack(StackDirection.COLUMN, List.of(
+            new FixedComponent(60, 30),
+            new FixedComponent(60, 30),
+            new FixedComponent(60, 30)
+        ), SlateStyle.EMPTY), SlateStyle.builder().width(60).height(40).build());
+        ScrollView outer = new ScrollView(new Stack(StackDirection.COLUMN, List.of(
+            new FixedComponent(60, 60),
+            inner,
+            new FixedComponent(60, 60)
+        ), SlateStyle.EMPTY), SlateStyle.builder().width(80).height(80).build());
+
+        SlateLayoutContext layoutContext = new SlateLayoutContext(null);
+        outer.measure(layoutContext, new Size(80, 80));
+        outer.layout(layoutContext, new Rect(0, 0, 80, 80));
+        int innerViewportY = inner.bounds().y();
+        TestScreen screen = new TestScreen(outer);
+
+        SlateInteractionContext interaction = new SlateInteractionContext(
+            new top.huliawsl.slateui.command.SlateCommandRegistry(),
+            new top.huliawsl.slateui.command.CommandContext(null, screen),
+            ignored -> {},
+            ignored -> {},
+            screen,
+            top.huliawsl.slateui.api.StateProvider.EMPTY,
+            top.huliawsl.slateui.api.Theme.DEFAULT
+        );
+
+        assertTrue(outer.mouseScrolled(interaction, 10, innerViewportY + 5, -1));
+
+        outer.layout(layoutContext, new Rect(0, 0, 80, 80));
+
+        assertEquals(innerViewportY, inner.bounds().y());
+        assertEquals(innerViewportY - 16, inner.children().get(0).bounds().y());
     }
 
     @Test
