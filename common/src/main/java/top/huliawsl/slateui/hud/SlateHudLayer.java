@@ -11,6 +11,7 @@ import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.MinecraftDrawCommandRenderer;
+import top.huliawsl.slateui.runtime.MinecraftTextMeasurer;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
 
@@ -38,7 +39,7 @@ public final class SlateHudLayer {
 
     public void rebuild(Font font, int screenWidth, int screenHeight) {
         bounds = new Rect(0, 0, Math.max(0, screenWidth), Math.max(0, screenHeight));
-        SlateLayoutContext layoutContext = new SlateLayoutContext(font);
+        SlateLayoutContext layoutContext = new SlateLayoutContext(new MinecraftTextMeasurer(font), theme);
         root.measure(layoutContext, new Size(bounds.width(), bounds.height()));
         root.layout(layoutContext, bounds);
         List<DrawCommand> commands = new ArrayList<>();

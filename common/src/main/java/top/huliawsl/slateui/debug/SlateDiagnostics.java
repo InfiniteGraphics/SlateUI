@@ -77,7 +77,6 @@ public final class SlateDiagnostics {
     public void captureEvent(String type, String path, boolean consumed) {
         lastEventDump = "type=" + (type == null ? "event" : type)
             + " path=" + (path == null || path.isBlank() ? "<none>" : path)
-            + " phase=target"
             + " consumed=" + consumed;
     }
 

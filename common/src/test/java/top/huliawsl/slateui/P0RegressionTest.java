@@ -20,11 +20,14 @@ import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.api.StackDirection;
 import top.huliawsl.slateui.api.StateProvider;
 import top.huliawsl.slateui.api.Theme;
+import top.huliawsl.slateui.api.ThemeTokens;
 import top.huliawsl.slateui.api.component.Box;
 import top.huliawsl.slateui.api.component.Button;
+import top.huliawsl.slateui.api.component.Image;
 import top.huliawsl.slateui.api.component.Panel;
 import top.huliawsl.slateui.api.component.SlotGrid;
 import top.huliawsl.slateui.api.component.Stack;
+import top.huliawsl.slateui.api.component.Text;
 import top.huliawsl.slateui.api.component.Toggle;
 import top.huliawsl.slateui.api.container.ContainerSlot;
 import top.huliawsl.slateui.api.container.StaticContainerSlotProvider;
@@ -38,12 +41,117 @@ import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawBorderCommand;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.DrawRectCommand;
+import top.huliawsl.slateui.render.DrawTextCommand;
+import top.huliawsl.slateui.render.DrawTextureCommand;
 import top.huliawsl.slateui.render.PushClipCommand;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
 
 class P0RegressionTest {
+
+    @Test
+    void styleMergePreservesExplicitZeroFalseAndNoneOverrides() {
+        SlateStyle defaults = SlateStyle.builder()
+            .padding(Insets.all(8))
+            .gap(12)
+            .border(new SlateBorder(0xFFFFFFFF, 1))
+            .focusBorder(new SlateBorder(0xFFFFFFFF, 1))
+            .textColor(0xFF00FF00)
+            .disabled(true)
+            .clipContent(true)
+            .build();
+
+        SlateStyle merged = SlateStyle.withDefaults(defaults, SlateStyle.builder()
+            .padding(Insets.ZERO)
+            .gap(0)
+            .border(SlateBorder.NONE)
+            .focusBorder(SlateBorder.NONE)
+            .textColor(0)
+            .disabled(false)
+            .clipContent(false)
+            .build());
+
+        assertEquals(Insets.ZERO, merged.padding());
+        assertEquals(0, merged.gap());
+        assertEquals(SlateBorder.NONE, merged.border());
+        assertEquals(SlateBorder.NONE, merged.focusBorder());
+        assertEquals(0, merged.textColor());
+        assertEquals(false, merged.disabled());
+        assertEquals(false, merged.clipContent());
+    }
+
+    @Test
+    void gapTokenParticipatesInStackMeasureAndLayout() {
+        Theme theme = new Theme(ThemeTokens.builder().spacing("spacing.md", 11).build());
+        Stack stack = new Stack(StackDirection.COLUMN, List.of(
+            new FixedComponent("first", 20, 8),
+            new FixedComponent("second", 30, 10)
+        ), SlateStyle.builder().gapToken("spacing.md").build());
+        SlateLayoutContext context = new SlateLayoutContext(null, theme);
+
+        Size measured = stack.measure(context, new Size(100, 100));
+        stack.layout(context, new Rect(0, 0, 100, 100));
+
+        assertEquals(new Size(30, 29), measured);
+        assertEquals(new Rect(0, 19, 30, 10), stack.children().get(1).bounds());
+    }
+
+    @Test
+    void colorTokensOverrideDirectFallbacksForTextAndBorders() {
+        Theme theme = new Theme(ThemeTokens.builder()
+            .color("color.text", 0xFF123456)
+            .color("color.border", 0xFF654321)
+            .build());
+        Text text = new Text("Token", SlateStyle.builder().textColor(0xFFFFFFFF).textColorToken("color.text").build());
+        Box box = new Box(List.of(), SlateStyle.builder()
+            .border(new SlateBorder(0xFFFFFFFF, 1))
+            .borderColorToken("color.border")
+            .build());
+
+        text.measure(new SlateLayoutContext(null, theme), new Size(100, 20));
+        text.layout(new SlateLayoutContext(null, theme), new Rect(0, 0, 100, 20));
+        box.measure(new SlateLayoutContext(null, theme), new Size(100, 20));
+        box.layout(new SlateLayoutContext(null, theme), new Rect(0, 0, 100, 20));
+
+        assertEquals(0xFF123456, first(collect(text, theme), DrawTextCommand.class).color());
+        assertEquals(0xFF654321, first(collect(box, theme), DrawBorderCommand.class).color());
+    }
+
+    @Test
+    void buttonWithoutCommandIsHandledWithoutExecutingFallbackClose() {
+        Button button = new Button("Noop", null, SlateStyle.EMPTY);
+        button.measure(new SlateLayoutContext(null), new Size(100, 40));
+        button.layout(new SlateLayoutContext(null), new Rect(0, 0, 80, 24));
+        TestScreen screen = new TestScreen(button, new SlateCommandRegistry());
+        List<String> diagnostics = new ArrayList<>();
+        SlateInteractionContext interaction = new SlateInteractionContext(
+            new SlateCommandRegistry(),
+            new CommandContext(null, screen),
+            ignored -> {},
+            diagnostics::add,
+            screen,
+            StateProvider.EMPTY,
+            Theme.DEFAULT
+        );
+
+        button.mouseClicked(interaction, 4, 4, 0);
+        assertTrue(button.mouseReleased(interaction, 4, 4, 0));
+
+        assertTrue(diagnostics.stream().anyMatch(entry -> entry.contains("BUTTON no command")));
+    }
+
+    @Test
+    void imageEmitsTextureCommandWithoutMinecraftResourceInCoreCommand() {
+        Image image = new Image("minecraft:textures/gui/options_background.png", SlateStyle.builder().width(16).height(16).build());
+        image.measure(new SlateLayoutContext(null), new Size(100, 100));
+        image.layout(new SlateLayoutContext(null), new Rect(0, 0, 16, 16));
+
+        DrawTextureCommand command = first(collect(image), DrawTextureCommand.class);
+
+        assertEquals("minecraft:textures/gui/options_background.png", command.texture());
+        assertEquals(false, command.missing());
+    }
 
     @Test
     void stackLayoutKeepsGapAndChildOrder() {
@@ -194,8 +302,12 @@ class P0RegressionTest {
         assertTrue(exception.detail().contains("settings.missing"));
     }
     private static List<DrawCommand> collect(SlateComponent component) {
+        return collect(component, Theme.DEFAULT);
+    }
+
+    private static List<DrawCommand> collect(SlateComponent component, Theme theme) {
         List<DrawCommand> commands = new ArrayList<>();
-        component.collectDrawCommands(new SlateRenderContext(false, Theme.DEFAULT), commands);
+        component.collectDrawCommands(new SlateRenderContext(false, theme), commands);
         return commands;
     }
 

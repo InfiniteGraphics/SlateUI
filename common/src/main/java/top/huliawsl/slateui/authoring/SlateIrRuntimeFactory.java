@@ -165,14 +165,17 @@ public final class SlateIrRuntimeFactory {
                 resolveStyle(node, context)
             ))
             .register("Button", (node, children, namedSlots, context) -> children.isEmpty()
-                ? new top.huliawsl.slateui.api.component.Button(resolveString(node, "label", context), prop(node, "command", "screen.close"), resolveStyle(node, context))
-                : new top.huliawsl.slateui.api.component.Button(children, prop(node, "command", "screen.close"), resolveStyle(node, context)))
+                ? new top.huliawsl.slateui.api.component.Button(resolveString(node, "label", context), prop(node, "command", null), resolveStyle(node, context))
+                : new top.huliawsl.slateui.api.component.Button(children, prop(node, "command", null), resolveStyle(node, context)))
             .register("Input", (node, children, namedSlots, context) -> new Input(
                 context.provider(),
                 prop(node, "placeholder", ""),
                 ignored -> resolveString(node, "value", context),
+                prop(node, "onInput", null),
                 prop(node, "onChange", null),
+                prop(node, "onCommit", prop(node, "onChange", null)),
                 createInputHandler(node, context),
+                propInt(node, "maxLength", 0),
                 resolveStyle(node, context)
             ))
             .register("Toggle", (node, children, namedSlots, context) -> new Toggle(
@@ -499,7 +502,7 @@ public final class SlateIrRuntimeFactory {
             case "gap" -> builder.gap(parseInt(value, key));
             case "gaptoken", "gap-token" -> builder.gapToken(value);
             case "padding" -> builder.padding(Insets.all(parseInt(value, key)));
-            case "margin" -> builder.margin(Insets.all(parseInt(value, key)));
+            case "margin" -> throw new IllegalArgumentException("margin is not supported in SlateUI v0.1");
             case "background", "backgroundcolor", "background-color" -> applyBackground(builder, parseColor(value), state);
             case "backgroundtoken", "background-token" -> applyBackgroundToken(builder, value, state);
             case "hoverbackground", "hover-background", "hoverbackgroundcolor", "hover-background-color" -> builder.hoverBackgroundColor(parseColor(value));

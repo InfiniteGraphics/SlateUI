@@ -272,7 +272,7 @@ public abstract class SlateComponent {
     }
 
     protected final int resolveGap(Theme theme) {
-        return theme.resolveSpacing(style.gap(), style.gapToken(), style.gap());
+        return theme.resolveSpacing(style.directGap(), style.gapToken(), style.gap());
     }
 
     protected final int resolveTextColor(Theme theme) {
@@ -365,8 +365,7 @@ public abstract class SlateComponent {
             .append(debugPath())
             .append(" ")
             .append(style.describe(theme))
-            .append('
-');
+            .append('\n');
         for (SlateComponent child : children()) {
             child.appendStyleTree(builder, depth + 1, theme);
         }

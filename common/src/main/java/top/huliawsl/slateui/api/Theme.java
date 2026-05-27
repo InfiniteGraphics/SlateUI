@@ -21,26 +21,26 @@ public final class Theme {
     }
 
     public int resolveColor(Integer directValue, String token, int fallback) {
-        if (directValue != null) {
-            return directValue;
-        }
         Integer tokenValue = token == null ? null : tokens.color(token);
-        return tokenValue != null ? tokenValue : fallback;
+        if (tokenValue != null) {
+            return tokenValue;
+        }
+        return directValue != null ? directValue : fallback;
     }
 
     public int resolveSpacing(Integer directValue, String token, int fallback) {
-        if (directValue != null) {
-            return directValue;
-        }
         Integer tokenValue = token == null ? null : tokens.spacing(token);
-        return tokenValue != null ? tokenValue : fallback;
+        if (tokenValue != null) {
+            return tokenValue;
+        }
+        return directValue != null ? directValue : fallback;
     }
 
     public int resolveRadius(Integer directValue, String token, int fallback) {
-        if (directValue != null) {
-            return directValue;
-        }
         Integer tokenValue = token == null ? null : tokens.radius(token);
-        return tokenValue != null ? tokenValue : fallback;
+        if (tokenValue != null) {
+            return tokenValue;
+        }
+        return directValue != null ? directValue : fallback;
     }
 }

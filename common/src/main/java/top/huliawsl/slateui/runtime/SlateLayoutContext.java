@@ -1,14 +1,23 @@
 package top.huliawsl.slateui.runtime;
 
-import net.minecraft.client.gui.Font;
+import top.huliawsl.slateui.api.Theme;
 
-public record SlateLayoutContext(Font font) {
+public record SlateLayoutContext(SlateTextMeasurer textMeasurer, Theme theme) {
+
+    public SlateLayoutContext(SlateTextMeasurer textMeasurer) {
+        this(textMeasurer, Theme.DEFAULT);
+    }
+
+    public SlateLayoutContext {
+        textMeasurer = textMeasurer == null ? SlateTextMeasurer.FALLBACK : textMeasurer;
+        theme = theme == null ? Theme.DEFAULT : theme;
+    }
 
     public int textWidth(String text) {
-        return font == null ? (text == null ? 0 : text.length() * 6) : font.width(text);
+        return textMeasurer.width(text);
     }
 
     public int lineHeight() {
-        return font == null ? 9 : font.lineHeight;
+        return textMeasurer.lineHeight();
     }
 }

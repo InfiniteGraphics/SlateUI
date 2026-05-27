@@ -156,7 +156,7 @@ public final class SlateDemoEntrypoint {
                     new top.huliawsl.slateui.api.component.Button("Container", "demo.page.container", subtleButtonStyle)
                 ), SlateStyle.builder().gap(8).clipContent(true).build()),
                 new Stack(StackDirection.ROW, List.of(
-                    new top.huliawsl.slateui.api.component.Button("Inspect", "screen.inspect", primaryButtonStyle),
+                    new top.huliawsl.slateui.api.component.Button("Inspect Runtime", "screen.inspect", primaryButtonStyle),
                     new top.huliawsl.slateui.api.component.Button(debugEnabled ? "Normal" : "Debug", debugEnabled ? "demo.normal" : "demo.debug", primaryButtonStyle)
                 ), SlateStyle.builder().gap(8).clipContent(true).build())
             ),

@@ -3,6 +3,7 @@ package top.huliawsl.slateui.event;
 import java.util.List;
 import top.huliawsl.slateui.api.SlateComponent;
 
+@Deprecated(forRemoval = false)
 public final class SlateEvent {
 
     private final String type;

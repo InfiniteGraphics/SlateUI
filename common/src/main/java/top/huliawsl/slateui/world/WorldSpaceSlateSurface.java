@@ -11,6 +11,7 @@ import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.MinecraftDrawCommandRenderer;
+import top.huliawsl.slateui.runtime.MinecraftTextMeasurer;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
 
@@ -37,7 +38,7 @@ public final class WorldSpaceSlateSurface {
 
     public void rebuild(Font font, int screenWidth, int screenHeight) {
         projectedBounds = projection.project(anchor, screenWidth, screenHeight);
-        SlateLayoutContext layoutContext = new SlateLayoutContext(font);
+        SlateLayoutContext layoutContext = new SlateLayoutContext(new MinecraftTextMeasurer(font), theme);
         root.measure(layoutContext, new Size(projectedBounds.width(), projectedBounds.height()));
         root.layout(layoutContext, projectedBounds);
         List<DrawCommand> commands = new ArrayList<>();

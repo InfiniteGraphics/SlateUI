@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.lwjgl.glfw.GLFW;
 import org.junit.jupiter.api.Test;
 import top.huliawsl.slateui.api.MutableStateProvider;
 import top.huliawsl.slateui.api.SlateComponent;
@@ -17,8 +19,10 @@ import top.huliawsl.slateui.api.component.Stack;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
+import top.huliawsl.slateui.render.DrawTextCommand;
 import top.huliawsl.slateui.render.PopClipCommand;
 import top.huliawsl.slateui.render.PushClipCommand;
+import top.huliawsl.slateui.runtime.SlateClipboard;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -35,7 +39,7 @@ class RuntimeComponentsTest {
         stack.measure(new SlateLayoutContext(null), new Size(200, 200));
         stack.layout(new SlateLayoutContext(null), new Rect(0, 0, 200, 200));
 
-        assertEquals("Stack rect=Rect[x=0, y=0, width=200, height=200] hovered=false pressed=false focused=false\n  FixedComponent rect=Rect[x=0, y=0, width=60, height=10] hovered=false pressed=false focused=false\n  FixedComponent rect=Rect[x=0, y=16, width=80, height=12] hovered=false pressed=false focused=false\n", stack.dumpComponentTree());
+        assertEquals("Stack path=Stack rect=Rect[x=0, y=0, width=200, height=200] measured=Size[width=80, height=28] clip=false hovered=false pressed=false focused=false\n  FixedComponent path=Stack/FixedComponent[0] rect=Rect[x=0, y=0, width=60, height=10] measured=Size[width=60, height=10] clip=false hovered=false pressed=false focused=false\n  FixedComponent path=Stack/FixedComponent[1] rect=Rect[x=0, y=16, width=80, height=12] measured=Size[width=80, height=12] clip=false hovered=false pressed=false focused=false\n", stack.dumpComponentTree());
     }
 
     @Test
@@ -188,6 +192,93 @@ class RuntimeComponentsTest {
     }
 
     @Test
+    void inputSupportsSelectionPasteDeleteAndMaxLength() {
+        Input input = new Input(
+            top.huliawsl.slateui.api.StateProvider.EMPTY,
+            "placeholder",
+            ignored -> "abc",
+            null,
+            null,
+            null,
+            null,
+            4,
+            SlateStyle.EMPTY
+        );
+        input.measure(new SlateLayoutContext(null), new Size(120, 40));
+        input.layout(new SlateLayoutContext(null), new Rect(0, 0, 120, 24));
+        TestScreen screen = new TestScreen(input);
+        SlateClipboard clipboard = new SlateClipboard() {
+            @Override
+            public String get() {
+                return "xyz123";
+            }
+
+            @Override
+            public void set(String value) {
+            }
+        };
+        SlateInteractionContext interaction = new SlateInteractionContext(
+            new top.huliawsl.slateui.command.SlateCommandRegistry(),
+            new top.huliawsl.slateui.command.CommandContext(null, screen),
+            ignored -> {},
+            ignored -> {},
+            screen,
+            top.huliawsl.slateui.api.StateProvider.EMPTY,
+            top.huliawsl.slateui.api.Theme.DEFAULT,
+            clipboard
+        );
+        input.setFocused(true);
+
+        input.keyPressed(interaction, GLFW.GLFW_KEY_A, 0, GLFW.GLFW_MOD_CONTROL);
+        input.keyPressed(interaction, GLFW.GLFW_KEY_V, 0, GLFW.GLFW_MOD_CONTROL);
+        input.keyPressed(interaction, GLFW.GLFW_KEY_HOME, 0, 0);
+        input.keyPressed(interaction, GLFW.GLFW_KEY_DELETE, 0, 0);
+
+        List<DrawCommand> commands = new java.util.ArrayList<>();
+        input.collectDrawCommands(new SlateRenderContext(false, top.huliawsl.slateui.api.Theme.DEFAULT), commands);
+
+        assertTrue(commands.stream()
+            .filter(DrawTextCommand.class::isInstance)
+            .map(DrawTextCommand.class::cast)
+            .anyMatch(command -> command.text().contains("yz1")));
+    }
+
+    @Test
+    void screenMovesFocusWithTabAndShiftTab() {
+        Button first = new Button("First", null, SlateStyle.EMPTY);
+        Button second = new Button("Second", null, SlateStyle.EMPTY);
+        Stack root = new Stack(StackDirection.COLUMN, List.of(first, second), SlateStyle.EMPTY);
+        TestScreen screen = new TestScreen(root);
+
+        assertTrue(screen.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
+        assertEquals(first, screen.focusedComponent());
+
+        assertTrue(screen.keyPressed(GLFW.GLFW_KEY_TAB, 0, GLFW.GLFW_MOD_SHIFT));
+        assertEquals(second, screen.focusedComponent());
+    }
+
+    @Test
+    void scrollViewDoesNotDispatchClicksOutsideViewport() {
+        ClickComponent content = new ClickComponent();
+        ScrollView scrollView = new ScrollView(content, SlateStyle.builder().width(40).height(20).build());
+        scrollView.measure(new SlateLayoutContext(null), new Size(40, 20));
+        scrollView.layout(new SlateLayoutContext(null), new Rect(0, 0, 40, 20));
+        TestScreen screen = new TestScreen(scrollView);
+        SlateInteractionContext interaction = new SlateInteractionContext(
+            new top.huliawsl.slateui.command.SlateCommandRegistry(),
+            new top.huliawsl.slateui.command.CommandContext(null, screen),
+            ignored -> {},
+            ignored -> {},
+            screen,
+            top.huliawsl.slateui.api.StateProvider.EMPTY,
+            top.huliawsl.slateui.api.Theme.DEFAULT
+        );
+
+        assertEquals(false, scrollView.mouseClicked(interaction, 60, 60, 0));
+        assertEquals(0, content.clicks.get());
+    }
+
+    @Test
     void providerNotifiesListenersOnDirtyUpdate() {
         MutableStateProvider provider = new MutableStateProvider();
         MutableString dirtyPath = new MutableString();
@@ -221,6 +312,33 @@ class RuntimeComponentsTest {
 
         @Override
         public void collectDrawCommands(SlateRenderContext context, List<top.huliawsl.slateui.render.DrawCommand> commands) {
+        }
+    }
+
+    private static final class ClickComponent extends SlateComponent {
+
+        private final AtomicInteger clicks = new AtomicInteger();
+
+        @Override
+        public Size measure(SlateLayoutContext context, Size available) {
+            Size size = new Size(100, 100);
+            setMeasuredSize(size);
+            return size;
+        }
+
+        @Override
+        public void layout(SlateLayoutContext context, Rect bounds) {
+            setBounds(bounds);
+        }
+
+        @Override
+        public void collectDrawCommands(SlateRenderContext context, List<top.huliawsl.slateui.render.DrawCommand> commands) {
+        }
+
+        @Override
+        public boolean mouseClicked(SlateInteractionContext context, double mouseX, double mouseY, int button) {
+            clicks.incrementAndGet();
+            return true;
         }
     }
 

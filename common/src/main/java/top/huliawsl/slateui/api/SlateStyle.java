@@ -13,8 +13,7 @@ public final class SlateStyle {
     private final Integer maxWidth;
     private final Integer maxHeight;
     private final Insets padding;
-    private final Insets margin;
-    private final int gap;
+    private final Integer gap;
     private final String gapToken;
     private final Integer backgroundColor;
     private final String backgroundToken;
@@ -32,8 +31,8 @@ public final class SlateStyle {
     private final String textColorToken;
     private final HorizontalAlign horizontalAlign;
     private final VerticalAlign verticalAlign;
-    private final boolean disabled;
-    private final boolean clipContent;
+    private final Boolean disabled;
+    private final Boolean clipContent;
 
     private SlateStyle(Builder builder) {
         this.width = builder.width;
@@ -43,7 +42,6 @@ public final class SlateStyle {
         this.maxWidth = builder.maxWidth;
         this.maxHeight = builder.maxHeight;
         this.padding = builder.padding;
-        this.margin = builder.margin;
         this.gap = builder.gap;
         this.gapToken = builder.gapToken;
         this.backgroundColor = builder.backgroundColor;
@@ -84,9 +82,8 @@ public final class SlateStyle {
         builder.minHeight = override.minHeight != null ? override.minHeight : defaults.minHeight;
         builder.maxWidth = override.maxWidth != null ? override.maxWidth : defaults.maxWidth;
         builder.maxHeight = override.maxHeight != null ? override.maxHeight : defaults.maxHeight;
-        builder.padding = !Insets.ZERO.equals(override.padding) ? override.padding : defaults.padding;
-        builder.margin = !Insets.ZERO.equals(override.margin) ? override.margin : defaults.margin;
-        builder.gap = override.gap != 0 ? override.gap : defaults.gap;
+        builder.padding = override.padding != null ? override.padding : defaults.padding;
+        builder.gap = override.gap != null ? override.gap : defaults.gap;
         builder.gapToken = override.gapToken != null ? override.gapToken : defaults.gapToken;
         builder.backgroundColor = override.backgroundColor != null ? override.backgroundColor : defaults.backgroundColor;
         builder.backgroundToken = override.backgroundToken != null ? override.backgroundToken : defaults.backgroundToken;
@@ -94,18 +91,18 @@ public final class SlateStyle {
         builder.hoverBackgroundToken = override.hoverBackgroundToken != null ? override.hoverBackgroundToken : defaults.hoverBackgroundToken;
         builder.activeBackgroundColor = override.activeBackgroundColor != null ? override.activeBackgroundColor : defaults.activeBackgroundColor;
         builder.activeBackgroundToken = override.activeBackgroundToken != null ? override.activeBackgroundToken : defaults.activeBackgroundToken;
-        builder.border = !SlateBorder.NONE.equals(override.border) ? override.border : defaults.border;
+        builder.border = override.border != null ? override.border : defaults.border;
         builder.borderColorToken = override.borderColorToken != null ? override.borderColorToken : defaults.borderColorToken;
         builder.borderRadius = override.borderRadius != null ? override.borderRadius : defaults.borderRadius;
         builder.borderRadiusToken = override.borderRadiusToken != null ? override.borderRadiusToken : defaults.borderRadiusToken;
-        builder.focusBorder = !SlateBorder.NONE.equals(override.focusBorder) ? override.focusBorder : defaults.focusBorder;
+        builder.focusBorder = override.focusBorder != null ? override.focusBorder : defaults.focusBorder;
         builder.focusBorderColorToken = override.focusBorderColorToken != null ? override.focusBorderColorToken : defaults.focusBorderColorToken;
         builder.textColor = override.textColor != null ? override.textColor : defaults.textColor;
         builder.textColorToken = override.textColorToken != null ? override.textColorToken : defaults.textColorToken;
         builder.horizontalAlign = override.horizontalAlign != null ? override.horizontalAlign : defaults.horizontalAlign;
         builder.verticalAlign = override.verticalAlign != null ? override.verticalAlign : defaults.verticalAlign;
-        builder.disabled = override.disabled || defaults.disabled;
-        builder.clipContent = override.clipContent || defaults.clipContent;
+        builder.disabled = override.disabled != null ? override.disabled : defaults.disabled;
+        builder.clipContent = override.clipContent != null ? override.clipContent : defaults.clipContent;
         return builder.build();
     }
 
@@ -134,14 +131,14 @@ public final class SlateStyle {
     }
 
     public Insets padding() {
-        return padding;
-    }
-
-    public Insets margin() {
-        return margin;
+        return padding == null ? Insets.ZERO : padding;
     }
 
     public int gap() {
+        return gap == null ? 0 : gap;
+    }
+
+    public Integer directGap() {
         return gap;
     }
 
@@ -174,7 +171,7 @@ public final class SlateStyle {
     }
 
     public SlateBorder border() {
-        return border;
+        return border == null ? SlateBorder.NONE : border;
     }
 
     public String borderColorToken() {
@@ -190,7 +187,7 @@ public final class SlateStyle {
     }
 
     public SlateBorder focusBorder() {
-        return focusBorder;
+        return focusBorder == null ? SlateBorder.NONE : focusBorder;
     }
 
     public String focusBorderColorToken() {
@@ -206,19 +203,19 @@ public final class SlateStyle {
     }
 
     public HorizontalAlign horizontalAlign() {
-        return horizontalAlign;
+        return horizontalAlign == null ? HorizontalAlign.START : horizontalAlign;
     }
 
     public VerticalAlign verticalAlign() {
-        return verticalAlign;
+        return verticalAlign == null ? VerticalAlign.START : verticalAlign;
     }
 
     public boolean disabled() {
-        return disabled;
+        return disabled != null && disabled;
     }
 
     public boolean clipContent() {
-        return clipContent;
+        return clipContent != null && clipContent;
     }
 
 
@@ -227,21 +224,21 @@ public final class SlateStyle {
         int resolvedBackground = resolvedTheme.resolveColor(backgroundColor, backgroundToken, Integer.MIN_VALUE);
         int resolvedText = resolvedTheme.resolveColor(textColor, textColorToken, 0xFFFFFFFF);
         int resolvedRadius = resolvedTheme.resolveRadius(borderRadius, borderRadiusToken, 0);
-        int resolvedGap = resolvedTheme.resolveSpacing(gap, gapToken, gap);
+        int resolvedGap = resolvedTheme.resolveSpacing(gap, gapToken, gap());
         String background = resolvedBackground == Integer.MIN_VALUE ? "<none>" : String.format("#%08X", resolvedBackground);
         return "size=" + nullable(width) + "x" + nullable(height)
             + " min=" + nullable(minWidth) + "x" + nullable(minHeight)
             + " max=" + nullable(maxWidth) + "x" + nullable(maxHeight)
-            + " padding=" + padding
+            + " padding=" + padding()
             + " gap=" + resolvedGap + originSuffix(gapToken)
             + " background=" + background + originSuffix(backgroundToken)
-            + " border=" + border.thickness() + "/" + String.format("#%08X", border.color()) + originSuffix(borderColorToken)
+            + " border=" + border().thickness() + "/" + String.format("#%08X", border().color()) + originSuffix(borderColorToken)
             + " radius=" + resolvedRadius + originSuffix(borderRadiusToken)
-            + " focusBorder=" + focusBorder.thickness()
+            + " focusBorder=" + focusBorder().thickness()
             + " text=" + String.format("#%08X", resolvedText) + originSuffix(textColorToken)
-            + " align=" + horizontalAlign + "/" + verticalAlign
-            + " clip=" + clipContent
-            + " disabled=" + disabled;
+            + " align=" + horizontalAlign() + "/" + verticalAlign()
+            + " clip=" + clipContent()
+            + " disabled=" + disabled();
     }
 
     private static String nullable(Integer value) {
@@ -260,9 +257,8 @@ public final class SlateStyle {
         private Integer minHeight;
         private Integer maxWidth;
         private Integer maxHeight;
-        private Insets padding = Insets.ZERO;
-        private Insets margin = Insets.ZERO;
-        private int gap;
+        private Insets padding;
+        private Integer gap;
         private String gapToken;
         private Integer backgroundColor;
         private String backgroundToken;
@@ -270,18 +266,18 @@ public final class SlateStyle {
         private String hoverBackgroundToken;
         private Integer activeBackgroundColor;
         private String activeBackgroundToken;
-        private SlateBorder border = SlateBorder.NONE;
+        private SlateBorder border;
         private String borderColorToken;
         private Integer borderRadius;
         private String borderRadiusToken;
-        private SlateBorder focusBorder = SlateBorder.NONE;
+        private SlateBorder focusBorder;
         private String focusBorderColorToken;
-        private Integer textColor = 0xFFFFFFFF;
+        private Integer textColor;
         private String textColorToken;
-        private HorizontalAlign horizontalAlign = HorizontalAlign.START;
-        private VerticalAlign verticalAlign = VerticalAlign.START;
-        private boolean disabled;
-        private boolean clipContent;
+        private HorizontalAlign horizontalAlign;
+        private VerticalAlign verticalAlign;
+        private Boolean disabled;
+        private Boolean clipContent;
 
         private Builder() {
         }
@@ -324,11 +320,6 @@ public final class SlateStyle {
 
         public Builder padding(Insets padding) {
             this.padding = padding;
-            return this;
-        }
-
-        public Builder margin(Insets margin) {
-            this.margin = margin;
             return this;
         }
 

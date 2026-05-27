@@ -3,6 +3,7 @@ package top.huliawsl.slateui.render;
 import java.util.List;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
 import top.huliawsl.slateui.layout.Insets;
 import top.huliawsl.slateui.layout.Rect;
 
@@ -23,7 +24,7 @@ public final class MinecraftDrawCommandRenderer {
                     case DrawBorderCommand borderCommand -> drawBorder(graphics, borderCommand.rect(), borderCommand.color(), borderCommand.thickness(), borderCommand.radius(), clipStack.current());
                     case DrawTextCommand textCommand -> graphics.drawString(font, textCommand.text(), textCommand.x(), textCommand.y(), textCommand.color(), false);
                     case DrawDebugRectCommand debugRectCommand -> drawBorder(graphics, debugRectCommand.rect(), debugRectCommand.color(), 1, 0, clipStack.current());
-                    case DrawImageCommand imageCommand -> drawImagePlaceholder(graphics, font, imageCommand, clipStack.current());
+                    case DrawTextureCommand textureCommand -> drawTexture(graphics, font, textureCommand, clipStack.current());
                     case PushClipCommand pushClipCommand -> pushClip(graphics, clipStack, pushClipCommand.rect(), pushClipCommand.radius());
                     case PopClipCommand ignored -> popClip(graphics, clipStack);
                 }
@@ -88,12 +89,32 @@ public final class MinecraftDrawCommandRenderer {
         }
     }
 
-    private static void drawImagePlaceholder(GuiGraphics graphics, Font font, DrawImageCommand command, ClipStack.Entry clip) {
+    private static void drawTexture(GuiGraphics graphics, Font font, DrawTextureCommand command, ClipStack.Entry clip) {
+        if (!command.missing()) {
+            Rect target = clip == null ? command.rect() : command.rect().intersect(clip.rect());
+            if (target.width() > 0 && target.height() > 0) {
+                ResourceLocation texture = ResourceLocation.tryParse(command.texture());
+                if (texture != null) {
+                    graphics.blit(
+                        texture,
+                        command.rect().x(),
+                        command.rect().y(),
+                        command.u(),
+                        command.v(),
+                        command.regionWidth(),
+                        command.regionHeight(),
+                        command.textureWidth(),
+                        command.textureHeight()
+                    );
+                    return;
+                }
+            }
+        }
         int background = command.missing() ? 0xFF7F1D1D : 0xFF0F172A;
         int border = command.missing() ? 0xFFFCA5A5 : 0xFF60A5FA;
         fill(graphics, command.rect(), background, 0, clip);
         drawBorder(graphics, command.rect(), border, 1, 0, clip);
-        String label = command.resourceLocation().toString();
+        String label = command.texture();
         graphics.drawString(font, label, command.rect().x() + 4, command.rect().y() + 4, 0xFFFFFFFF, false);
     }
 

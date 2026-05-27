@@ -33,7 +33,7 @@ public class Stack extends SlateComponent {
         Size contentAvailable = contentAvailable(available);
         int width = 0;
         int height = 0;
-        int gap = style().gap();
+        int gap = resolveGap(context.theme());
         for (int index = 0; index < children.size(); index++) {
             Size childSize = measureChild(context, children.get(index), contentAvailable);
             if (direction == StackDirection.ROW) {
@@ -60,7 +60,7 @@ public class Stack extends SlateComponent {
     public void layout(SlateLayoutContext context, Rect bounds) {
         setBounds(bounds);
         Rect contentRect = contentRect(bounds);
-        int gap = style().gap();
+        int gap = resolveGap(context.theme());
         int cursorX = startX(contentRect, gap);
         int cursorY = startY(contentRect, gap);
         for (SlateComponent child : children) {

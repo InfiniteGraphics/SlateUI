@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.function.Function;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
+import top.huliawsl.slateui.api.SlateText;
 import top.huliawsl.slateui.api.StateProvider;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
@@ -25,8 +26,16 @@ public class Text extends SlateComponent {
         this(provider -> text, SlateStyle.EMPTY);
     }
 
+    public Text(SlateText text) {
+        this(provider -> text == null ? "" : text.fallbackText(), SlateStyle.EMPTY);
+    }
+
     public Text(String text, SlateStyle style) {
         this(provider -> text, style);
+    }
+
+    public Text(SlateText text, SlateStyle style) {
+        this(provider -> text == null ? "" : text.fallbackText(), style);
     }
 
     public Text(Function<StateProvider, String> textResolver, SlateStyle style) {

@@ -9,6 +9,8 @@ import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 import top.huliawsl.slateui.command.CommandContext;
 import top.huliawsl.slateui.command.SlateCommandRegistry;
+import top.huliawsl.slateui.api.component.Button;
+import top.huliawsl.slateui.api.component.Toggle;
 import top.huliawsl.slateui.debug.SlateDiagnostics;
 import top.huliawsl.slateui.debug.SlateErrorScreen;
 import top.huliawsl.slateui.debug.SlateInspectorScreen;
@@ -17,6 +19,8 @@ import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.MinecraftDrawCommandRenderer;
+import top.huliawsl.slateui.runtime.MinecraftTextMeasurer;
+import top.huliawsl.slateui.runtime.SlateClipboard;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -77,7 +81,7 @@ public class SlateScreen extends Screen {
     protected void rebuildRuntime() {
         runtimeDirty = false;
         try {
-            SlateLayoutContext layoutContext = new SlateLayoutContext(font);
+            SlateLayoutContext layoutContext = new SlateLayoutContext(new MinecraftTextMeasurer(font), theme);
             Size available = new Size(width, height);
             root.refreshDebugPaths();
             measureRoot(layoutContext, available);
@@ -170,6 +174,15 @@ public class SlateScreen extends Screen {
                 requestRebuild("debug-hit-regions");
                 return true;
             }
+            if (keyCode == GLFW.GLFW_KEY_TAB) {
+                moveFocus((modifiers & GLFW.GLFW_MOD_SHIFT) != 0 ? -1 : 1);
+                return true;
+            }
+            if ((keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER || keyCode == GLFW.GLFW_KEY_SPACE)
+                && focusedComponent != null
+                && activateFocusedComponent()) {
+                return true;
+            }
             if (focusedComponent != null && focusedComponent.keyPressed(createInteractionContext(), keyCode, scanCode, modifiers)) {
                 return true;
             }
@@ -259,6 +272,17 @@ public class SlateScreen extends Screen {
     }
 
     protected SlateInteractionContext createInteractionContext() {
+        SlateClipboard clipboard = new SlateClipboard() {
+            @Override
+            public String get() {
+                return Minecraft.getInstance().keyboardHandler.getClipboard();
+            }
+
+            @Override
+            public void set(String value) {
+                Minecraft.getInstance().keyboardHandler.setClipboard(value == null ? "" : value);
+            }
+        };
         return new SlateInteractionContext(
             commands,
             new CommandContext(Minecraft.getInstance(), this),
@@ -266,8 +290,41 @@ public class SlateScreen extends Screen {
             diagnostics::logDiagnostic,
             this,
             stateProvider,
-            theme
+            theme,
+            clipboard
         );
+    }
+
+    private void moveFocus(int direction) {
+        List<SlateComponent> focusOrder = new ArrayList<>();
+        collectFocusable(root, focusOrder);
+        if (focusOrder.isEmpty()) {
+            return;
+        }
+        int current = focusedComponent == null ? -1 : focusOrder.indexOf(focusedComponent);
+        int next = Math.floorMod(current + direction, focusOrder.size());
+        setFocusedComponent(focusOrder.get(next));
+    }
+
+    private static void collectFocusable(SlateComponent component, List<SlateComponent> focusOrder) {
+        if (component.focusable() && !component.style().disabled()) {
+            focusOrder.add(component);
+        }
+        for (SlateComponent child : component.children()) {
+            collectFocusable(child, focusOrder);
+        }
+    }
+
+    private boolean activateFocusedComponent() {
+        if (!(focusedComponent instanceof Button) && !(focusedComponent instanceof Toggle)) {
+            return false;
+        }
+        SlateInteractionContext context = createInteractionContext();
+        Rect bounds = focusedComponent.bounds();
+        double x = bounds.x() + Math.max(0, bounds.width() / 2.0D);
+        double y = bounds.y() + Math.max(0, bounds.height() / 2.0D);
+        focusedComponent.mouseClicked(context, x, y, 0);
+        return focusedComponent.mouseReleased(context, x, y, 0);
     }
 
     private String dumpState() {

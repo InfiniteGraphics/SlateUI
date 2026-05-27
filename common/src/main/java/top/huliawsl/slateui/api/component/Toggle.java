@@ -44,6 +44,7 @@ public class Toggle extends SlateComponent {
     private final String changeCommand;
     private final ToggleValueHandler changeHandler;
     private boolean checked;
+    private int lineHeight = 9;
 
     public Toggle(String label, boolean checked, String changeCommand, SlateStyle style) {
         this(StateProvider.EMPTY, label, ignored -> checked, changeCommand, null, style);
@@ -70,9 +71,10 @@ public class Toggle extends SlateComponent {
     @Override
     public Size measure(SlateLayoutContext context, Size available) {
         checked = Boolean.TRUE.equals(checkedResolver.apply(stateProvider));
+        lineHeight = context.lineHeight();
         int labelWidth = label.isBlank() ? 0 : context.textWidth(label) + LABEL_GAP;
         int width = CHECK_SIZE + labelWidth;
-        int height = Math.max(CHECK_SIZE, context.lineHeight());
+        int height = Math.max(CHECK_SIZE, lineHeight);
         Size measured = applyStyleSize(addInsets(new Size(width, height), style().padding()));
         setMeasuredSize(measured);
         return measured;
@@ -93,10 +95,10 @@ public class Toggle extends SlateComponent {
         commands.add(new DrawRectCommand(checkRect, checkFill, Math.min(3, resolveBorderRadius(context.theme()))));
         commands.add(new DrawBorderCommand(checkRect, checked ? 0xFFBFDBFE : 0xFF64748B, 1, Math.min(3, resolveBorderRadius(context.theme()))));
         if (checked) {
-            commands.add(new DrawTextCommand(checkRect.x() + 2, checkRect.y() + 1, "✓", 0xFFFFFFFF));
+            commands.add(new DrawTextCommand(checkRect.x() + 2, checkRect.y() + 1, "x", 0xFFFFFFFF));
         }
         if (!label.isBlank()) {
-            commands.add(new DrawTextCommand(checkRect.right() + LABEL_GAP, content.y() + Math.max(0, (content.height() - context.lineHeight()) / 2), label, resolveTextColor(context.theme())));
+            commands.add(new DrawTextCommand(checkRect.right() + LABEL_GAP, content.y() + Math.max(0, (content.height() - lineHeight) / 2), label, resolveTextColor(context.theme())));
         }
     }
 

@@ -1,29 +1,26 @@
 package top.huliawsl.slateui.api.component;
 
 import java.util.List;
-import net.minecraft.resources.ResourceLocation;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
-import top.huliawsl.slateui.render.DrawImageCommand;
+import top.huliawsl.slateui.render.DrawTextureCommand;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
 
 public class Image extends SlateComponent {
 
-    private final ResourceLocation resourceLocation;
+    private static final String MISSING_TEXTURE = "minecraft:missingno";
+
+    private final String resourceId;
     private final boolean missing;
 
     public Image(String resourceId, SlateStyle style) {
-        this(ResourceLocation.tryParse(resourceId), style);
-    }
-
-    public Image(ResourceLocation resourceLocation, SlateStyle style) {
         super(style);
-        this.resourceLocation = resourceLocation == null ? ResourceLocation.withDefaultNamespace("missingno") : resourceLocation;
-        this.missing = resourceLocation == null;
+        this.resourceId = validResourceId(resourceId) ? resourceId : MISSING_TEXTURE;
+        this.missing = !validResourceId(resourceId);
     }
 
     @Override
@@ -43,6 +40,14 @@ public class Image extends SlateComponent {
     @Override
     public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
         emitBoxChrome(context, commands);
-        commands.add(new DrawImageCommand(contentRect(bounds()), resourceLocation, missing));
+        commands.add(new DrawTextureCommand(contentRect(bounds()), resourceId, missing));
+    }
+
+    private static boolean validResourceId(String resourceId) {
+        if (resourceId == null || resourceId.isBlank()) {
+            return false;
+        }
+        int separator = resourceId.indexOf(':');
+        return separator > 0 && separator < resourceId.length() - 1;
     }
 }

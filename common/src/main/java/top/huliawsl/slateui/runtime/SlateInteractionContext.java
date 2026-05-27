@@ -18,6 +18,7 @@ public final class SlateInteractionContext {
     private final SlateScreen screen;
     private final StateProvider stateProvider;
     private final Theme theme;
+    private final SlateClipboard clipboard;
 
     public SlateInteractionContext(
         SlateCommandRegistry commands,
@@ -28,6 +29,19 @@ public final class SlateInteractionContext {
         StateProvider stateProvider,
         Theme theme
     ) {
+        this(commands, commandContext, commandLogger, diagnosticsLogger, screen, stateProvider, theme, SlateClipboard.EMPTY);
+    }
+
+    public SlateInteractionContext(
+        SlateCommandRegistry commands,
+        CommandContext commandContext,
+        Consumer<String> commandLogger,
+        Consumer<String> diagnosticsLogger,
+        SlateScreen screen,
+        StateProvider stateProvider,
+        Theme theme,
+        SlateClipboard clipboard
+    ) {
         this.commands = Objects.requireNonNull(commands, "commands");
         this.commandContext = Objects.requireNonNull(commandContext, "commandContext");
         this.commandLogger = Objects.requireNonNull(commandLogger, "commandLogger");
@@ -35,6 +49,7 @@ public final class SlateInteractionContext {
         this.screen = Objects.requireNonNull(screen, "screen");
         this.stateProvider = Objects.requireNonNull(stateProvider, "stateProvider");
         this.theme = Objects.requireNonNull(theme, "theme");
+        this.clipboard = clipboard == null ? SlateClipboard.EMPTY : clipboard;
     }
 
     public SlateCommandRegistry commands() {
@@ -63,6 +78,10 @@ public final class SlateInteractionContext {
 
     public Theme theme() {
         return theme;
+    }
+
+    public SlateClipboard clipboard() {
+        return clipboard;
     }
 
     public void requestFocus(SlateComponent component) {

@@ -6,6 +6,7 @@ import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
+import top.huliawsl.slateui.render.DrawRectCommand;
 import top.huliawsl.slateui.render.PopClipCommand;
 import top.huliawsl.slateui.render.PushClipCommand;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
@@ -62,6 +63,34 @@ public class ScrollView extends SlateComponent {
         commands.add(new PushClipCommand(viewport, contentClipRadius(context.theme())));
         collectChild(context, commands, content);
         commands.add(new PopClipCommand());
+        if (contentHeight > viewport.height() && viewport.height() > 0) {
+            int trackHeight = viewport.height();
+            int thumbHeight = Math.max(12, trackHeight * trackHeight / Math.max(trackHeight, contentHeight));
+            int maxOffset = Math.max(1, contentHeight - trackHeight);
+            int thumbY = viewport.y() + (trackHeight - thumbHeight) * scrollOffset / maxOffset;
+            commands.add(new DrawRectCommand(new Rect(viewport.right() - 3, thumbY, 2, thumbHeight), 0x99CBD5E1, 1));
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(SlateInteractionContext context, double mouseX, double mouseY, int button) {
+        Rect viewport = contentRect(bounds());
+        return viewport.contains(mouseX, mouseY) && content.mouseClicked(context, mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseReleased(SlateInteractionContext context, double mouseX, double mouseY, int button) {
+        Rect viewport = contentRect(bounds());
+        return viewport.contains(mouseX, mouseY) && content.mouseReleased(context, mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseMoved(SlateInteractionContext context, double mouseX, double mouseY) {
+        Rect viewport = contentRect(bounds());
+        if (!viewport.contains(mouseX, mouseY)) {
+            return false;
+        }
+        return content.mouseMoved(context, mouseX, mouseY);
     }
 
     @Override
