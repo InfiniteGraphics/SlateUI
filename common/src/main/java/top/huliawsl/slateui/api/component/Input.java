@@ -5,9 +5,11 @@ import java.util.Objects;
 import java.util.function.Function;
 import net.minecraft.client.gui.screens.Screen;
 import top.huliawsl.slateui.api.InputValueHandler;
+import top.huliawsl.slateui.api.SlateBorder;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.api.StateProvider;
+import top.huliawsl.slateui.layout.Insets;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
@@ -19,6 +21,15 @@ import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
 
 public class Input extends SlateComponent {
+
+    private static final SlateStyle DEFAULT_STYLE = SlateStyle.builder()
+        .padding(Insets.symmetric(8, 6))
+        .backgroundColor(0xFF0F172A)
+        .hoverBackgroundColor(0xFF111C31)
+        .border(new SlateBorder(0xFF475569, 1))
+        .focusBorder(new SlateBorder(0xFF60A5FA, 1))
+        .clipContent(true)
+        .build();
 
     private final StateProvider stateProvider;
     private final Function<StateProvider, String> valueResolver;
@@ -37,7 +48,7 @@ public class Input extends SlateComponent {
     }
 
     public Input(StateProvider stateProvider, String placeholder, Function<StateProvider, String> valueResolver, String changeCommand, InputValueHandler changeHandler, SlateStyle style) {
-        super(style);
+        super(SlateStyle.withDefaults(DEFAULT_STYLE, style));
         this.stateProvider = stateProvider == null ? StateProvider.EMPTY : stateProvider;
         this.placeholder = placeholder == null ? "" : placeholder;
         this.valueResolver = Objects.requireNonNull(valueResolver, "valueResolver");

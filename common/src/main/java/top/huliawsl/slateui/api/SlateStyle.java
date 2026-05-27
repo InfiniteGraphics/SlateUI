@@ -66,6 +66,43 @@ public final class SlateStyle {
         return new Builder();
     }
 
+    public static SlateStyle withDefaults(SlateStyle defaults, SlateStyle override) {
+        if (defaults == null) {
+            return override == null ? EMPTY : override;
+        }
+        if (override == null || override == EMPTY) {
+            return defaults;
+        }
+        Builder builder = builder();
+        builder.width = override.width != null ? override.width : defaults.width;
+        builder.height = override.height != null ? override.height : defaults.height;
+        builder.minWidth = override.minWidth != null ? override.minWidth : defaults.minWidth;
+        builder.minHeight = override.minHeight != null ? override.minHeight : defaults.minHeight;
+        builder.maxWidth = override.maxWidth != null ? override.maxWidth : defaults.maxWidth;
+        builder.maxHeight = override.maxHeight != null ? override.maxHeight : defaults.maxHeight;
+        builder.padding = !Insets.ZERO.equals(override.padding) ? override.padding : defaults.padding;
+        builder.margin = !Insets.ZERO.equals(override.margin) ? override.margin : defaults.margin;
+        builder.gap = override.gap != 0 ? override.gap : defaults.gap;
+        builder.gapToken = override.gapToken != null ? override.gapToken : defaults.gapToken;
+        builder.backgroundColor = override.backgroundColor != null ? override.backgroundColor : defaults.backgroundColor;
+        builder.backgroundToken = override.backgroundToken != null ? override.backgroundToken : defaults.backgroundToken;
+        builder.hoverBackgroundColor = override.hoverBackgroundColor != null ? override.hoverBackgroundColor : defaults.hoverBackgroundColor;
+        builder.hoverBackgroundToken = override.hoverBackgroundToken != null ? override.hoverBackgroundToken : defaults.hoverBackgroundToken;
+        builder.activeBackgroundColor = override.activeBackgroundColor != null ? override.activeBackgroundColor : defaults.activeBackgroundColor;
+        builder.activeBackgroundToken = override.activeBackgroundToken != null ? override.activeBackgroundToken : defaults.activeBackgroundToken;
+        builder.border = !SlateBorder.NONE.equals(override.border) ? override.border : defaults.border;
+        builder.borderColorToken = override.borderColorToken != null ? override.borderColorToken : defaults.borderColorToken;
+        builder.focusBorder = !SlateBorder.NONE.equals(override.focusBorder) ? override.focusBorder : defaults.focusBorder;
+        builder.focusBorderColorToken = override.focusBorderColorToken != null ? override.focusBorderColorToken : defaults.focusBorderColorToken;
+        builder.textColor = override.textColor != null ? override.textColor : defaults.textColor;
+        builder.textColorToken = override.textColorToken != null ? override.textColorToken : defaults.textColorToken;
+        builder.horizontalAlign = override.horizontalAlign != null ? override.horizontalAlign : defaults.horizontalAlign;
+        builder.verticalAlign = override.verticalAlign != null ? override.verticalAlign : defaults.verticalAlign;
+        builder.disabled = override.disabled || defaults.disabled;
+        builder.clipContent = override.clipContent || defaults.clipContent;
+        return builder.build();
+    }
+
     public Integer width() {
         return width;
     }

@@ -1,8 +1,12 @@
 package top.huliawsl.slateui.api.component;
 
 import java.util.List;
+import top.huliawsl.slateui.api.HorizontalAlign;
+import top.huliawsl.slateui.api.SlateBorder;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
+import top.huliawsl.slateui.api.VerticalAlign;
+import top.huliawsl.slateui.layout.Insets;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
@@ -12,6 +16,18 @@ import top.huliawsl.slateui.runtime.SlateRenderContext;
 
 public class Button extends SlateComponent {
 
+    private static final SlateStyle DEFAULT_STYLE = SlateStyle.builder()
+        .padding(Insets.symmetric(10, 6))
+        .backgroundToken("color.primary")
+        .hoverBackgroundToken("color.primaryHover")
+        .activeBackgroundToken("color.primaryActive")
+        .border(new SlateBorder(0xFFBFDBFE, 1))
+        .focusBorder(new SlateBorder(0xFFFFFFFF, 1))
+        .horizontalAlign(HorizontalAlign.CENTER)
+        .verticalAlign(VerticalAlign.CENTER)
+        .clipContent(true)
+        .build();
+
     private final String commandId;
     private final List<SlateComponent> children;
 
@@ -20,7 +36,7 @@ public class Button extends SlateComponent {
     }
 
     public Button(List<SlateComponent> children, String commandId, SlateStyle style) {
-        super(style);
+        super(SlateStyle.withDefaults(DEFAULT_STYLE, style));
         this.children = List.copyOf(children);
         this.commandId = commandId;
     }

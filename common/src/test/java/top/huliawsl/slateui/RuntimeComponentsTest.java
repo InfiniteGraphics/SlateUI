@@ -10,6 +10,7 @@ import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.api.StackDirection;
 import top.huliawsl.slateui.api.component.Input;
+import top.huliawsl.slateui.api.component.Button;
 import top.huliawsl.slateui.api.component.Text;
 import top.huliawsl.slateui.api.component.ScrollView;
 import top.huliawsl.slateui.api.component.Stack;
@@ -86,6 +87,35 @@ class RuntimeComponentsTest {
         assertTrue(pushIndex >= 0);
         assertTrue(textIndex > pushIndex);
         assertTrue(popIndex > textIndex);
+    }
+
+    @Test
+    void buttonHasDefaultChromeWithoutExplicitStyle() {
+        Button button = new Button("Run", "demo.run", SlateStyle.EMPTY);
+        Size measured = button.measure(new SlateLayoutContext(null), new Size(120, 40));
+        button.layout(new SlateLayoutContext(null), new Rect(0, 0, measured.width(), measured.height()));
+
+        List<DrawCommand> commands = new java.util.ArrayList<>();
+        button.collectDrawCommands(new SlateRenderContext(false, top.huliawsl.slateui.api.Theme.DEFAULT), commands);
+
+        assertTrue(commands.stream().anyMatch(top.huliawsl.slateui.render.DrawRectCommand.class::isInstance));
+        assertTrue(commands.stream().anyMatch(top.huliawsl.slateui.render.DrawBorderCommand.class::isInstance));
+        assertTrue(measured.width() > 18);
+        assertTrue(measured.height() > 9);
+    }
+
+    @Test
+    void inputKeepsDefaultChromeWhenOnlyWidthIsOverridden() {
+        Input input = new Input("placeholder", "Alex", null, SlateStyle.builder().width(160).build());
+        Size measured = input.measure(new SlateLayoutContext(null), new Size(220, 40));
+        input.layout(new SlateLayoutContext(null), new Rect(0, 0, measured.width(), measured.height()));
+
+        List<DrawCommand> commands = new java.util.ArrayList<>();
+        input.collectDrawCommands(new SlateRenderContext(false, top.huliawsl.slateui.api.Theme.DEFAULT), commands);
+
+        assertEquals(160, measured.width());
+        assertTrue(commands.stream().anyMatch(top.huliawsl.slateui.render.DrawRectCommand.class::isInstance));
+        assertTrue(commands.stream().anyMatch(top.huliawsl.slateui.render.DrawBorderCommand.class::isInstance));
     }
 
     @Test
