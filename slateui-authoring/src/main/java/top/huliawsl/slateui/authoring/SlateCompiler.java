@@ -29,10 +29,11 @@ public final class SlateCompiler {
     private static final Pattern STYLE_RULE_PATTERN = Pattern.compile("(?<selector>(?:\\.[a-zA-Z0-9_-]+)|(?:#[a-zA-Z0-9_-]+)|(?:[A-Z][a-zA-Z0-9_-]*))(?::(?<state>hover|focus|pressed|active|disabled))?\\s*\\{(?<body>.*?)\\}", Pattern.DOTALL);
     private static final Pattern SLOT_SHORTHAND_PATTERN = Pattern.compile("<template\\s+#([a-zA-Z0-9_-]+)([^>]*)>");
     private static final Set<String> BUILTIN_COMPONENTS = Set.of("OverlayRoot", "Box", "Panel", "Stack", "Text", "Button", "Input", "Toggle", "List", "ScrollView", "Image", "Tooltip", "Popup", "Modal", "SlotGrid");
+    private static final Set<String> EXPERIMENTAL_COMPONENTS = Set.of("Tooltip", "Popup", "Modal", "SlotGrid");
     private static final Set<String> BUILTIN_ONLY_SLOTS = Set.of("tooltip", "popup", "modal");
     private static final Set<String> STYLE_PROPERTIES = Set.of(
         "width", "height", "minwidth", "min-height", "minheight", "min-width", "maxwidth", "max-height", "maxheight", "max-width",
-        "padding", "margin", "gap", "gaptoken", "gap-token",
+        "padding", "gap", "gaptoken", "gap-token",
         "background", "backgroundcolor", "background-color", "backgroundtoken", "background-token",
         "hoverbackground", "hover-background", "hoverbackgroundcolor", "hover-background-color", "hoverbackgroundtoken", "hover-background-token",
         "activebackground", "active-background", "activebackgroundcolor", "active-background-color", "activebackgroundtoken", "active-background-token",
@@ -52,7 +53,7 @@ public final class SlateCompiler {
         Map.entry("Stack", Set.of("class", "direction")),
         Map.entry("Text", Set.of("class", "value")),
         Map.entry("Button", Set.of("class", "label", "command")),
-        Map.entry("Input", Set.of("class", "placeholder", "value", "onChange")),
+        Map.entry("Input", Set.of("class", "placeholder", "value", "onInput", "onChange", "onCommit", "maxLength")),
         Map.entry("Toggle", Set.of("class", "label", "checked", "onChange", "command")),
         Map.entry("List", Set.of("class", "itemGap")),
         Map.entry("ScrollView", Set.of("class")),
@@ -86,7 +87,7 @@ public final class SlateCompiler {
         Document document = factory.newDocumentBuilder().parse(new InputSource(new StringReader("<root>" + template + "</root>")));
         Element rootElement = firstElement(document.getDocumentElement().getChildNodes(), inputFile);
         JsonArray sourceMap = new JsonArray();
-        JsonObject root = compileElement(rootElement, source, inputFile, "0", sourceMap);
+        JsonObject root = compileElement(rootElement, source, inputFile, "0", sourceMap, new LinkedHashMap<>());
         JsonObject ir = new JsonObject();
         ir.addProperty("schemaVersion", 1);
         ir.addProperty("sourceFile", inputFile.getFileName().toString());
@@ -97,13 +98,17 @@ public final class SlateCompiler {
         Files.writeString(outputFile, GSON.toJson(ir), StandardCharsets.UTF_8);
     }
 
-    private static JsonObject compileElement(Element element, String source, Path inputFile, String path, JsonArray sourceMap) {
+    private static JsonObject compileElement(Element element, String source, Path inputFile, String path, JsonArray sourceMap, Map<String, Integer> sourceCursor) {
         String componentType = element.getTagName();
         if (!isComponentTag(componentType)) {
             throw error(inputFile, source, "<" + componentType + ">", "Unknown component '" + componentType + "'");
         }
         JsonObject node = new JsonObject();
         node.addProperty("componentType", componentType);
+        if (EXPERIMENTAL_COMPONENTS.contains(componentType)) {
+            node.addProperty("experimental", true);
+        }
+        sourceMap.add(sourceMapEntry(path, componentType, source, inputFile, "<" + componentType, sourceCursor));
         JsonObject props = new JsonObject();
         JsonObject bindings = new JsonObject();
         JsonObject directives = new JsonObject();
@@ -119,6 +124,9 @@ public final class SlateCompiler {
                 continue;
             }
             if (DIRECTIVES.contains(name)) {
+                if ("for".equals(name) || "key".equals(name)) {
+                    node.addProperty("experimental", true);
+                }
                 if ("for".equals(name)) {
                     parseForDirective(inputFile, source, value, directives);
                 } else {
@@ -171,7 +179,7 @@ public final class SlateCompiler {
                 for (int templateNodeIndex = 0; templateNodeIndex < templateChildren.getLength(); templateNodeIndex++) {
                     Node templateChild = templateChildren.item(templateNodeIndex);
                     if (templateChild instanceof Element templateElement) {
-                        slotChildren.add(compileElement(templateElement, source, inputFile, path + ".s" + slotIndex + '.' + templateIndex, sourceMap));
+                        slotChildren.add(compileElement(templateElement, source, inputFile, path + ".s" + slotIndex + '.' + templateIndex, sourceMap, sourceCursor));
                         templateIndex++;
                     }
                 }
@@ -179,14 +187,13 @@ public final class SlateCompiler {
                 slotIndex++;
                 continue;
             }
-            children.add(compileElement(childElement, source, inputFile, path + '.' + childIndex, sourceMap));
+            children.add(compileElement(childElement, source, inputFile, path + '.' + childIndex, sourceMap, sourceCursor));
             childIndex++;
         }
         node.add("children", children);
         if (slots.size() > 0) {
             node.add("slots", slots);
         }
-        sourceMap.add(sourceMapEntry(path, componentType, source, inputFile, "<" + componentType));
         return node;
     }
 
@@ -205,7 +212,13 @@ public final class SlateCompiler {
             return scopedStyle;
         }
         Matcher matcher = STYLE_RULE_PATTERN.matcher(styleBlock);
+        int consumedUntil = 0;
         while (matcher.find()) {
+            String gap = styleBlock.substring(consumedUntil, matcher.start()).trim();
+            if (!gap.isEmpty()) {
+                throw error(inputFile, source, gap, "Invalid style selector or block near '" + summarize(gap) + "'");
+            }
+            consumedUntil = matcher.end();
             JsonObject rule = new JsonObject();
             for (String declaration : matcher.group("body").split(";")) {
                 String trimmed = declaration.trim();
@@ -227,6 +240,10 @@ public final class SlateCompiler {
                 styleName = styleName + ":" + matcher.group("state");
             }
             scopedStyle.add(styleName, rule);
+        }
+        String trailing = styleBlock.substring(consumedUntil).trim();
+        if (!trailing.isEmpty()) {
+            throw error(inputFile, source, trailing, "Invalid style selector or block near '" + summarize(trailing) + "'");
         }
         return scopedStyle;
     }
@@ -264,7 +281,7 @@ public final class SlateCompiler {
     }
 
     private static boolean isIntegerStyle(String property) {
-        return Set.of("width", "height", "minwidth", "min-width", "minheight", "min-height", "maxwidth", "max-width", "maxheight", "max-height", "padding", "margin", "gap", "borderthickness", "border-thickness", "borderradius", "border-radius", "radius", "focusborderthickness", "focus-border-thickness").contains(property);
+        return Set.of("width", "height", "minwidth", "min-width", "minheight", "min-height", "maxwidth", "max-width", "maxheight", "max-height", "padding", "gap", "borderthickness", "border-thickness", "borderradius", "border-radius", "radius", "focusborderthickness", "focus-border-thickness").contains(property);
     }
 
     private static boolean isBooleanStyle(String property) {
@@ -317,10 +334,16 @@ public final class SlateCompiler {
         return selector;
     }
 
-    private static JsonObject sourceMapEntry(String path, String componentType, String source, Path inputFile, String needle) {
-        int index = source.indexOf(needle);
+    private static JsonObject sourceMapEntry(String path, String componentType, String source, Path inputFile, String needle, Map<String, Integer> sourceCursor) {
+        int startAt = sourceCursor.getOrDefault(needle, 0);
+        int index = source.indexOf(needle, startAt);
+        if (index < 0) {
+            index = source.indexOf(needle);
+        }
         if (index < 0) {
             index = 0;
+        } else {
+            sourceCursor.put(needle, index + needle.length());
         }
         int line = 1;
         int column = 1;
@@ -413,5 +436,10 @@ public final class SlateCompiler {
             }
         }
         return new SlateCompileException(inputFile.getFileName() + ":" + line + ":" + column + " " + message);
+    }
+
+    private static String summarize(String value) {
+        String normalized = value.replace("\r", "\\r").replace("\n", "\\n").trim();
+        return normalized.length() <= 40 ? normalized : normalized.substring(0, 40) + "...";
     }
 }

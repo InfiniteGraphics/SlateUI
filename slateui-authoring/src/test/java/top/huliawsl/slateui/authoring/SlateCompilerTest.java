@@ -3,6 +3,8 @@ package top.huliawsl.slateui.authoring;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
@@ -140,6 +142,59 @@ class SlateCompilerTest {
 
         SlateCompileException exception = assertThrows(SlateCompileException.class, () -> new SlateCompiler().compileFile(input, output));
         assertTrue(exception.getMessage().contains("Invalid style value"));
+    }
+
+    @Test
+    void rejectsMarginBecauseV01DoesNotImplementLayoutBehavior() throws Exception {
+        Path input = Files.createTempFile("broken-margin", ".slate");
+        Path output = Files.createTempFile("broken-margin-out", ".json");
+        Files.writeString(input, """
+            <template>
+              <Text value="Broken" style-margin="8" />
+            </template>
+            """);
+
+        SlateCompileException exception = assertThrows(SlateCompileException.class, () -> new SlateCompiler().compileFile(input, output));
+        assertTrue(exception.getMessage().contains("Unknown style property"));
+    }
+
+    @Test
+    void rejectsUnconsumedInvalidStyleSelectorText() throws Exception {
+        Path input = Files.createTempFile("broken-selector", ".slate");
+        Path output = Files.createTempFile("broken-selector-out", ".json");
+        Files.writeString(input, """
+            <template>
+              <Box />
+            </template>
+            <style scoped>
+              .valid { padding: 4; }
+              !!! broken
+            </style>
+            """);
+
+        SlateCompileException exception = assertThrows(SlateCompileException.class, () -> new SlateCompiler().compileFile(input, output));
+        assertTrue(exception.getMessage().contains("Invalid style selector"));
+    }
+
+    @Test
+    void sourceMapUsesDistinctLocationsForRepeatedComponents() throws Exception {
+        Path input = Files.createTempFile("source-map-repeat", ".slate");
+        Path output = Files.createTempFile("source-map-repeat-out", ".json");
+        Files.writeString(input, """
+            <template>
+              <Stack>
+                <Text value="First" />
+                <Text value="Second" />
+              </Stack>
+            </template>
+            """);
+
+        new SlateCompiler().compileFile(input, output);
+
+        JsonArray sourceMap = JsonParser.parseString(Files.readString(output)).getAsJsonObject().getAsJsonArray("sourceMap");
+        int firstTextLine = sourceMap.get(1).getAsJsonObject().get("line").getAsInt();
+        int secondTextLine = sourceMap.get(2).getAsJsonObject().get("line").getAsInt();
+        assertTrue(secondTextLine > firstTextLine);
     }
 
 }
