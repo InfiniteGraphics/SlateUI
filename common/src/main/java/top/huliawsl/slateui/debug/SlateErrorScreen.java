@@ -51,6 +51,12 @@ public final class SlateErrorScreen extends Screen {
         lines.add("Layout dump:");
         appendBlock(lines, diagnostics.layoutDump(), 6);
         lines.add("");
+        lines.add("Hit regions / chrome:");
+        appendBlock(lines, diagnostics.hitRegionDump(), 8);
+        lines.add("");
+        lines.add("Bindings:");
+        appendBlock(lines, diagnostics.bindingDump(), 6);
+        lines.add("");
         lines.add("Command log:");
         appendBlock(lines, diagnostics.commandLogDump(), 4);
         lines.add("");

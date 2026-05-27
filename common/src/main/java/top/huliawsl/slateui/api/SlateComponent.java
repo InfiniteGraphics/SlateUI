@@ -5,6 +5,7 @@ import top.huliawsl.slateui.layout.Insets;
 import top.huliawsl.slateui.layout.LayoutNode;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
+import top.huliawsl.slateui.debug.SlateRuntimeException;
 import top.huliawsl.slateui.render.DrawBorderCommand;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.DrawDebugRectCommand;
@@ -20,6 +21,7 @@ public abstract class SlateComponent {
     private final SlateStyle style;
     private final LayoutNode layoutNode;
     private Rect bounds = Rect.ZERO;
+    private String debugPath;
     private boolean hovered;
     private boolean pressed;
     private boolean focused;
@@ -91,6 +93,10 @@ public abstract class SlateComponent {
 
     public String debugName() {
         return getClass().getSimpleName();
+    }
+
+    public final String debugPath() {
+        return debugPath == null || debugPath.isBlank() ? debugName() : debugPath;
     }
 
     public List<SlateComponent> children() {
@@ -201,6 +207,43 @@ public abstract class SlateComponent {
         return size.expand(insets.horizontal(), insets.vertical());
     }
 
+    protected final Size clampToContent(Size size, Rect contentRect) {
+        return new Size(
+            Math.min(size.width(), Math.max(0, contentRect.width())),
+            Math.min(size.height(), Math.max(0, contentRect.height()))
+        );
+    }
+
+    protected final Size measureChild(SlateLayoutContext context, SlateComponent child, Size available) {
+        try {
+            return child.measure(context, available);
+        } catch (SlateRuntimeException exception) {
+            throw exception;
+        } catch (Throwable throwable) {
+            throw SlateRuntimeException.component("measure", child, throwable);
+        }
+    }
+
+    protected final void layoutChild(SlateLayoutContext context, SlateComponent child, Rect bounds) {
+        try {
+            child.layout(context, bounds);
+        } catch (SlateRuntimeException exception) {
+            throw exception;
+        } catch (Throwable throwable) {
+            throw SlateRuntimeException.component("layout", child, throwable);
+        }
+    }
+
+    protected final void collectChild(SlateRenderContext context, List<DrawCommand> commands, SlateComponent child) {
+        try {
+            child.collectDrawCommands(context, commands);
+        } catch (SlateRuntimeException exception) {
+            throw exception;
+        } catch (Throwable throwable) {
+            throw SlateRuntimeException.component("render", child, throwable);
+        }
+    }
+
     protected final Rect contentRect(Rect bounds) {
         return bounds.inset(style.padding());
     }
@@ -287,7 +330,12 @@ public abstract class SlateComponent {
         }
     }
 
+    public final void refreshDebugPaths() {
+        refreshLayoutNodeTree();
+    }
+
     public final String dumpComponentTree() {
+        refreshLayoutNodeTree();
         StringBuilder builder = new StringBuilder();
         appendComponentTree(builder, 0);
         return builder.toString();
@@ -298,11 +346,24 @@ public abstract class SlateComponent {
         return layoutNode.dump();
     }
 
+    public final String dumpHitRegionTree(Theme theme) {
+        refreshLayoutNodeTree();
+        StringBuilder builder = new StringBuilder();
+        appendHitRegionTree(builder, 0, theme == null ? Theme.DEFAULT : theme);
+        return builder.toString();
+    }
+
     private void appendComponentTree(StringBuilder builder, int depth) {
         builder.append("  ".repeat(depth))
             .append(debugName())
+            .append(" path=")
+            .append(debugPath())
             .append(" rect=")
             .append(bounds)
+            .append(" measured=")
+            .append(layoutNode.measuredSize())
+            .append(" clip=")
+            .append(style.clipContent())
             .append(" hovered=")
             .append(hovered)
             .append(" pressed=")
@@ -315,10 +376,40 @@ public abstract class SlateComponent {
         }
     }
 
-    private void refreshLayoutNodeTree() {
-        layoutNode.clearChildren();
+    private void appendHitRegionTree(StringBuilder builder, int depth, Theme theme) {
+        builder.append("  ".repeat(depth))
+            .append(debugPath())
+            .append(" bounds=")
+            .append(bounds)
+            .append(" content=")
+            .append(contentRect(bounds))
+            .append(" border=")
+            .append(style.border().thickness())
+            .append(" focusBorder=")
+            .append(style.focusBorder().thickness())
+            .append(" radius=")
+            .append(resolveBorderRadius(theme))
+            .append(" clip=")
+            .append(style.clipContent())
+            .append(" focusable=")
+            .append(focusable())
+            .append('\n');
         for (SlateComponent child : children()) {
-            child.refreshLayoutNodeTree();
+            child.appendHitRegionTree(builder, depth + 1, theme);
+        }
+    }
+
+    private void refreshLayoutNodeTree() {
+        refreshLayoutNodeTree(null, 0);
+    }
+
+    private void refreshLayoutNodeTree(String parentPath, int siblingIndex) {
+        debugPath = parentPath == null ? debugName() : parentPath + "/" + debugName() + "[" + siblingIndex + "]";
+        layoutNode.clearChildren();
+        List<SlateComponent> childList = children();
+        for (int index = 0; index < childList.size(); index++) {
+            SlateComponent child = childList.get(index);
+            child.refreshLayoutNodeTree(debugPath, index);
             layoutNode.addChild(child.layoutNode());
         }
     }

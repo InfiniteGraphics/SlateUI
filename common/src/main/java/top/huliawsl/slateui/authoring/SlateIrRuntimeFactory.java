@@ -6,9 +6,11 @@ import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.Map;
 import java.util.Objects;
 import net.minecraft.network.chat.Component;
+import top.huliawsl.slateui.api.HorizontalAlign;
 import top.huliawsl.slateui.api.InputValueHandler;
 import top.huliawsl.slateui.api.container.ContainerSlot;
 import top.huliawsl.slateui.api.container.ContainerSlotProvider;
@@ -20,6 +22,7 @@ import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.api.StackDirection;
 import top.huliawsl.slateui.api.StateProvider;
 import top.huliawsl.slateui.api.Theme;
+import top.huliawsl.slateui.api.VerticalAlign;
 import top.huliawsl.slateui.api.component.Box;
 import top.huliawsl.slateui.api.component.Conditional;
 import top.huliawsl.slateui.api.component.Image;
@@ -33,6 +36,7 @@ import top.huliawsl.slateui.api.component.Stack;
 import top.huliawsl.slateui.api.component.Text;
 import top.huliawsl.slateui.api.component.Tooltip;
 import top.huliawsl.slateui.binding.BindingEvaluator;
+import top.huliawsl.slateui.debug.SlateRuntimeException;
 import top.huliawsl.slateui.binding.BindingParser;
 import top.huliawsl.slateui.command.SlateCommandRegistry;
 import top.huliawsl.slateui.override.SlateOverrideRegistry;
@@ -64,18 +68,18 @@ public final class SlateIrRuntimeFactory {
         if (schemaVersion != SUPPORTED_SCHEMA) {
             throw new IllegalStateException("Unsupported Slate IR schema: " + schemaVersion);
         }
-        RuntimeBuildContext context = new RuntimeBuildContext(
+        RuntimeBuildContext context = RuntimeBuildContext.root(
             resourcePath,
             provider == null ? StateProvider.EMPTY : provider,
             overrideRegistry.applyThemeOverride(theme),
             ir.getAsJsonObject("scopedStyle")
         );
         SlateComponent root = buildComponentNode(ir.getAsJsonObject("root"), context);
-        return new SlateScreen(title, root, commands, provider, context.theme(), debugEnabled);
+        return new SlateScreen(title, root, commands, provider, context.theme(), debugEnabled, context.bindingDump());
     }
 
     public SlateComponent buildComponentTree(JsonObject root, StateProvider provider, Theme theme) {
-        return buildComponentNode(root, new RuntimeBuildContext("<memory>", provider == null ? StateProvider.EMPTY : provider, theme == null ? Theme.DEFAULT : theme, new JsonObject()));
+        return buildComponentNode(root, RuntimeBuildContext.root("<memory>", provider == null ? StateProvider.EMPTY : provider, theme == null ? Theme.DEFAULT : theme, new JsonObject()));
     }
 
     SlateComponent buildComponentNode(JsonObject node, RuntimeBuildContext context) {
@@ -85,13 +89,22 @@ public final class SlateIrRuntimeFactory {
         }
 
         String type = node.get("componentType").getAsString();
+        context.recordComponent(type);
         List<SlateComponent> children = buildChildren(node, context);
         Map<String, List<SlateComponent>> namedSlots = buildNamedSlots(node, context);
-        SlateComponent component = registry.require(type).create(node, children, namedSlots, context);
+        SlateComponent component;
+        try {
+            component = registry.require(type).create(node, children, namedSlots, context);
+        } catch (SlateRuntimeException exception) {
+            throw exception;
+        } catch (Throwable throwable) {
+            throw new SlateRuntimeException("build", context.nodePath(), "componentType=" + type, throwable);
+        }
 
         String ifExpression = directive(node, "if");
         if (ifExpression != null) {
-            return new Conditional(() -> BindingEvaluator.evaluate(ifExpression, context.provider()), component);
+            context.recordBinding(type, "if", ifExpression, "<runtime predicate>");
+            return new Conditional(() -> evaluateBinding(type, "if", ifExpression, context), component);
         }
         return component;
     }
@@ -102,8 +115,9 @@ public final class SlateIrRuntimeFactory {
         if (childNodes == null) {
             return children;
         }
-        for (JsonElement child : childNodes) {
-            children.add(buildComponentNode(child.getAsJsonObject(), context));
+        for (int index = 0; index < childNodes.size(); index++) {
+            JsonElement child = childNodes.get(index);
+            children.add(buildComponentNode(child.getAsJsonObject(), context.withNode("children[" + index + "]")));
         }
         return children;
     }
@@ -116,8 +130,10 @@ public final class SlateIrRuntimeFactory {
         }
         for (String slotName : slotObject.keySet()) {
             List<SlateComponent> components = new ArrayList<>();
-            for (JsonElement child : slotObject.getAsJsonArray(slotName)) {
-                components.add(buildComponentNode(child.getAsJsonObject(), context));
+            JsonArray slotChildren = slotObject.getAsJsonArray(slotName);
+            for (int index = 0; index < slotChildren.size(); index++) {
+                JsonElement child = slotChildren.get(index);
+                components.add(buildComponentNode(child.getAsJsonObject(), context.withNode("slots." + slotName + "[" + index + "]")));
             }
             slots.put(slotName, List.copyOf(components));
         }
@@ -187,7 +203,8 @@ public final class SlateIrRuntimeFactory {
         if (path == null || path.isBlank()) {
             return ContainerSlotProvider.empty();
         }
-        return () -> toSlots(BindingEvaluator.evaluate(path, context.provider()));
+        context.recordBinding("SlotGrid", "slots", path, "<runtime slots>");
+        return () -> toSlots(evaluateBinding("SlotGrid", "slots", path, context));
     }
 
     private static List<ContainerSlot> toSlots(Object value) {
@@ -269,9 +286,32 @@ public final class SlateIrRuntimeFactory {
     private static Object resolveObject(JsonObject node, String name, RuntimeBuildContext context) {
         String binding = binding(node, name);
         if (binding != null) {
-            return BindingEvaluator.evaluate(binding, context.provider());
+            return evaluateBinding(componentType(node), name, binding, context);
         }
         return prop(node, name, "");
+    }
+
+    private static Object evaluateBinding(String componentType, String name, String binding, RuntimeBuildContext context) {
+        String expression = BindingParser.normalize(binding);
+        try {
+            Object value = BindingEvaluator.evaluate(expression, context.provider());
+            context.recordBinding(componentType, name, expression, summarizeValue(value));
+            return value;
+        } catch (SlateRuntimeException exception) {
+            throw exception;
+        } catch (Throwable throwable) {
+            throw SlateRuntimeException.binding(context.nodePath() + " " + componentType + "." + name, expression, throwable);
+        }
+    }
+
+    private static String componentType(JsonObject node) {
+        return node != null && node.has("componentType") ? node.get("componentType").getAsString() : "<unknown>";
+    }
+
+    private static String summarizeValue(Object value) {
+        String text = String.valueOf(value);
+        text = text.replace("\r", "\\r").replace("\n", "\\n");
+        return text.length() <= 64 ? text : text.substring(0, 64) + "...";
     }
 
     static String resolveString(JsonObject node, String name, RuntimeBuildContext context) {
@@ -342,13 +382,21 @@ public final class SlateIrRuntimeFactory {
             switch (key) {
                 case "width" -> builder.width(Integer.parseInt(value));
                 case "height" -> builder.height(Integer.parseInt(value));
+                case "minWidth", "min-width" -> builder.minWidth(Integer.parseInt(value));
+                case "minHeight", "min-height" -> builder.minHeight(Integer.parseInt(value));
+                case "maxWidth", "max-width" -> builder.maxWidth(Integer.parseInt(value));
+                case "maxHeight", "max-height" -> builder.maxHeight(Integer.parseInt(value));
                 case "gap" -> builder.gap(Integer.parseInt(value));
+                case "gapToken", "gap-token" -> builder.gapToken(value);
                 case "padding" -> builder.padding(Insets.all(Integer.parseInt(value)));
                 case "backgroundToken", "background-token" -> builder.backgroundToken(value);
                 case "borderColorToken", "border-color-token" -> builder.borderColorToken(value);
                 case "borderThickness", "border-thickness" -> builder.border(new SlateBorder(0xFF334155, Integer.parseInt(value)));
                 case "borderRadius", "border-radius", "radius" -> builder.borderRadius(Integer.parseInt(value));
                 case "borderRadiusToken", "border-radius-token", "radiusToken", "radius-token" -> builder.borderRadiusToken(value);
+                case "horizontalAlign", "horizontal-align", "alignX", "align-x" -> builder.horizontalAlign(HorizontalAlign.valueOf(value.trim().toUpperCase()));
+                case "verticalAlign", "vertical-align", "alignY", "align-y" -> builder.verticalAlign(VerticalAlign.valueOf(value.trim().toUpperCase()));
+                case "textColorToken", "text-color-token" -> builder.textColorToken(value);
                 case "clipContent", "clip-content" -> builder.clipContent(Boolean.parseBoolean(value));
                 default -> {
                 }
@@ -356,17 +404,60 @@ public final class SlateIrRuntimeFactory {
         }
     }
 
-    public record RuntimeBuildContext(String resourcePath, StateProvider provider, Theme theme, JsonObject scopedStyle) {
+    public record RuntimeBuildContext(
+        String resourcePath,
+        String nodePath,
+        StateProvider provider,
+        Theme theme,
+        JsonObject scopedStyle,
+        List<String> bindingTrace
+    ) {
 
         public RuntimeBuildContext {
             Objects.requireNonNull(resourcePath, "resourcePath");
+            nodePath = nodePath == null || nodePath.isBlank() ? "root" : nodePath;
             Objects.requireNonNull(provider, "provider");
             Objects.requireNonNull(theme, "theme");
             scopedStyle = scopedStyle == null ? new JsonObject() : scopedStyle;
+            bindingTrace = bindingTrace == null ? new ArrayList<>() : bindingTrace;
+        }
+
+        public static RuntimeBuildContext root(String resourcePath, StateProvider provider, Theme theme, JsonObject scopedStyle) {
+            return new RuntimeBuildContext(resourcePath, "root", provider, theme, scopedStyle, new ArrayList<>());
         }
 
         public RuntimeBuildContext withProvider(StateProvider nextProvider) {
-            return new RuntimeBuildContext(resourcePath, nextProvider, theme, scopedStyle);
+            return new RuntimeBuildContext(resourcePath, nodePath, nextProvider, theme, scopedStyle, bindingTrace);
+        }
+
+        public RuntimeBuildContext withNode(String childPath) {
+            return new RuntimeBuildContext(resourcePath, nodePath + "/" + childPath, provider, theme, scopedStyle, bindingTrace);
+        }
+
+        public void recordComponent(String componentType) {
+            appendTrace("component " + nodePath + " type=" + componentType);
+        }
+
+        public void recordBinding(String componentType, String name, String expression, String value) {
+            appendTrace("binding " + nodePath + " " + componentType + "." + name + " <- " + expression + " => " + value);
+        }
+
+        public String bindingDump() {
+            if (bindingTrace.isEmpty()) {
+                return "<none>";
+            }
+            StringJoiner joiner = new StringJoiner("\n");
+            for (String entry : bindingTrace) {
+                joiner.add(entry);
+            }
+            return joiner.toString();
+        }
+
+        private void appendTrace(String entry) {
+            if (bindingTrace.size() == 128) {
+                bindingTrace.remove(0);
+            }
+            bindingTrace.add(entry);
         }
     }
 }

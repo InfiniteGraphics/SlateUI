@@ -3,6 +3,7 @@ package top.huliawsl.slateui.debug;
 import java.util.ArrayList;
 import java.util.List;
 import top.huliawsl.slateui.api.SlateComponent;
+import top.huliawsl.slateui.api.Theme;
 import top.huliawsl.slateui.render.DrawCommand;
 
 public final class SlateDiagnostics {
@@ -16,6 +17,7 @@ public final class SlateDiagnostics {
     private String bindingDump = "";
     private String stateDump = "";
     private String hitTestDump = "";
+    private String hitRegionDump = "";
     private int componentCount;
     private int drawCommandCount;
     private SlateComponent capturedRoot;
@@ -23,9 +25,14 @@ public final class SlateDiagnostics {
     private final List<String> diagnosticsLog = new ArrayList<>();
 
     public void capture(SlateComponent root, List<DrawCommand> drawCommands, String focusDump, String bindingDump, String stateDump) {
+        capture(root, drawCommands, focusDump, bindingDump, stateDump, Theme.DEFAULT);
+    }
+
+    public void capture(SlateComponent root, List<DrawCommand> drawCommands, String focusDump, String bindingDump, String stateDump, Theme theme) {
         this.capturedRoot = root;
         this.componentTreeDump = root.dumpComponentTree();
         this.layoutDump = root.dumpLayoutTree();
+        this.hitRegionDump = root.dumpHitRegionTree(theme);
         this.drawCommandDump = drawCommands.stream()
             .map(DrawCommand::describe)
             .reduce((left, right) -> left + "\n" + right)
@@ -96,6 +103,7 @@ public final class SlateDiagnostics {
     public String bindingDump() { return bindingDump; }
     public String stateDump() { return stateDump; }
     public String hitTestDump() { return hitTestDump; }
+    public String hitRegionDump() { return hitRegionDump; }
     public String runtimeSummaryDump() { return "components=" + componentCount + "\ndrawCommands=" + drawCommandCount; }
     public String commandLogDump() { return join(commandLog); }
     public String diagnosticsLogDump() { return join(diagnosticsLog); }

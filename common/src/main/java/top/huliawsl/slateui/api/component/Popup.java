@@ -34,9 +34,9 @@ public class Popup extends SlateComponent {
 
     @Override
     public Size measure(SlateLayoutContext context, Size available) {
-        Size measured = anchor.measure(context, available);
+        Size measured = measureChild(context, anchor, available);
         if (open()) {
-            popup.measure(context, available);
+            measureChild(context, popup, available);
         }
         setMeasuredSize(measured);
         return measured;
@@ -47,13 +47,13 @@ public class Popup extends SlateComponent {
         setBounds(bounds);
         Size anchorSize = anchor.layoutNode().measuredSize();
         Rect anchorBounds = new Rect(bounds.x(), bounds.y(), anchorSize.width(), anchorSize.height());
-        anchor.layout(context, anchorBounds);
+        layoutChild(context, anchor, anchorBounds);
         if (open()) {
             Size popupSize = popup.layoutNode().measuredSize();
             int popupX = anchorBounds.x();
             int popupY = anchorBounds.bottom() + 4;
             popupBounds = new Rect(popupX, popupY, popupSize.width(), popupSize.height());
-            popup.layout(context, popupBounds);
+            layoutChild(context, popup, popupBounds);
         } else {
             popupBounds = Rect.ZERO;
         }
@@ -61,9 +61,9 @@ public class Popup extends SlateComponent {
 
     @Override
     public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
-        anchor.collectDrawCommands(context, commands);
+        collectChild(context, commands, anchor);
         if (open()) {
-            popup.collectDrawCommands(context, commands);
+            collectChild(context, commands, popup);
         }
     }
 

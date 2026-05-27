@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import net.minecraft.client.gui.screens.Screen;
 import top.huliawsl.slateui.api.InputValueHandler;
+import top.huliawsl.slateui.debug.SlateRuntimeException;
 import top.huliawsl.slateui.api.SlateBorder;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
@@ -142,8 +143,15 @@ public class Input extends SlateComponent {
             changeHandler.onChange(context, draft);
         }
         if (changeCommand != null && !changeCommand.isBlank()) {
-            boolean executed = context.commands().execute(changeCommand, context, Map.of("value", draft));
-            context.commandLogger().accept((executed ? "EXEC " : "MISS ") + changeCommand + " value=" + summarizeValue(draft));
+            try {
+                boolean executed = context.commands().execute(changeCommand, context, Map.of("value", draft));
+                context.commandLogger().accept((executed ? "EXEC " : "MISS ") + changeCommand + " component=" + debugPath() + " value=" + summarizeValue(draft));
+                if (!executed) {
+                    context.logDiagnostic("COMMAND missing id=" + changeCommand + " component=" + debugPath());
+                }
+            } catch (Throwable throwable) {
+                throw SlateRuntimeException.command(this, changeCommand, throwable);
+            }
         }
         context.logDiagnostic("INPUT commit=" + summarizeValue(draft));
     }

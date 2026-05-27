@@ -39,7 +39,7 @@ public final class Conditional extends SlateComponent {
             setMeasuredSize(Size.ZERO);
             return Size.ZERO;
         }
-        Size measured = child.measure(context, available);
+        Size measured = measureChild(context, child, available);
         setMeasuredSize(measured);
         return measured;
     }
@@ -48,14 +48,14 @@ public final class Conditional extends SlateComponent {
     public void layout(SlateLayoutContext context, Rect bounds) {
         setBounds(bounds);
         if (visible()) {
-            child.layout(context, bounds);
+            layoutChild(context, child, bounds);
         }
     }
 
     @Override
     public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
         if (visible()) {
-            child.collectDrawCommands(context, commands);
+            collectChild(context, commands, child);
         }
     }
 

@@ -36,9 +36,9 @@ public final class Modal extends SlateComponent {
 
     @Override
     public Size measure(SlateLayoutContext context, Size available) {
-        Size measured = content.measure(context, available);
+        Size measured = measureChild(context, content, available);
         if (open()) {
-            modal.measure(context, available);
+            measureChild(context, modal, available);
             setMeasuredSize(available);
             return available;
         }
@@ -51,21 +51,21 @@ public final class Modal extends SlateComponent {
         setBounds(bounds);
         Size anchorSize = content.layoutNode().measuredSize();
         Rect anchorBounds = new Rect(bounds.x(), bounds.y(), anchorSize.width(), anchorSize.height());
-        content.layout(context, anchorBounds);
+        layoutChild(context, content, anchorBounds);
         if (open()) {
             Size modalSize = modal.layoutNode().measuredSize();
             int x = bounds.x() + Math.max(0, (bounds.width() - modalSize.width()) / 2);
             int y = bounds.y() + Math.max(0, (bounds.height() - modalSize.height()) / 2);
-            modal.layout(context, new Rect(x, y, modalSize.width(), modalSize.height()));
+            layoutChild(context, modal, new Rect(x, y, modalSize.width(), modalSize.height()));
         }
     }
 
     @Override
     public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
-        content.collectDrawCommands(context, commands);
+        collectChild(context, commands, content);
         if (open()) {
             commands.add(new DrawRectCommand(bounds(), BACKDROP_COLOR));
-            modal.collectDrawCommands(context, commands);
+            collectChild(context, commands, modal);
         }
     }
 

@@ -7,6 +7,7 @@ import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.api.container.ContainerSlot;
 import top.huliawsl.slateui.api.container.ContainerSlotProvider;
+import top.huliawsl.slateui.debug.SlateRuntimeException;
 import top.huliawsl.slateui.layout.Insets;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
@@ -95,13 +96,20 @@ public final class SlotGrid extends SlateComponent {
             return bounds().contains(mouseX, mouseY);
         }
         if (clickCommand != null && !clickCommand.isBlank()) {
-            boolean executed = context.commands().execute(clickCommand, context, Map.of(
-                "slotIndex", slot.index(),
-                "itemId", slot.itemId(),
-                "count", slot.count(),
-                "button", button
-            ));
-            context.commandLogger().accept((executed ? "EXEC " : "MISS ") + clickCommand + " slot=" + slot.index());
+            try {
+                boolean executed = context.commands().execute(clickCommand, context, Map.of(
+                    "slotIndex", slot.index(),
+                    "itemId", slot.itemId(),
+                    "count", slot.count(),
+                    "button", button
+                ));
+                context.commandLogger().accept((executed ? "EXEC " : "MISS ") + clickCommand + " component=" + debugPath() + " slot=" + slot.index());
+                if (!executed) {
+                    context.logDiagnostic("COMMAND missing id=" + clickCommand + " component=" + debugPath() + " slot=" + slot.index());
+                }
+            } catch (Throwable throwable) {
+                throw SlateRuntimeException.command(this, clickCommand, throwable);
+            }
         }
         context.requestFocus(this);
         return true;

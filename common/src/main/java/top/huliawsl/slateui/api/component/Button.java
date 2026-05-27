@@ -10,6 +10,7 @@ import top.huliawsl.slateui.layout.Insets;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
+import top.huliawsl.slateui.debug.SlateRuntimeException;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -62,7 +63,7 @@ public class Button extends SlateComponent {
         int maxWidth = 0;
         int maxHeight = 0;
         for (SlateComponent child : children) {
-            Size childSize = child.measure(context, contentAvailable);
+            Size childSize = measureChild(context, child, contentAvailable);
             maxWidth = Math.max(maxWidth, childSize.width());
             maxHeight = Math.max(maxHeight, childSize.height());
         }
@@ -76,7 +77,7 @@ public class Button extends SlateComponent {
         setBounds(bounds);
         Rect contentRect = contentRect(bounds);
         for (SlateComponent child : children) {
-            child.layout(context, alignChild(contentRect, child.layoutNode().measuredSize()));
+            layoutChild(context, child, alignChild(contentRect, child.layoutNode().measuredSize()));
         }
     }
 
@@ -86,7 +87,7 @@ public class Button extends SlateComponent {
         Rect contentRect = contentRect(bounds());
         pushClip(context, commands, contentRect);
         for (SlateComponent child : children) {
-            child.collectDrawCommands(context, commands);
+            collectChild(context, commands, child);
         }
         popClip(commands);
     }
@@ -95,9 +96,16 @@ public class Button extends SlateComponent {
     public boolean mouseReleased(SlateInteractionContext context, double mouseX, double mouseY, int button) {
         boolean handled = super.mouseReleased(context, mouseX, mouseY, button);
         if (handled && bounds().contains(mouseX, mouseY)) {
-            boolean executed = context.commands().execute(commandId, context);
-            context.commandLogger().accept((executed ? "EXEC " : "MISS ") + commandId);
-            return executed;
+            try {
+                boolean executed = context.commands().execute(commandId, context);
+                context.commandLogger().accept((executed ? "EXEC " : "MISS ") + commandId + " component=" + debugPath());
+                if (!executed) {
+                    context.logDiagnostic("COMMAND missing id=" + commandId + " component=" + debugPath());
+                }
+                return executed;
+            } catch (Throwable throwable) {
+                throw SlateRuntimeException.command(this, commandId, throwable);
+            }
         }
         return handled;
     }

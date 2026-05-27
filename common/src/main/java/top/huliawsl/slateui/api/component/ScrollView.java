@@ -37,7 +37,7 @@ public class ScrollView extends SlateComponent {
     @Override
     public Size measure(SlateLayoutContext context, Size available) {
         Size contentAvailable = contentAvailable(available);
-        Size contentSize = content.measure(context, new Size(contentAvailable.width(), Math.max(contentAvailable.height(), 10000)));
+        Size contentSize = measureChild(context, content, new Size(contentAvailable.width(), Math.max(contentAvailable.height(), 10000)));
         contentHeight = contentSize.height();
         int width = style().width() != null ? style().width() : contentSize.width() + style().padding().horizontal();
         int height = style().height() != null ? style().height() : Math.min(contentSize.height() + style().padding().vertical(), available.height());
@@ -52,7 +52,7 @@ public class ScrollView extends SlateComponent {
         Rect viewport = contentRect(bounds);
         int maxOffset = Math.max(0, contentHeight - viewport.height());
         scrollOffset = Math.max(0, Math.min(scrollOffset, maxOffset));
-        content.layout(context, new Rect(viewport.x(), viewport.y() - scrollOffset, viewport.width(), contentHeight));
+        layoutChild(context, content, new Rect(viewport.x(), viewport.y() - scrollOffset, viewport.width(), contentHeight));
     }
 
     @Override
@@ -60,7 +60,7 @@ public class ScrollView extends SlateComponent {
         emitBoxChrome(context, commands);
         Rect viewport = contentRect(bounds());
         commands.add(new PushClipCommand(viewport, contentClipRadius(context.theme())));
-        content.collectDrawCommands(context, commands);
+        collectChild(context, commands, content);
         commands.add(new PopClipCommand());
     }
 

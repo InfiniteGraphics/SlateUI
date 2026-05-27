@@ -26,7 +26,7 @@ public class OverlayRoot extends SlateComponent {
     @Override
     public Size measure(SlateLayoutContext context, Size available) {
         for (SlateComponent child : children) {
-            child.measure(context, contentAvailable(available));
+            measureChild(context, child, contentAvailable(available));
         }
         Size measured = applyStyleSize(available);
         setMeasuredSize(measured);
@@ -38,7 +38,7 @@ public class OverlayRoot extends SlateComponent {
         setBounds(bounds);
         Rect contentRect = contentRect(bounds);
         for (SlateComponent child : children) {
-            child.layout(context, alignChild(contentRect, child.layoutNode().measuredSize()));
+            layoutChild(context, child, alignChild(contentRect, child.layoutNode().measuredSize()));
         }
     }
 
@@ -46,7 +46,7 @@ public class OverlayRoot extends SlateComponent {
     public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
         emitBoxChrome(context, commands);
         for (SlateComponent child : children) {
-            child.collectDrawCommands(context, commands);
+            collectChild(context, commands, child);
         }
     }
 }

@@ -12,6 +12,7 @@ import top.huliawsl.slateui.command.SlateCommandRegistry;
 import top.huliawsl.slateui.debug.SlateDiagnostics;
 import top.huliawsl.slateui.debug.SlateErrorScreen;
 import top.huliawsl.slateui.debug.SlateInspectorScreen;
+import top.huliawsl.slateui.debug.SlateRuntimeException;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
@@ -30,6 +31,7 @@ public class SlateScreen extends Screen {
     private final SlateDiagnostics diagnostics = new SlateDiagnostics();
     private final StateProvider stateProvider;
     private final Theme theme;
+    private final String bindingDump;
     private List<DrawCommand> drawCommands = List.of();
     private boolean runtimeDirty = true;
     private SlateComponent focusedComponent;
@@ -39,6 +41,10 @@ public class SlateScreen extends Screen {
     }
 
     public SlateScreen(Component title, SlateComponent root, SlateCommandRegistry commands, StateProvider stateProvider, Theme theme, boolean debugEnabled) {
+        this(title, root, commands, stateProvider, theme, debugEnabled, "<programmatic tree>");
+    }
+
+    public SlateScreen(Component title, SlateComponent root, SlateCommandRegistry commands, StateProvider stateProvider, Theme theme, boolean debugEnabled, String bindingDump) {
         super(title);
         this.root = root;
         this.commands = commands.copy()
@@ -46,6 +52,7 @@ public class SlateScreen extends Screen {
             .register("screen.inspect", context -> context.minecraft().setScreen(new SlateInspectorScreen(this, diagnostics)));
         this.stateProvider = stateProvider == null ? StateProvider.EMPTY : stateProvider;
         this.theme = theme == null ? Theme.DEFAULT : theme;
+        this.bindingDump = bindingDump == null || bindingDump.isBlank() ? "<none>" : bindingDump;
         this.debugEnabled = debugEnabled;
         this.stateProvider.addListener(path -> requestRebuild("state:" + path));
     }
@@ -72,12 +79,13 @@ public class SlateScreen extends Screen {
         try {
             SlateLayoutContext layoutContext = new SlateLayoutContext(font);
             Size available = new Size(width, height);
-            root.measure(layoutContext, available);
-            root.layout(layoutContext, new Rect(0, 0, width, height));
+            root.refreshDebugPaths();
+            measureRoot(layoutContext, available);
+            layoutRoot(layoutContext, new Rect(0, 0, width, height));
             List<DrawCommand> commands = new ArrayList<>();
-            root.collectDrawCommands(new SlateRenderContext(debugEnabled, theme), commands);
+            renderRoot(commands);
             this.drawCommands = List.copyOf(commands);
-            diagnostics.capture(root, drawCommands, focusedComponent == null ? "<none>" : focusedComponent.debugName(), "<bindings logged at runtime>", dumpState());
+            diagnostics.capture(root, drawCommands, focusedComponent == null ? "<none>" : focusedComponent.debugPath(), bindingDump, dumpState(), theme);
         } catch (Throwable throwable) {
             openErrorScreen("rebuild", throwable);
         }
@@ -199,6 +207,36 @@ public class SlateScreen extends Screen {
             diagnostics.logDiagnostic("FOCUS " + focusedComponent.debugName());
         }
         requestRebuild("focus-change");
+    }
+
+    private void measureRoot(SlateLayoutContext layoutContext, Size available) {
+        try {
+            root.measure(layoutContext, available);
+        } catch (SlateRuntimeException exception) {
+            throw exception;
+        } catch (Throwable throwable) {
+            throw SlateRuntimeException.component("measure", root, throwable);
+        }
+    }
+
+    private void layoutRoot(SlateLayoutContext layoutContext, Rect bounds) {
+        try {
+            root.layout(layoutContext, bounds);
+        } catch (SlateRuntimeException exception) {
+            throw exception;
+        } catch (Throwable throwable) {
+            throw SlateRuntimeException.component("layout", root, throwable);
+        }
+    }
+
+    private void renderRoot(List<DrawCommand> commands) {
+        try {
+            root.collectDrawCommands(new SlateRenderContext(debugEnabled, theme), commands);
+        } catch (SlateRuntimeException exception) {
+            throw exception;
+        } catch (Throwable throwable) {
+            throw SlateRuntimeException.component("render", root, throwable);
+        }
     }
 
     protected SlateInteractionContext createInteractionContext() {

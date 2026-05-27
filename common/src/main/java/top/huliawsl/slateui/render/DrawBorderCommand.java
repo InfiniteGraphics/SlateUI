@@ -15,6 +15,6 @@ public record DrawBorderCommand(Rect rect, int color, int thickness, int radius)
 
     @Override
     public String describe() {
-        return "border " + rect + " thickness=" + thickness + " radius=" + radius;
+        return "border " + rect + " color=#" + String.format("%08X", color) + " thickness=" + thickness + " radius=" + radius;
     }
 }

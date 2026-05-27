@@ -29,7 +29,7 @@ public class Box extends SlateComponent {
         int maxWidth = 0;
         int maxHeight = 0;
         for (SlateComponent child : children) {
-            Size childSize = child.measure(context, contentAvailable);
+            Size childSize = measureChild(context, child, contentAvailable);
             maxWidth = Math.max(maxWidth, childSize.width());
             maxHeight = Math.max(maxHeight, childSize.height());
         }
@@ -44,7 +44,7 @@ public class Box extends SlateComponent {
         Rect contentRect = contentRect(bounds);
         for (SlateComponent child : children) {
             Rect childBounds = alignChild(contentRect, child.layoutNode().measuredSize());
-            child.layout(context, childBounds);
+            layoutChild(context, child, childBounds);
         }
     }
 
@@ -54,7 +54,7 @@ public class Box extends SlateComponent {
         Rect contentRect = contentRect(bounds());
         pushClip(context, commands, contentRect);
         for (SlateComponent child : children) {
-            child.collectDrawCommands(context, commands);
+            collectChild(context, commands, child);
         }
         popClip(commands);
     }

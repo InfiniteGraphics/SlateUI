@@ -35,7 +35,7 @@ public class Stack extends SlateComponent {
         int height = 0;
         int gap = style().gap();
         for (int index = 0; index < children.size(); index++) {
-            Size childSize = children.get(index).measure(context, contentAvailable);
+            Size childSize = measureChild(context, children.get(index), contentAvailable);
             if (direction == StackDirection.ROW) {
                 width += childSize.width();
                 height = Math.max(height, childSize.height());
@@ -60,31 +60,28 @@ public class Stack extends SlateComponent {
     public void layout(SlateLayoutContext context, Rect bounds) {
         setBounds(bounds);
         Rect contentRect = contentRect(bounds);
-        int cursorX = contentRect.x();
-        int cursorY = contentRect.y();
+        int gap = style().gap();
+        int cursorX = startX(contentRect, gap);
+        int cursorY = startY(contentRect, gap);
         for (SlateComponent child : children) {
-            Size childSize = child.layoutNode().measuredSize();
+            Size childSize = clampToContent(child.layoutNode().measuredSize(), contentRect);
             Rect childRect;
             if (direction == StackDirection.ROW) {
-                int childHeight = style().verticalAlign() == VerticalAlign.STRETCH ? contentRect.height() : Math.min(childSize.height(), contentRect.height());
-                int childY = switch (style().verticalAlign()) {
-                    case CENTER -> contentRect.y() + Math.max(0, (contentRect.height() - childHeight) / 2);
-                    case END -> contentRect.bottom() - childHeight;
-                    default -> contentRect.y();
-                };
-                childRect = new Rect(cursorX, childY, childSize.width(), childHeight);
-                cursorX += childSize.width() + style().gap();
+                int childWidth = childSize.width();
+                int childHeight = style().verticalAlign() == VerticalAlign.STRETCH ? contentRect.height() : childSize.height();
+                childHeight = Math.min(childHeight, contentRect.height());
+                int childY = crossAxisY(contentRect, childHeight);
+                childRect = new Rect(cursorX, childY, childWidth, childHeight);
+                cursorX += childWidth + gap;
             } else {
-                int childWidth = style().horizontalAlign() == HorizontalAlign.STRETCH ? contentRect.width() : Math.min(childSize.width(), contentRect.width());
-                int childX = switch (style().horizontalAlign()) {
-                    case CENTER -> contentRect.x() + Math.max(0, (contentRect.width() - childWidth) / 2);
-                    case END -> contentRect.right() - childWidth;
-                    default -> contentRect.x();
-                };
-                childRect = new Rect(childX, cursorY, childWidth, childSize.height());
-                cursorY += childSize.height() + style().gap();
+                int childWidth = style().horizontalAlign() == HorizontalAlign.STRETCH ? contentRect.width() : childSize.width();
+                childWidth = Math.min(childWidth, contentRect.width());
+                int childHeight = childSize.height();
+                int childX = crossAxisX(contentRect, childWidth);
+                childRect = new Rect(childX, cursorY, childWidth, childHeight);
+                cursorY += childHeight + gap;
             }
-            child.layout(context, childRect);
+            layoutChild(context, child, childRect);
         }
     }
 
@@ -94,8 +91,66 @@ public class Stack extends SlateComponent {
         Rect contentRect = contentRect(bounds());
         pushClip(context, commands, contentRect);
         for (SlateComponent child : children) {
-            child.collectDrawCommands(context, commands);
+            collectChild(context, commands, child);
         }
         popClip(commands);
+    }
+
+    private int startX(Rect contentRect, int gap) {
+        if (direction != StackDirection.ROW) {
+            return contentRect.x();
+        }
+        int contentWidth = mainAxisSize(gap);
+        if (contentWidth >= contentRect.width()) {
+            return contentRect.x();
+        }
+        return switch (style().horizontalAlign()) {
+            case CENTER -> contentRect.x() + (contentRect.width() - contentWidth) / 2;
+            case END -> contentRect.right() - contentWidth;
+            default -> contentRect.x();
+        };
+    }
+
+    private int startY(Rect contentRect, int gap) {
+        if (direction != StackDirection.COLUMN) {
+            return contentRect.y();
+        }
+        int contentHeight = mainAxisSize(gap);
+        if (contentHeight >= contentRect.height()) {
+            return contentRect.y();
+        }
+        return switch (style().verticalAlign()) {
+            case CENTER -> contentRect.y() + (contentRect.height() - contentHeight) / 2;
+            case END -> contentRect.bottom() - contentHeight;
+            default -> contentRect.y();
+        };
+    }
+
+    private int crossAxisX(Rect contentRect, int childWidth) {
+        return switch (style().horizontalAlign()) {
+            case CENTER -> contentRect.x() + Math.max(0, (contentRect.width() - childWidth) / 2);
+            case END -> contentRect.right() - childWidth;
+            default -> contentRect.x();
+        };
+    }
+
+    private int crossAxisY(Rect contentRect, int childHeight) {
+        return switch (style().verticalAlign()) {
+            case CENTER -> contentRect.y() + Math.max(0, (contentRect.height() - childHeight) / 2);
+            case END -> contentRect.bottom() - childHeight;
+            default -> contentRect.y();
+        };
+    }
+
+    private int mainAxisSize(int gap) {
+        int total = 0;
+        for (int index = 0; index < children.size(); index++) {
+            Size size = children.get(index).layoutNode().measuredSize();
+            total += direction == StackDirection.ROW ? size.width() : size.height();
+            if (index < children.size() - 1) {
+                total += gap;
+            }
+        }
+        return total;
     }
 }

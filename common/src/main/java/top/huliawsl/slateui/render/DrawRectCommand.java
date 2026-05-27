@@ -14,6 +14,6 @@ public record DrawRectCommand(Rect rect, int color, int radius) implements DrawC
 
     @Override
     public String describe() {
-        return "rect " + rect + " radius=" + radius;
+        return "rect " + rect + " color=#" + String.format("%08X", color) + " radius=" + radius;
     }
 }
