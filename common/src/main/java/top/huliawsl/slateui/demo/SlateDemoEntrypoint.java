@@ -172,38 +172,37 @@ public final class SlateDemoEntrypoint {
             panelStyle,
             SlateStyle.builder().gap(8).build()
         ));
-        sections.add(new DemoPanel(
-            "Overlay Page",
-            List.of(
-                new Popup(
-                    new Tooltip(
-                        new top.huliawsl.slateui.api.component.Button("Toggle Popup", "demo.popup.toggle", primaryButtonStyle),
-                        new Box(List.of(new Text("Tooltip follows hover state.")), panelStyle),
-                        SlateStyle.EMPTY
-                    ),
-                    new Box(List.of(new Text("Popup content")), panelStyle),
-                    () -> provider.get("ui.popupOpen"),
-                    SlateStyle.EMPTY
-                ),
-                new Modal(
-                    new top.huliawsl.slateui.api.component.Button("Open Modal", "demo.modal.open", primaryButtonStyle),
-                    new Box(List.of(
-                        new Text("Modal overlay"),
-                        new top.huliawsl.slateui.api.component.Button("Close Modal", "demo.modal.close", primaryButtonStyle)
-                    ), panelStyle),
-                    () -> provider.get("ui.modalOpen"),
-                    SlateStyle.EMPTY
-                )
-            ),
-            panelStyle,
-            SlateStyle.builder().gap(8).build()
-        ));
 
         SlateComponent content = new ScrollView(
             new Stack(StackDirection.COLUMN, sections, columnStyle),
             SlateStyle.builder().height(220).width(360).padding(Insets.all(4)).build()
         );
-        OverlayRoot root = new OverlayRoot(List.of(new Box(List.of(content), rootStyle)), rootStyle);
+        SlateComponent popupOverlay = new Box(List.of(
+            new Popup(
+                new Tooltip(
+                    new top.huliawsl.slateui.api.component.Button("Toggle Popup", "demo.popup.toggle", primaryButtonStyle),
+                    new Box(List.of(new Text("Tooltip follows hover state.")), panelStyle),
+                    SlateStyle.EMPTY
+                ),
+                new Box(List.of(new Text("Popup content")), panelStyle),
+                () -> provider.get("ui.popupOpen"),
+                SlateStyle.EMPTY
+            )
+        ), SlateStyle.builder().width(360).build());
+        SlateComponent modalOverlay = new Modal(
+            new top.huliawsl.slateui.api.component.Button("Open Modal", "demo.modal.open", primaryButtonStyle),
+            new Box(List.of(
+                new Text("Modal overlay"),
+                new top.huliawsl.slateui.api.component.Button("Close Modal", "demo.modal.close", primaryButtonStyle)
+            ), panelStyle),
+            () -> provider.get("ui.modalOpen"),
+            SlateStyle.EMPTY
+        );
+        OverlayRoot root = new OverlayRoot(List.of(
+            new Box(List.of(content), rootStyle),
+            popupOverlay,
+            modalOverlay
+        ), rootStyle);
         return new SlateScreen(DEMO_TITLE, root, commands, provider, theme, debugEnabled);
     }
 

@@ -39,6 +39,8 @@ public final class Modal extends SlateComponent {
         Size measured = content.measure(context, available);
         if (open()) {
             modal.measure(context, available);
+            setMeasuredSize(available);
+            return available;
         }
         setMeasuredSize(measured);
         return measured;
@@ -47,7 +49,9 @@ public final class Modal extends SlateComponent {
     @Override
     public void layout(SlateLayoutContext context, Rect bounds) {
         setBounds(bounds);
-        content.layout(context, bounds);
+        Size anchorSize = content.layoutNode().measuredSize();
+        Rect anchorBounds = new Rect(bounds.x(), bounds.y(), anchorSize.width(), anchorSize.height());
+        content.layout(context, anchorBounds);
         if (open()) {
             Size modalSize = modal.layoutNode().measuredSize();
             int x = bounds.x() + Math.max(0, (bounds.width() - modalSize.width()) / 2);

@@ -45,11 +45,13 @@ public class Popup extends SlateComponent {
     @Override
     public void layout(SlateLayoutContext context, Rect bounds) {
         setBounds(bounds);
-        anchor.layout(context, bounds);
+        Size anchorSize = anchor.layoutNode().measuredSize();
+        Rect anchorBounds = new Rect(bounds.x(), bounds.y(), anchorSize.width(), anchorSize.height());
+        anchor.layout(context, anchorBounds);
         if (open()) {
             Size popupSize = popup.layoutNode().measuredSize();
-            int popupX = bounds.x();
-            int popupY = bounds.bottom() + 4;
+            int popupX = anchorBounds.x();
+            int popupY = anchorBounds.bottom() + 4;
             popupBounds = new Rect(popupX, popupY, popupSize.width(), popupSize.height());
             popup.layout(context, popupBounds);
         } else {
