@@ -1,7 +1,10 @@
 package top.huliawsl.slateui.binding;
 
 import java.util.ArrayList;
+import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -52,10 +55,33 @@ public final class BindingEvaluator {
         if (trimmed.matches("-?\\d+")) {
             return Integer.parseInt(trimmed);
         }
-        if (provider.contains(trimmed)) {
-            return provider.get(trimmed);
+        Object resolved = resolvePath(provider, trimmed);
+        if (resolved != UNRESOLVED) {
+            return resolved;
         }
         return trimmed;
+    }
+
+    public static boolean isTruthy(Object value) {
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value instanceof Number number) {
+            return number.doubleValue() != 0D;
+        }
+        if (value instanceof String string) {
+            return !string.isBlank() && !"false".equalsIgnoreCase(string);
+        }
+        if (value instanceof Iterable<?> iterable) {
+            return iterable.iterator().hasNext();
+        }
+        if (value.getClass().isArray()) {
+            return Array.getLength(value) > 0;
+        }
+        return true;
     }
 
     private static boolean compare(Object left, Object right, String operator) {
@@ -102,5 +128,56 @@ public final class BindingEvaluator {
             parts.add(current.toString().trim());
         }
         return parts;
+    }
+
+    private static final Object UNRESOLVED = new Object();
+
+    private static Object resolvePath(StateProvider provider, String path) {
+        if (provider.contains(path)) {
+            return provider.get(path);
+        }
+        String[] parts = path.split("\\.");
+        for (int index = parts.length - 1; index > 0; index--) {
+            String head = String.join(".", Arrays.copyOf(parts, index));
+            if (!provider.contains(head)) {
+                continue;
+            }
+            Object current = provider.get(head);
+            for (int tailIndex = index; tailIndex < parts.length; tailIndex++) {
+                current = readProperty(current, parts[tailIndex]);
+                if (current == UNRESOLVED) {
+                    return UNRESOLVED;
+                }
+            }
+            return current;
+        }
+        return UNRESOLVED;
+    }
+
+    private static Object readProperty(Object value, String property) {
+        if (value == null) {
+            return UNRESOLVED;
+        }
+        if (value instanceof Map<?, ?> map) {
+            return map.containsKey(property) ? map.get(property) : UNRESOLVED;
+        }
+        if (value instanceof List<?> list && property.matches("\\d+")) {
+            int index = Integer.parseInt(property);
+            return index >= 0 && index < list.size() ? list.get(index) : UNRESOLVED;
+        }
+        try {
+            return value.getClass().getField(property).get(value);
+        } catch (ReflectiveOperationException ignored) {
+        }
+        try {
+            String suffix = property.substring(0, 1).toUpperCase() + property.substring(1);
+            return value.getClass().getMethod("get" + suffix).invoke(value);
+        } catch (ReflectiveOperationException ignored) {
+        }
+        try {
+            return value.getClass().getMethod(property).invoke(value);
+        } catch (ReflectiveOperationException ignored) {
+            return UNRESOLVED;
+        }
     }
 }

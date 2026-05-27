@@ -1,6 +1,7 @@
 package top.huliawsl.slateui.api;
 
 import java.util.List;
+import java.util.Map;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
@@ -11,15 +12,35 @@ import top.huliawsl.slateui.runtime.SlateRenderContext;
 public abstract class SlateCompositeComponent extends SlateComponent {
 
     private final List<SlateComponent> slotChildren;
+    private final Map<String, List<SlateComponent>> namedSlots;
     private SlateComponent resolved;
 
     protected SlateCompositeComponent(List<SlateComponent> slotChildren, SlateStyle style) {
+        this(slotChildren, Map.of(), style);
+    }
+
+    protected SlateCompositeComponent(List<SlateComponent> slotChildren, Map<String, List<SlateComponent>> namedSlots, SlateStyle style) {
         super(style);
         this.slotChildren = List.copyOf(slotChildren);
+        this.namedSlots = namedSlots.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
+            Map.Entry::getKey,
+            entry -> List.copyOf(entry.getValue())
+        ));
     }
 
     protected final List<SlateComponent> slotChildren() {
         return slotChildren;
+    }
+
+    protected final List<SlateComponent> slotChildren(String slotName) {
+        if (slotName == null || slotName.isBlank() || "default".equals(slotName)) {
+            return slotChildren;
+        }
+        return namedSlots.getOrDefault(slotName, List.of());
+    }
+
+    protected final Map<String, List<SlateComponent>> namedSlots() {
+        return namedSlots;
     }
 
     protected abstract SlateComponent compose();

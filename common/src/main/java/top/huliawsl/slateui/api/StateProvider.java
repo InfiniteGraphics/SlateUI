@@ -1,5 +1,7 @@
 package top.huliawsl.slateui.api;
 
+import java.util.Map;
+
 public interface StateProvider {
 
     StateProvider EMPTY = new StateProvider() {
@@ -29,4 +31,8 @@ public interface StateProvider {
     void addListener(StateListener listener);
 
     void removeListener(StateListener listener);
+
+    default Map<String, Object> snapshot() {
+        return Map.of();
+    }
 }

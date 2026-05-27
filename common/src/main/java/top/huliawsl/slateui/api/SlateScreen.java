@@ -6,10 +6,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 import top.huliawsl.slateui.command.CommandContext;
 import top.huliawsl.slateui.command.SlateCommandRegistry;
 import top.huliawsl.slateui.debug.SlateDiagnostics;
 import top.huliawsl.slateui.debug.SlateErrorScreen;
+import top.huliawsl.slateui.debug.SlateInspectorScreen;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
@@ -39,7 +41,9 @@ public class SlateScreen extends Screen {
     public SlateScreen(Component title, SlateComponent root, SlateCommandRegistry commands, StateProvider stateProvider, Theme theme, boolean debugEnabled) {
         super(title);
         this.root = root;
-        this.commands = commands.copy().register("screen.close", context -> context.minecraft().setScreen(null));
+        this.commands = commands.copy()
+            .register("screen.close", context -> context.minecraft().setScreen(null))
+            .register("screen.inspect", context -> context.minecraft().setScreen(new SlateInspectorScreen(this, diagnostics)));
         this.stateProvider = stateProvider == null ? StateProvider.EMPTY : stateProvider;
         this.theme = theme == null ? Theme.DEFAULT : theme;
         this.debugEnabled = debugEnabled;
@@ -134,6 +138,10 @@ public class SlateScreen extends Screen {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         try {
+            if (keyCode == GLFW.GLFW_KEY_F6) {
+                Minecraft.getInstance().setScreen(new SlateInspectorScreen(this, diagnostics));
+                return true;
+            }
             if (focusedComponent != null && focusedComponent.keyPressed(createInteractionContext(), keyCode, scanCode, modifiers)) {
                 return true;
             }
@@ -169,6 +177,10 @@ public class SlateScreen extends Screen {
         return theme;
     }
 
+    public SlateDiagnostics diagnostics() {
+        return diagnostics;
+    }
+
     public SlateComponent focusedComponent() {
         return focusedComponent;
     }
@@ -201,11 +213,14 @@ public class SlateScreen extends Screen {
     }
 
     private String dumpState() {
-        List<String> lines = new ArrayList<>();
-        if (stateProvider == StateProvider.EMPTY) {
+        if (stateProvider == StateProvider.EMPTY || stateProvider.snapshot().isEmpty()) {
             return "<empty>";
         }
+        List<String> lines = new ArrayList<>();
         lines.add("provider=" + stateProvider.getClass().getSimpleName());
+        for (var entry : stateProvider.snapshot().entrySet()) {
+            lines.add(entry.getKey() + "=" + String.valueOf(entry.getValue()));
+        }
         return String.join("\n", lines);
     }
 

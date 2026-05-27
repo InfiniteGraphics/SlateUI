@@ -6,9 +6,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
+import top.huliawsl.slateui.api.ComputedStateProvider;
 import top.huliawsl.slateui.api.HorizontalAlign;
 import top.huliawsl.slateui.api.InputValueHandler;
-import top.huliawsl.slateui.api.MutableStateProvider;
 import top.huliawsl.slateui.api.SlateBorder;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateScreen;
@@ -21,10 +21,13 @@ import top.huliawsl.slateui.api.VerticalAlign;
 import top.huliawsl.slateui.api.component.Box;
 import top.huliawsl.slateui.api.component.Image;
 import top.huliawsl.slateui.api.component.Input;
+import top.huliawsl.slateui.api.component.Modal;
 import top.huliawsl.slateui.api.component.OverlayRoot;
+import top.huliawsl.slateui.api.component.Popup;
 import top.huliawsl.slateui.api.component.ScrollView;
 import top.huliawsl.slateui.api.component.Stack;
 import top.huliawsl.slateui.api.component.Text;
+import top.huliawsl.slateui.api.component.Tooltip;
 import top.huliawsl.slateui.authoring.SlateIrLoader;
 import top.huliawsl.slateui.authoring.SlateIrRuntimeFactory;
 import top.huliawsl.slateui.authoring.SlateReloadSupport;
@@ -54,11 +57,15 @@ public final class SlateDemoEntrypoint {
     }
 
     private static SlateScreen createGalleryScreen(boolean debugEnabled, String status) {
-        MutableStateProvider provider = new MutableStateProvider()
+        ComputedStateProvider provider = new ComputedStateProvider()
             .set("settings.playerName", "Slate Tester")
             .set("settings.status", status)
             .set("settings.mode", debugEnabled ? "Debug" : "Normal")
-            .set("theme.name", debugEnabled ? "Debug Theme" : "Default Theme");
+            .set("theme.name", debugEnabled ? "Debug Theme" : "Default Theme")
+            .set("ui.popupOpen", false)
+            .set("ui.modalOpen", false)
+            .registerComputed("settings.summary", List.of("settings.playerName", "settings.status"), state ->
+                state.get("settings.playerName") + " / " + state.get("settings.status"));
         Theme theme = createTheme(debugEnabled);
         SlateCommandRegistry commands = createGalleryCommands(debugEnabled, provider, theme);
 
@@ -107,12 +114,14 @@ public final class SlateDemoEntrypoint {
             List.of(
                 new Text(ignored -> "Player: " + provider.get("settings.playerName"), SlateStyle.EMPTY),
                 new Text(ignored -> "Status: " + provider.get("settings.status"), SlateStyle.EMPTY),
+                new Text(ignored -> "Summary: " + provider.get("settings.summary"), SlateStyle.EMPTY),
                 new Input("Enter player name", ignored -> String.valueOf(provider.get("settings.playerName")), null, playerNameHandler, fieldStyle),
                 new Input("Update status", ignored -> String.valueOf(provider.get("settings.status")), null, statusHandler, fieldStyle),
                 new Stack(StackDirection.ROW, List.of(
                     new top.huliawsl.slateui.api.component.Button("Open Error Page", "demo.error", primaryButtonStyle),
                     new top.huliawsl.slateui.api.component.Button(debugEnabled ? "Normal Mode" : "Debug Mode", debugEnabled ? "demo.normal" : "demo.debug", primaryButtonStyle),
-                    new top.huliawsl.slateui.api.component.Button("Open .slate Screen", "demo.authoring", primaryButtonStyle)
+                    new top.huliawsl.slateui.api.component.Button("Open .slate Screen", "demo.authoring", primaryButtonStyle),
+                    new top.huliawsl.slateui.api.component.Button("Inspect Runtime", "screen.inspect", primaryButtonStyle)
                 ), SlateStyle.builder().gap(8).build())
             ),
             panelStyle,
@@ -163,6 +172,32 @@ public final class SlateDemoEntrypoint {
             panelStyle,
             SlateStyle.builder().gap(8).build()
         ));
+        sections.add(new DemoPanel(
+            "Overlay Page",
+            List.of(
+                new Popup(
+                    new Tooltip(
+                        new top.huliawsl.slateui.api.component.Button("Toggle Popup", "demo.popup.toggle", primaryButtonStyle),
+                        new Box(List.of(new Text("Tooltip follows hover state.")), panelStyle),
+                        SlateStyle.EMPTY
+                    ),
+                    new Box(List.of(new Text("Popup content")), panelStyle),
+                    () -> provider.get("ui.popupOpen"),
+                    SlateStyle.EMPTY
+                ),
+                new Modal(
+                    new top.huliawsl.slateui.api.component.Button("Open Modal", "demo.modal.open", primaryButtonStyle),
+                    new Box(List.of(
+                        new Text("Modal overlay"),
+                        new top.huliawsl.slateui.api.component.Button("Close Modal", "demo.modal.close", primaryButtonStyle)
+                    ), panelStyle),
+                    () -> provider.get("ui.modalOpen"),
+                    SlateStyle.EMPTY
+                )
+            ),
+            panelStyle,
+            SlateStyle.builder().gap(8).build()
+        ));
 
         SlateComponent content = new ScrollView(
             new Stack(StackDirection.COLUMN, sections, columnStyle),
@@ -176,24 +211,29 @@ public final class SlateDemoEntrypoint {
         if (!SlateIrLoader.resourceExists(AUTHORING_RESOURCE)) {
             return createGalleryScreen(debugEnabled, "Authoring screen unavailable. Run compileSlate first.");
         }
-        MutableStateProvider provider = new MutableStateProvider()
+        ComputedStateProvider provider = new ComputedStateProvider()
             .set("settings.playerName", "Slate Author")
-            .set("settings.status", debugEnabled ? "Debug authoring" : "Authoring ready");
+            .set("settings.status", debugEnabled ? "Debug authoring" : "Authoring ready")
+            .registerComputed("settings.summary", List.of("settings.playerName", "settings.status"), state ->
+                state.get("settings.playerName") + " / " + state.get("settings.status"));
         Theme theme = createTheme(debugEnabled);
         return new SlateIrRuntimeFactory().createScreen(DEMO_TITLE, AUTHORING_RESOURCE, createAuthoringCommands(debugEnabled, provider, theme), provider, theme, debugEnabled);
     }
 
-    private static SlateCommandRegistry createGalleryCommands(boolean debugEnabled, MutableStateProvider provider, Theme theme) {
+    private static SlateCommandRegistry createGalleryCommands(boolean debugEnabled, ComputedStateProvider provider, Theme theme) {
         SlateCommandRegistry commands = new SlateCommandRegistry();
         commands.register("demo.error", context -> context.minecraft().setScreen(createFaultyScreen(debugEnabled)));
         commands.register("demo.debug", context -> context.minecraft().setScreen(createGalleryScreen(true)));
         commands.register("demo.normal", context -> context.minecraft().setScreen(createGalleryScreen(false)));
         commands.register("demo.authoring", context -> context.minecraft().setScreen(createAuthoringScreen(debugEnabled)));
+        commands.register("demo.popup.toggle", context -> provider.set("ui.popupOpen", !(Boolean) provider.get("ui.popupOpen")));
+        commands.register("demo.modal.open", context -> provider.set("ui.modalOpen", true));
+        commands.register("demo.modal.close", context -> provider.set("ui.modalOpen", false));
         commands.register("slate.reload", context -> SlateReloadSupport.reload(AUTHORING_RESOURCE, DEMO_TITLE, createAuthoringCommands(debugEnabled, provider, theme), provider, theme, debugEnabled));
         return commands;
     }
 
-    private static SlateCommandRegistry createAuthoringCommands(boolean debugEnabled, MutableStateProvider provider, Theme theme) {
+    private static SlateCommandRegistry createAuthoringCommands(boolean debugEnabled, ComputedStateProvider provider, Theme theme) {
         SlateCommandRegistry commands = new SlateCommandRegistry();
         commands.register("demo.authoring", context -> context.minecraft().setScreen(createAuthoringScreen(debugEnabled)));
         commands.register("demo.normal", context -> context.minecraft().setScreen(createGalleryScreen(false)));

@@ -14,6 +14,7 @@ import top.huliawsl.slateui.runtime.SlateRenderContext;
 
 public class Text extends SlateComponent {
 
+    private final StateProvider stateProvider;
     private final Function<StateProvider, String> textResolver;
     private String resolvedText = "";
 
@@ -26,7 +27,12 @@ public class Text extends SlateComponent {
     }
 
     public Text(Function<StateProvider, String> textResolver, SlateStyle style) {
+        this(StateProvider.EMPTY, textResolver, style);
+    }
+
+    public Text(StateProvider stateProvider, Function<StateProvider, String> textResolver, SlateStyle style) {
         super(style);
+        this.stateProvider = stateProvider == null ? StateProvider.EMPTY : stateProvider;
         this.textResolver = textResolver;
     }
 
@@ -36,7 +42,7 @@ public class Text extends SlateComponent {
 
     @Override
     public Size measure(SlateLayoutContext context, Size available) {
-        resolvedText = safeText(textResolver.apply(StateProvider.EMPTY));
+        resolvedText = safeText(textResolver.apply(stateProvider));
         Size measured = applyStyleSize(addInsets(new Size(context.textWidth(resolvedText), context.lineHeight()), style().padding()));
         setMeasuredSize(measured);
         return measured;

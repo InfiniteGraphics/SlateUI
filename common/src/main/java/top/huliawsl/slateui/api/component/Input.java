@@ -18,6 +18,7 @@ import top.huliawsl.slateui.runtime.SlateRenderContext;
 
 public class Input extends SlateComponent {
 
+    private final StateProvider stateProvider;
     private final Function<StateProvider, String> valueResolver;
     private final String placeholder;
     private final String changeCommand;
@@ -29,7 +30,12 @@ public class Input extends SlateComponent {
     }
 
     public Input(String placeholder, Function<StateProvider, String> valueResolver, String changeCommand, InputValueHandler changeHandler, SlateStyle style) {
+        this(StateProvider.EMPTY, placeholder, valueResolver, changeCommand, changeHandler, style);
+    }
+
+    public Input(StateProvider stateProvider, String placeholder, Function<StateProvider, String> valueResolver, String changeCommand, InputValueHandler changeHandler, SlateStyle style) {
         super(style);
+        this.stateProvider = stateProvider == null ? StateProvider.EMPTY : stateProvider;
         this.placeholder = placeholder == null ? "" : placeholder;
         this.valueResolver = Objects.requireNonNull(valueResolver, "valueResolver");
         this.changeCommand = changeCommand;
@@ -51,7 +57,7 @@ public class Input extends SlateComponent {
     @Override
     public Size measure(SlateLayoutContext context, Size available) {
         if (draft.isEmpty()) {
-            draft = valueResolver.apply(StateProvider.EMPTY);
+            draft = valueResolver.apply(stateProvider);
         }
         int width = style().width() != null ? style().width() : Math.min(available.width(), 180);
         int height = style().height() != null ? style().height() : context.lineHeight() + style().padding().vertical() + 8;

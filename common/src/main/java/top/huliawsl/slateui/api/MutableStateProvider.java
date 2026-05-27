@@ -8,7 +8,7 @@ import java.util.Objects;
 
 public class MutableStateProvider implements StateProvider {
 
-    private final Map<String, Object> values = new LinkedHashMap<>();
+    protected final Map<String, Object> values = new LinkedHashMap<>();
     private final List<StateListener> listeners = new ArrayList<>();
 
     public MutableStateProvider set(String path, Object value) {
@@ -41,5 +41,10 @@ public class MutableStateProvider implements StateProvider {
         for (StateListener listener : List.copyOf(listeners)) {
             listener.onStateDirty(path);
         }
+    }
+
+    @Override
+    public Map<String, Object> snapshot() {
+        return Map.copyOf(values);
     }
 }

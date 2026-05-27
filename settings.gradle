@@ -47,6 +47,7 @@ plugins {
 rootProject.name = 'SlateUI'
 include('common')
 include('slateui-authoring')
+include('slateui-kotlin')
 include('fabric')
 include('neoforge')
 include('forge')
