@@ -89,6 +89,37 @@ class RuntimeComponentsTest {
     }
 
     @Test
+    void inputCanStayEmptyAfterDeletingInitialValue() {
+        Input input = new Input("placeholder", "Alex", null, SlateStyle.EMPTY);
+        input.measure(new SlateLayoutContext(null), new Size(120, 40));
+        input.layout(new SlateLayoutContext(null), new Rect(0, 0, 120, 24));
+        TestScreen screen = new TestScreen(input);
+        top.huliawsl.slateui.runtime.SlateInteractionContext interaction = new top.huliawsl.slateui.runtime.SlateInteractionContext(
+            new top.huliawsl.slateui.command.SlateCommandRegistry(),
+            new top.huliawsl.slateui.command.CommandContext(null, screen),
+            ignored -> {},
+            ignored -> {},
+            screen,
+            top.huliawsl.slateui.api.StateProvider.EMPTY,
+            top.huliawsl.slateui.api.Theme.DEFAULT
+        );
+        input.setFocused(true);
+
+        input.keyPressed(interaction, 259, 0, 0);
+        input.keyPressed(interaction, 259, 0, 0);
+        input.keyPressed(interaction, 259, 0, 0);
+        input.measure(new SlateLayoutContext(null), new Size(120, 40));
+
+        List<DrawCommand> commands = new java.util.ArrayList<>();
+        input.collectDrawCommands(new SlateRenderContext(false, top.huliawsl.slateui.api.Theme.DEFAULT), commands);
+
+        assertTrue(commands.stream()
+            .filter(top.huliawsl.slateui.render.DrawTextCommand.class::isInstance)
+            .map(top.huliawsl.slateui.render.DrawTextCommand.class::cast)
+            .noneMatch(command -> command.text().contains("Alex")));
+    }
+
+    @Test
     void providerNotifiesListenersOnDirtyUpdate() {
         MutableStateProvider provider = new MutableStateProvider();
         MutableString dirtyPath = new MutableString();
@@ -127,5 +158,19 @@ class RuntimeComponentsTest {
 
     private static final class MutableString {
         private String value = "";
+    }
+
+    private static final class TestScreen extends top.huliawsl.slateui.api.SlateScreen {
+
+        private TestScreen(SlateComponent root) {
+            super(
+                net.minecraft.network.chat.Component.literal("Test"),
+                root,
+                new top.huliawsl.slateui.command.SlateCommandRegistry(),
+                top.huliawsl.slateui.api.StateProvider.EMPTY,
+                top.huliawsl.slateui.api.Theme.DEFAULT,
+                false
+            );
+        }
     }
 }

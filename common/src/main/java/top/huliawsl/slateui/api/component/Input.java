@@ -26,6 +26,7 @@ public class Input extends SlateComponent {
     private final String changeCommand;
     private final InputValueHandler changeHandler;
     private String draft = "";
+    private boolean initialized;
 
     public Input(String placeholder, String initialValue, String changeCommand, SlateStyle style) {
         this(placeholder, provider -> initialValue, changeCommand, null, style);
@@ -58,8 +59,12 @@ public class Input extends SlateComponent {
 
     @Override
     public Size measure(SlateLayoutContext context, Size available) {
-        if (draft.isEmpty()) {
+        if (!initialized) {
             draft = valueResolver.apply(stateProvider);
+            if (draft == null) {
+                draft = "";
+            }
+            initialized = true;
         }
         int width = style().width() != null ? style().width() : Math.min(available.width(), 180);
         int height = style().height() != null ? style().height() : context.lineHeight() + style().padding().vertical() + 8;

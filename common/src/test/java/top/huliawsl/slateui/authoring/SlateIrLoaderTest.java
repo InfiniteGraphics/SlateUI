@@ -38,8 +38,13 @@ class SlateIrLoaderTest {
     }
 
     @Test
-    void loadsGeneratedGalleryResourceThroughLoader() {
-        JsonObject json = SlateIrLoader.load("slateui/gallery.json");
+    void loadsGeneratedGalleryResourceThroughLoader() throws Exception {
+        Path resource = tempDir.resolve(Path.of("common", "build", "generated", "resources", "slateui", "isolated-gallery.json"));
+        Files.createDirectories(resource.getParent());
+        Files.writeString(resource, "{\"root\":{\"componentType\":\"Box\"}}", StandardCharsets.UTF_8);
+
+        Path resolved = SlateIrLoader.resolveLocalResource(tempDir.resolve("run"), "slateui/isolated-gallery.json");
+        JsonObject json = SlateIrLoader.loadFromFile(resolved, "slateui/isolated-gallery.json");
 
         assertNotNull(json.getAsJsonObject("root").get("componentType"));
     }

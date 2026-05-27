@@ -59,7 +59,7 @@ final class SlateForEachComponent extends SlateComponent {
         for (Entry entry : resolvedEntries) {
             Size childSize = entry.component.measure(context, available);
             width = Math.max(width, childSize.width());
-            height = Math.max(height, childSize.height());
+            height += childSize.height();
         }
         Size measured = new Size(width, height);
         setMeasuredSize(measured);
@@ -69,8 +69,11 @@ final class SlateForEachComponent extends SlateComponent {
     @Override
     public void layout(SlateLayoutContext context, Rect bounds) {
         setBounds(bounds);
+        int cursorY = bounds.y();
         for (Entry entry : resolvedEntries) {
-            entry.component.layout(context, bounds);
+            Size childSize = entry.component.layoutNode().measuredSize();
+            entry.component.layout(context, new Rect(bounds.x(), cursorY, Math.min(childSize.width(), bounds.width()), childSize.height()));
+            cursorY += childSize.height();
         }
     }
 

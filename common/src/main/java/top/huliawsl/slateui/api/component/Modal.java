@@ -92,7 +92,10 @@ public final class Modal extends SlateComponent {
 
     @Override
     public boolean mouseScrolled(SlateInteractionContext context, double mouseX, double mouseY, double delta) {
-        return open() ? modal.mouseScrolled(context, mouseX, mouseY, delta) : content.mouseScrolled(context, mouseX, mouseY, delta);
+        if (!open()) {
+            return content.mouseScrolled(context, mouseX, mouseY, delta);
+        }
+        return modal.mouseScrolled(context, mouseX, mouseY, delta) || bounds().contains(mouseX, mouseY);
     }
 
     @Override

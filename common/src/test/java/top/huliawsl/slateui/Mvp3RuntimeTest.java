@@ -20,6 +20,8 @@ import top.huliawsl.slateui.api.StateProvider;
 import top.huliawsl.slateui.api.Theme;
 import top.huliawsl.slateui.api.component.Conditional;
 import top.huliawsl.slateui.api.component.Modal;
+import top.huliawsl.slateui.api.component.ScrollView;
+import top.huliawsl.slateui.api.component.Stack;
 import top.huliawsl.slateui.authoring.SlateComponentRegistry;
 import top.huliawsl.slateui.authoring.SlateIrRuntimeFactory;
 import top.huliawsl.slateui.binding.BindingEvaluator;
@@ -89,6 +91,31 @@ class Mvp3RuntimeTest {
     }
 
     @Test
+    void forEachLaysOutItemsVerticallyWithoutOverlap() {
+        SlateComponentRegistry registry = new SlateComponentRegistry()
+            .register("ItemCell", (node, children, namedSlots, context) -> new MarkerComponent(context.provider()));
+        SlateIrRuntimeFactory factory = new SlateIrRuntimeFactory(registry);
+        JsonObject root = component("ItemCell");
+        JsonObject directives = new JsonObject();
+        directives.addProperty("alias", "item");
+        directives.addProperty("for", "items");
+        directives.addProperty("key", "item.id");
+        root.add("directives", directives);
+        root.add("children", new JsonArray());
+
+        top.huliawsl.slateui.api.MutableStateProvider provider = new top.huliawsl.slateui.api.MutableStateProvider()
+            .set("items", List.of(Map.of("id", "a"), Map.of("id", "b")));
+        SlateComponent list = factory.buildComponentTree(root, provider, Theme.DEFAULT);
+
+        list.measure(new SlateLayoutContext(null), new Size(100, 100));
+        list.layout(new SlateLayoutContext(null), new Rect(0, 0, 100, 100));
+
+        List<SlateComponent> children = list.children();
+        assertEquals(0, children.get(0).bounds().y());
+        assertEquals(8, children.get(1).bounds().y());
+    }
+
+    @Test
     void namedSlotsProjectIntoCustomComponentAndModalConsumesBackdropClicks() {
         SlateComponentRegistry registry = new SlateComponentRegistry()
             .register("Leaf", (node, children, namedSlots, context) -> new FixedComponent(
@@ -135,6 +162,31 @@ class Mvp3RuntimeTest {
         assertEquals(0, modalContent.clicks);
         assertTrue(modal.mouseClicked(interaction, 50, 50, 0));
         assertEquals(1, modalContent.clicks);
+    }
+
+    @Test
+    void openModalConsumesScrollOverBackdrop() {
+        ScrollView scrollView = new ScrollView(new Stack(top.huliawsl.slateui.api.StackDirection.COLUMN, List.of(
+            new FixedComponent("a", 40, 60),
+            new FixedComponent("b", 40, 60)
+        ), SlateStyle.EMPTY), SlateStyle.builder().width(80).height(40).build());
+        Modal modal = new Modal(scrollView, new FixedComponent("modal", 20, 20), () -> true, SlateStyle.EMPTY);
+        modal.measure(new SlateLayoutContext(null), new Size(100, 100));
+        modal.layout(new SlateLayoutContext(null), new Rect(0, 0, 100, 100));
+        SlateScreen screen = new SlateScreen(Component.literal("Test"), modal, new SlateCommandRegistry(), StateProvider.EMPTY, Theme.DEFAULT, false);
+        List<String> diagnostics = new ArrayList<>();
+        SlateInteractionContext interaction = new SlateInteractionContext(
+            new SlateCommandRegistry(),
+            new CommandContext(null, screen),
+            ignored -> {},
+            diagnostics::add,
+            screen,
+            StateProvider.EMPTY,
+            Theme.DEFAULT
+        );
+
+        assertTrue(modal.mouseScrolled(interaction, 5, 5, -1));
+        assertTrue(diagnostics.stream().noneMatch(entry -> entry.startsWith("SCROLL")));
     }
 
     private static JsonObject component(String type) {

@@ -275,6 +275,9 @@ public final class SlateCompiler {
 
     private static SlateCompileException error(Path inputFile, String source, String needle, String message) {
         int index = source.indexOf(needle);
+        if (index < 0) {
+            index = 0;
+        }
         int line = 1;
         int column = 1;
         for (int i = 0; i < index; i++) {
