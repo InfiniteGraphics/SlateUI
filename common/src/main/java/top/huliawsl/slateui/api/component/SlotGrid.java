@@ -26,6 +26,7 @@ public final class SlotGrid extends SlateComponent {
         .padding(Insets.all(4))
         .backgroundColor(0xFF0F172A)
         .border(new SlateBorder(0xFF334155, 1))
+        .borderRadiusToken("radius.md")
         .build();
 
     private final ContainerSlotProvider provider;

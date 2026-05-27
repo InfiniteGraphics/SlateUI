@@ -236,6 +236,26 @@ public abstract class SlateComponent {
         return theme.resolveColor(style.textColor(), style.textColorToken(), 0xFFFFFFFF);
     }
 
+    protected final int resolveBorderRadius(Theme theme) {
+        return theme.resolveRadius(style.borderRadius(), style.borderRadiusToken(), 0);
+    }
+
+    protected final int contentClipRadius(Theme theme) {
+        int radius = resolveBorderRadius(theme);
+        if (radius <= 0) {
+            return 0;
+        }
+        Insets padding = style.padding();
+        int inset = Math.max(Math.max(padding.left(), padding.right()), Math.max(padding.top(), padding.bottom()));
+        return Math.max(0, radius - inset);
+    }
+
+    protected final void pushClip(SlateRenderContext context, List<DrawCommand> commands, Rect rect) {
+        if (style.clipContent()) {
+            commands.add(new PushClipCommand(rect, contentClipRadius(context.theme())));
+        }
+    }
+
     protected final void pushClip(List<DrawCommand> commands, Rect rect) {
         if (style.clipContent()) {
             commands.add(new PushClipCommand(rect));
@@ -253,13 +273,14 @@ public abstract class SlateComponent {
         Integer backgroundOverride = pressed ? style.activeBackgroundColor() : hovered ? style.hoverBackgroundColor() : style.backgroundColor();
         String backgroundToken = pressed ? style.activeBackgroundToken() : hovered ? style.hoverBackgroundToken() : style.backgroundToken();
         int backgroundColor = theme.resolveColor(backgroundOverride, backgroundToken, Integer.MIN_VALUE);
+        int borderRadius = resolveBorderRadius(theme);
         if (backgroundColor != Integer.MIN_VALUE) {
-            commands.add(new DrawRectCommand(bounds, backgroundColor));
+            commands.add(new DrawRectCommand(bounds, backgroundColor, borderRadius));
         }
         SlateBorder border = focused && style.focusBorder().thickness() > 0 ? style.focusBorder() : style.border();
         String borderToken = focused && style.focusBorder().thickness() > 0 ? style.focusBorderColorToken() : style.borderColorToken();
         if (border.thickness() > 0) {
-            commands.add(new DrawBorderCommand(bounds, theme.resolveColor(border.color(), borderToken, border.color()), border.thickness()));
+            commands.add(new DrawBorderCommand(bounds, theme.resolveColor(border.color(), borderToken, border.color()), border.thickness(), borderRadius));
         }
         if (context.debugEnabled()) {
             commands.add(new DrawDebugRectCommand(bounds, 0x66FF00FF));

@@ -24,6 +24,8 @@ public final class SlateStyle {
     private final String activeBackgroundToken;
     private final SlateBorder border;
     private final String borderColorToken;
+    private final Integer borderRadius;
+    private final String borderRadiusToken;
     private final SlateBorder focusBorder;
     private final String focusBorderColorToken;
     private final Integer textColor;
@@ -52,6 +54,8 @@ public final class SlateStyle {
         this.activeBackgroundToken = builder.activeBackgroundToken;
         this.border = builder.border;
         this.borderColorToken = builder.borderColorToken;
+        this.borderRadius = builder.borderRadius;
+        this.borderRadiusToken = builder.borderRadiusToken;
         this.focusBorder = builder.focusBorder;
         this.focusBorderColorToken = builder.focusBorderColorToken;
         this.textColor = builder.textColor;
@@ -92,6 +96,8 @@ public final class SlateStyle {
         builder.activeBackgroundToken = override.activeBackgroundToken != null ? override.activeBackgroundToken : defaults.activeBackgroundToken;
         builder.border = !SlateBorder.NONE.equals(override.border) ? override.border : defaults.border;
         builder.borderColorToken = override.borderColorToken != null ? override.borderColorToken : defaults.borderColorToken;
+        builder.borderRadius = override.borderRadius != null ? override.borderRadius : defaults.borderRadius;
+        builder.borderRadiusToken = override.borderRadiusToken != null ? override.borderRadiusToken : defaults.borderRadiusToken;
         builder.focusBorder = !SlateBorder.NONE.equals(override.focusBorder) ? override.focusBorder : defaults.focusBorder;
         builder.focusBorderColorToken = override.focusBorderColorToken != null ? override.focusBorderColorToken : defaults.focusBorderColorToken;
         builder.textColor = override.textColor != null ? override.textColor : defaults.textColor;
@@ -175,6 +181,14 @@ public final class SlateStyle {
         return borderColorToken;
     }
 
+    public Integer borderRadius() {
+        return borderRadius;
+    }
+
+    public String borderRadiusToken() {
+        return borderRadiusToken;
+    }
+
     public SlateBorder focusBorder() {
         return focusBorder;
     }
@@ -227,6 +241,8 @@ public final class SlateStyle {
         private String activeBackgroundToken;
         private SlateBorder border = SlateBorder.NONE;
         private String borderColorToken;
+        private Integer borderRadius;
+        private String borderRadiusToken;
         private SlateBorder focusBorder = SlateBorder.NONE;
         private String focusBorderColorToken;
         private Integer textColor = 0xFFFFFFFF;
@@ -332,6 +348,16 @@ public final class SlateStyle {
 
         public Builder borderColorToken(String borderColorToken) {
             this.borderColorToken = borderColorToken;
+            return this;
+        }
+
+        public Builder borderRadius(int borderRadius) {
+            this.borderRadius = Math.max(0, borderRadius);
+            return this;
+        }
+
+        public Builder borderRadiusToken(String borderRadiusToken) {
+            this.borderRadiusToken = borderRadiusToken;
             return this;
         }
 

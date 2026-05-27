@@ -59,7 +59,7 @@ public class ScrollView extends SlateComponent {
     public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
         emitBoxChrome(context, commands);
         Rect viewport = contentRect(bounds());
-        commands.add(new PushClipCommand(viewport));
+        commands.add(new PushClipCommand(viewport, contentClipRadius(context.theme())));
         content.collectDrawCommands(context, commands);
         commands.add(new PopClipCommand());
     }

@@ -12,9 +12,10 @@ class ClipStackTest {
     void singleClipPushAndPopStayBalanced() {
         ClipStack clipStack = new ClipStack();
 
-        ClipStack.Entry entry = clipStack.push(new Rect(0, 0, 40, 40));
+        ClipStack.Entry entry = clipStack.push(new Rect(0, 0, 40, 40), 6);
 
         assertTrue(entry.enabled());
+        assertTrue(entry.radius() > 0);
         assertFalse(clipStack.shouldSkip(new DrawRectCommand(new Rect(0, 0, 10, 10), 0xFFFFFFFF)));
         assertTrue(clipStack.popEnabled());
         assertTrue(clipStack.isEmpty());

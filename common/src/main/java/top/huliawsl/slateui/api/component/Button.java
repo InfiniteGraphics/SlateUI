@@ -23,6 +23,7 @@ public class Button extends SlateComponent {
         .activeBackgroundToken("color.primaryActive")
         .border(new SlateBorder(0xFFBFDBFE, 1))
         .focusBorder(new SlateBorder(0xFFFFFFFF, 1))
+        .borderRadiusToken("radius.sm")
         .horizontalAlign(HorizontalAlign.CENTER)
         .verticalAlign(VerticalAlign.CENTER)
         .clipContent(true)
@@ -83,7 +84,7 @@ public class Button extends SlateComponent {
     public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
         emitBoxChrome(context, commands);
         Rect contentRect = contentRect(bounds());
-        pushClip(commands, contentRect);
+        pushClip(context, commands, contentRect);
         for (SlateComponent child : children) {
             child.collectDrawCommands(context, commands);
         }

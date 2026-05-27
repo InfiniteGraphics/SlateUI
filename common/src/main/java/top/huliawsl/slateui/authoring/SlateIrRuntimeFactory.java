@@ -347,6 +347,8 @@ public final class SlateIrRuntimeFactory {
                 case "backgroundToken", "background-token" -> builder.backgroundToken(value);
                 case "borderColorToken", "border-color-token" -> builder.borderColorToken(value);
                 case "borderThickness", "border-thickness" -> builder.border(new SlateBorder(0xFF334155, Integer.parseInt(value)));
+                case "borderRadius", "border-radius", "radius" -> builder.borderRadius(Integer.parseInt(value));
+                case "borderRadiusToken", "border-radius-token", "radiusToken", "radius-token" -> builder.borderRadiusToken(value);
                 case "clipContent", "clip-content" -> builder.clipContent(Boolean.parseBoolean(value));
                 default -> {
                 }

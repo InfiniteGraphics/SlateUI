@@ -29,6 +29,7 @@ public class Input extends SlateComponent {
         .hoverBackgroundColor(0xFF111C31)
         .border(new SlateBorder(0xFF475569, 1))
         .focusBorder(new SlateBorder(0xFF60A5FA, 1))
+        .borderRadiusToken("radius.sm")
         .clipContent(true)
         .build();
 
@@ -94,7 +95,7 @@ public class Input extends SlateComponent {
     public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
         emitBoxChrome(context, commands);
         Rect content = contentRect(bounds());
-        commands.add(new PushClipCommand(content));
+        commands.add(new PushClipCommand(content, contentClipRadius(context.theme())));
         String text = draft.isEmpty() ? placeholder : draft;
         int color = draft.isEmpty() ? 0xFF94A3B8 : resolveTextColor(context.theme());
         commands.add(new DrawTextCommand(content.x() + 2, content.y() + 2, text + (isFocused() ? "|" : ""), color));
