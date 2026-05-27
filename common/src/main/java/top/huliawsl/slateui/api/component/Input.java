@@ -1,6 +1,7 @@
 package top.huliawsl.slateui.api.component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import net.minecraft.client.gui.screens.Screen;
@@ -140,7 +141,7 @@ public class Input extends SlateComponent {
             changeHandler.onChange(context, draft);
         }
         if (changeCommand != null && !changeCommand.isBlank()) {
-            boolean executed = context.commands().execute(changeCommand, context.commandContext());
+            boolean executed = context.commands().execute(changeCommand, context, Map.of("value", draft));
             context.commandLogger().accept((executed ? "EXEC " : "MISS ") + changeCommand + " value=" + summarizeValue(draft));
         }
         context.logDiagnostic("INPUT commit=" + summarizeValue(draft));

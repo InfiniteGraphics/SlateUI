@@ -16,6 +16,10 @@ public final class Theme {
         return tokens;
     }
 
+    public Theme merge(ThemeTokens overrideTokens) {
+        return new Theme(tokens.merge(overrideTokens));
+    }
+
     public int resolveColor(Integer directValue, String token, int fallback) {
         if (directValue != null) {
             return directValue;

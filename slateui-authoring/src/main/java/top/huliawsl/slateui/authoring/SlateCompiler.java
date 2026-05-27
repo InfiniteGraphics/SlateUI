@@ -28,7 +28,7 @@ public final class SlateCompiler {
     private static final Pattern STYLE_PATTERN = Pattern.compile("<style\\s+scoped>(.*?)</style>", Pattern.DOTALL);
     private static final Pattern STYLE_RULE_PATTERN = Pattern.compile("\\.(?<name>[a-zA-Z0-9_-]+)\\s*\\{(?<body>.*?)\\}", Pattern.DOTALL);
     private static final Pattern SLOT_SHORTHAND_PATTERN = Pattern.compile("<template\\s+#([a-zA-Z0-9_-]+)([^>]*)>");
-    private static final Set<String> BUILTIN_COMPONENTS = Set.of("OverlayRoot", "Box", "Stack", "Text", "Button", "Input", "ScrollView", "Image", "Tooltip", "Popup", "Modal");
+    private static final Set<String> BUILTIN_COMPONENTS = Set.of("OverlayRoot", "Box", "Stack", "Text", "Button", "Input", "ScrollView", "Image", "Tooltip", "Popup", "Modal", "SlotGrid");
     private static final Set<String> BUILTIN_ONLY_SLOTS = Set.of("tooltip", "popup", "modal");
     private static final Set<String> DIRECTIVES = Set.of("if", "for", "key");
     private static final Map<String, Set<String>> PROPS = Map.ofEntries(
@@ -42,7 +42,8 @@ public final class SlateCompiler {
         Map.entry("Image", Set.of("class", "resource")),
         Map.entry("Tooltip", Set.of("class")),
         Map.entry("Popup", Set.of("class", "open")),
-        Map.entry("Modal", Set.of("class", "open"))
+        Map.entry("Modal", Set.of("class", "open")),
+        Map.entry("SlotGrid", Set.of("class", "slots", "columns", "slotSize", "slotGap", "command"))
     );
 
     public void compileDirectory(Path inputDir, Path outputDir) throws Exception {

@@ -89,6 +89,7 @@ public class SlateScreen extends Screen {
             if (runtimeDirty) {
                 rebuildRuntime();
             }
+            diagnostics.capturePointer(mouseX, mouseY);
             guiGraphics.fill(0, 0, width, height, BACKGROUND_COLOR);
             MinecraftDrawCommandRenderer.render(guiGraphics, font, drawCommands);
         } catch (Throwable throwable) {

@@ -7,6 +7,8 @@ import top.huliawsl.slateui.api.component.Box
 import top.huliawsl.slateui.api.component.Button
 import top.huliawsl.slateui.api.component.OverlayRoot
 import top.huliawsl.slateui.api.component.Stack
+import top.huliawsl.slateui.api.component.SlotGrid
+import top.huliawsl.slateui.api.container.ContainerSlotProvider
 import top.huliawsl.slateui.api.component.Text
 
 class ComponentScope {
@@ -26,6 +28,17 @@ class ComponentScope {
 
     fun stack(direction: StackDirection, style: SlateStyle = SlateStyle.EMPTY, build: ComponentScope.() -> Unit) {
         children += Stack(direction, ComponentScope().apply(build).build(), style)
+    }
+
+    fun slotGrid(
+        provider: ContainerSlotProvider,
+        columns: Int = 9,
+        slotSize: Int = 18,
+        slotGap: Int = 2,
+        command: String? = null,
+        style: SlateStyle = SlateStyle.EMPTY
+    ) {
+        children += SlotGrid(provider, columns, slotSize, slotGap, command, style)
     }
 
     internal fun build(): List<SlateComponent> = children.toList()

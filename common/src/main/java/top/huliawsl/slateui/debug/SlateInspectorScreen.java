@@ -47,6 +47,12 @@ public final class SlateInspectorScreen extends Screen {
         lines.add("SlateUI Inspector");
         lines.add("Press ESC to return");
         lines.add("");
+        lines.add("Runtime summary:");
+        appendBlock(lines, diagnostics.runtimeSummaryDump(), 4);
+        lines.add("");
+        lines.add("Hit test:");
+        appendBlock(lines, diagnostics.hitTestDump(), 3);
+        lines.add("");
         lines.add("Component tree:");
         appendBlock(lines, diagnostics.componentTreeDump(), 10);
         lines.add("");

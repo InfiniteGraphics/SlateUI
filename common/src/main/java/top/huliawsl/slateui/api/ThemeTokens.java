@@ -39,6 +39,32 @@ public final class ThemeTokens {
             .build();
     }
 
+    public ThemeTokens merge(ThemeTokens override) {
+        if (override == null) {
+            return this;
+        }
+        Builder builder = builder();
+        colors.forEach(builder::color);
+        spacing.forEach(builder::spacing);
+        radii.forEach(builder::radius);
+        override.colors.forEach(builder::color);
+        override.spacing.forEach(builder::spacing);
+        override.radii.forEach(builder::radius);
+        return builder.build();
+    }
+
+    public Map<String, Integer> colors() {
+        return colors;
+    }
+
+    public Map<String, Integer> spacing() {
+        return spacing;
+    }
+
+    public Map<String, Integer> radii() {
+        return radii;
+    }
+
     public Integer color(String key) {
         return colors.get(key);
     }

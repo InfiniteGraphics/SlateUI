@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Objects;
 import net.minecraft.network.chat.Component;
 import top.huliawsl.slateui.api.InputValueHandler;
+import top.huliawsl.slateui.api.container.ContainerSlot;
+import top.huliawsl.slateui.api.container.ContainerSlotProvider;
 import top.huliawsl.slateui.api.MutableStateProvider;
 import top.huliawsl.slateui.api.SlateBorder;
 import top.huliawsl.slateui.api.SlateComponent;
@@ -26,12 +28,14 @@ import top.huliawsl.slateui.api.component.Modal;
 import top.huliawsl.slateui.api.component.OverlayRoot;
 import top.huliawsl.slateui.api.component.Popup;
 import top.huliawsl.slateui.api.component.ScrollView;
+import top.huliawsl.slateui.api.component.SlotGrid;
 import top.huliawsl.slateui.api.component.Stack;
 import top.huliawsl.slateui.api.component.Text;
 import top.huliawsl.slateui.api.component.Tooltip;
 import top.huliawsl.slateui.binding.BindingEvaluator;
 import top.huliawsl.slateui.binding.BindingParser;
 import top.huliawsl.slateui.command.SlateCommandRegistry;
+import top.huliawsl.slateui.override.SlateOverrideRegistry;
 import top.huliawsl.slateui.layout.Insets;
 
 public final class SlateIrRuntimeFactory {
@@ -39,17 +43,23 @@ public final class SlateIrRuntimeFactory {
     private static final int SUPPORTED_SCHEMA = 1;
 
     private final SlateComponentRegistry registry;
+    private final SlateOverrideRegistry overrideRegistry;
 
     public SlateIrRuntimeFactory() {
-        this(null);
+        this(null, SlateOverrideRegistry.EMPTY);
     }
 
     public SlateIrRuntimeFactory(SlateComponentRegistry registry) {
+        this(registry, SlateOverrideRegistry.EMPTY);
+    }
+
+    public SlateIrRuntimeFactory(SlateComponentRegistry registry, SlateOverrideRegistry overrideRegistry) {
         this.registry = createDefaultRegistry(registry);
+        this.overrideRegistry = overrideRegistry == null ? SlateOverrideRegistry.EMPTY : overrideRegistry;
     }
 
     public SlateScreen createScreen(Component title, String resourcePath, SlateCommandRegistry commands, StateProvider provider, Theme theme, boolean debugEnabled) {
-        JsonObject ir = SlateIrLoader.load(resourcePath);
+        JsonObject ir = overrideRegistry.applyComponentOverride(resourcePath, SlateIrLoader.load(resourcePath));
         int schemaVersion = ir.get("schemaVersion").getAsInt();
         if (schemaVersion != SUPPORTED_SCHEMA) {
             throw new IllegalStateException("Unsupported Slate IR schema: " + schemaVersion);
@@ -57,11 +67,11 @@ public final class SlateIrRuntimeFactory {
         RuntimeBuildContext context = new RuntimeBuildContext(
             resourcePath,
             provider == null ? StateProvider.EMPTY : provider,
-            theme == null ? Theme.DEFAULT : theme,
+            overrideRegistry.applyThemeOverride(theme),
             ir.getAsJsonObject("scopedStyle")
         );
         SlateComponent root = buildComponentNode(ir.getAsJsonObject("root"), context);
-        return new SlateScreen(title, root, commands, provider, theme, debugEnabled);
+        return new SlateScreen(title, root, commands, provider, context.theme(), debugEnabled);
     }
 
     public SlateComponent buildComponentTree(JsonObject root, StateProvider provider, Theme theme) {
@@ -141,6 +151,14 @@ public final class SlateIrRuntimeFactory {
             ))
             .register("ScrollView", (node, children, namedSlots, context) -> new ScrollView(singleChild(children), resolveStyle(node, context)))
             .register("Image", (node, children, namedSlots, context) -> new Image(prop(node, "resource", "minecraft:textures/gui/options_background.png"), resolveStyle(node, context)))
+            .register("SlotGrid", (node, children, namedSlots, context) -> new SlotGrid(
+                createSlotProvider(node, context),
+                propInt(node, "columns", 9),
+                propInt(node, "slotSize", 18),
+                propInt(node, "slotGap", 2),
+                prop(node, "command", null),
+                resolveStyle(node, context)
+            ))
             .register("Tooltip", (node, children, namedSlots, context) -> new Tooltip(singleChild(children), slotChild(namedSlots, "tooltip"), resolveStyle(node, context)))
             .register("Popup", (node, children, namedSlots, context) -> new Popup(
                 singleChild(children),
@@ -161,6 +179,68 @@ public final class SlateIrRuntimeFactory {
             defaults.register(entry.getKey(), entry.getValue());
         }
         return defaults;
+    }
+
+    private static ContainerSlotProvider createSlotProvider(JsonObject node, RuntimeBuildContext context) {
+        String binding = binding(node, "slots");
+        String path = binding == null ? prop(node, "slots", null) : binding;
+        if (path == null || path.isBlank()) {
+            return ContainerSlotProvider.empty();
+        }
+        return () -> toSlots(BindingEvaluator.evaluate(path, context.provider()));
+    }
+
+    private static List<ContainerSlot> toSlots(Object value) {
+        if (!(value instanceof Iterable<?> iterable)) {
+            return List.of();
+        }
+        List<ContainerSlot> slots = new ArrayList<>();
+        int fallbackIndex = 0;
+        for (Object entry : iterable) {
+            if (entry instanceof ContainerSlot slot) {
+                slots.add(slot);
+                fallbackIndex++;
+                continue;
+            }
+            if (entry instanceof Map<?, ?> map) {
+                int index = intValue(mapValue(map, "index", fallbackIndex), fallbackIndex);
+                String itemId = stringValue(map.containsKey("itemId") ? map.get("itemId") : mapValue(map, "item", ""));
+                int count = intValue(mapValue(map, "count", 0), 0);
+                boolean enabled = boolValue(mapValue(map, "enabled", true));
+                slots.add(new ContainerSlot(index, itemId, count, enabled));
+                fallbackIndex++;
+            }
+        }
+        return List.copyOf(slots);
+    }
+
+    private static Object mapValue(Map<?, ?> map, String key, Object fallback) {
+        return map.containsKey(key) ? map.get(key) : fallback;
+    }
+
+    private static int intValue(Object value, int fallback) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value == null) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
+    private static boolean boolValue(Object value) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        return value == null || Boolean.parseBoolean(String.valueOf(value));
+    }
+
+    private static String stringValue(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 
     private static InputValueHandler createInputHandler(JsonObject node, RuntimeBuildContext context) {
@@ -202,6 +282,14 @@ public final class SlateIrRuntimeFactory {
     static String binding(JsonObject node, String name) {
         JsonObject bindings = node.getAsJsonObject("bindings");
         return bindings != null && bindings.has(name) ? bindings.get(name).getAsString() : null;
+    }
+
+    private static int propInt(JsonObject node, String name, int fallback) {
+        String value = prop(node, name, null);
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        return Integer.parseInt(value);
     }
 
     private static String prop(JsonObject node, String name, String fallback) {

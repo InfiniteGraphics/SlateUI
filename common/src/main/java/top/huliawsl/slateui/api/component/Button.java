@@ -94,7 +94,7 @@ public class Button extends SlateComponent {
     public boolean mouseReleased(SlateInteractionContext context, double mouseX, double mouseY, int button) {
         boolean handled = super.mouseReleased(context, mouseX, mouseY, button);
         if (handled && bounds().contains(mouseX, mouseY)) {
-            boolean executed = context.commands().execute(commandId, context.commandContext());
+            boolean executed = context.commands().execute(commandId, context);
             context.commandLogger().accept((executed ? "EXEC " : "MISS ") + commandId);
             return executed;
         }
