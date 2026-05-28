@@ -17,25 +17,26 @@ import top.huliawsl.slateui.runtime.SlateRenderContext;
 public class Text extends SlateComponent {
 
     private final StateProvider stateProvider;
-    private final Function<StateProvider, String> textResolver;
+    private final Function<StateProvider, SlateText> textResolver;
+    private SlateText resolvedSlateText = new SlateText.Literal("");
     private String resolvedText = "";
     private List<String> lines = List.of("");
     private int lineHeight;
 
     public Text(String text) {
-        this(provider -> text, SlateStyle.EMPTY);
+        this(new SlateText.Literal(text), SlateStyle.EMPTY);
     }
 
     public Text(SlateText text) {
-        this(provider -> text == null ? "" : text.fallbackText(), SlateStyle.EMPTY);
+        this(text, SlateStyle.EMPTY);
     }
 
     public Text(String text, SlateStyle style) {
-        this(provider -> text, style);
+        this(new SlateText.Literal(text), style);
     }
 
     public Text(SlateText text, SlateStyle style) {
-        this(provider -> text == null ? "" : text.fallbackText(), style);
+        this(StateProvider.EMPTY, provider -> text, style, true);
     }
 
     public Text(Function<StateProvider, String> textResolver, SlateStyle style) {
@@ -43,6 +44,10 @@ public class Text extends SlateComponent {
     }
 
     public Text(StateProvider stateProvider, Function<StateProvider, String> textResolver, SlateStyle style) {
+        this(stateProvider, provider -> new SlateText.Literal(textResolver.apply(provider)), style, true);
+    }
+
+    public Text(StateProvider stateProvider, Function<StateProvider, SlateText> textResolver, SlateStyle style, boolean slateTextResolver) {
         super(style);
         this.stateProvider = stateProvider == null ? StateProvider.EMPTY : stateProvider;
         this.textResolver = textResolver;
@@ -54,7 +59,8 @@ public class Text extends SlateComponent {
 
     @Override
     public Size measure(SlateLayoutContext context, Size available) {
-        resolvedText = safeText(textResolver.apply(stateProvider));
+        resolvedSlateText = safeText(textResolver.apply(stateProvider));
+        resolvedText = resolvedSlateText.fallbackText();
         int wrapWidth = style().width() != null
             ? Math.max(0, style().width() - style().padding().horizontal())
             : Math.max(0, available.width());
@@ -85,14 +91,21 @@ public class Text extends SlateComponent {
             commands.add(new DrawTextCommand(
                 contentRect.x(),
                 contentRect.y() + index * lineHeight,
-                lines.get(index),
+                lineText(index),
                 resolveTextColor(context.theme())
             ));
         }
     }
 
-    private static String safeText(String value) {
-        return value == null ? "" : value;
+    private SlateText lineText(int index) {
+        if (lines.size() == 1 && index == 0) {
+            return resolvedSlateText;
+        }
+        return new SlateText.Literal(lines.get(index));
+    }
+
+    private static SlateText safeText(SlateText value) {
+        return value == null ? new SlateText.Literal("") : value;
     }
 
     private static List<String> wrapText(SlateLayoutContext context, String text, int maxWidth) {

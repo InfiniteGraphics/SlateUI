@@ -161,8 +161,9 @@ public final class SlateIrRuntimeFactory {
             ))
             .register("Text", (node, children, namedSlots, context) -> new Text(
                 context.provider(),
-                ignored -> resolveString(node, "value", context),
-                resolveStyle(node, context)
+                ignored -> resolveSlateText(node, context),
+                resolveStyle(node, context),
+                true
             ))
             .register("Button", (node, children, namedSlots, context) -> children.isEmpty()
                 ? new top.huliawsl.slateui.api.component.Button(resolveString(node, "label", context), prop(node, "command", null), resolveStyle(node, context))
@@ -389,6 +390,28 @@ public final class SlateIrRuntimeFactory {
         return value == null ? "" : String.valueOf(value);
     }
 
+    static top.huliawsl.slateui.api.SlateText resolveSlateText(JsonObject node, RuntimeBuildContext context) {
+        String translationKey = prop(node, "translationKey", null);
+        if (translationKey != null && !translationKey.isBlank()) {
+            return new top.huliawsl.slateui.api.SlateText.Translatable(translationKey, parseTranslationArgs(prop(node, "translationArgs", "")));
+        }
+        return new top.huliawsl.slateui.api.SlateText.Literal(resolveString(node, "value", context));
+    }
+
+    private static List<Object> parseTranslationArgs(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        List<Object> args = new ArrayList<>();
+        for (String arg : value.split(",")) {
+            String trimmed = arg.trim();
+            if (!trimmed.isEmpty()) {
+                args.add(trimmed);
+            }
+        }
+        return List.copyOf(args);
+    }
+
     static String binding(JsonObject node, String name) {
         JsonObject bindings = node.getAsJsonObject("bindings");
         return bindings != null && bindings.has(name) ? bindings.get(name).getAsString() : null;
@@ -511,7 +534,7 @@ public final class SlateIrRuntimeFactory {
             case "gap" -> builder.gap(parseInt(value, key));
             case "gaptoken", "gap-token" -> builder.gapToken(value);
             case "padding" -> builder.padding(Insets.all(parseInt(value, key)));
-            case "margin" -> throw new IllegalArgumentException("margin is not supported in SlateUI v0.1");
+            case "margin" -> throw new IllegalArgumentException("margin is not supported by the current layout runtime");
             case "background", "backgroundcolor", "background-color" -> applyBackground(builder, parseColor(value), state);
             case "backgroundtoken", "background-token" -> applyBackgroundToken(builder, value, state);
             case "hoverbackground", "hover-background", "hoverbackgroundcolor", "hover-background-color" -> builder.hoverBackgroundColor(parseColor(value));
