@@ -233,4 +233,52 @@ class SlateCompilerTest {
         assertTrue(json.contains("\"textureHeight\": \"128\""));
     }
 
+    @Test
+    void textAcceptsTranslationProps() throws Exception {
+        Path input = Files.createTempFile("text-translation", ".slate");
+        Path output = Files.createTempFile("text-translation-out", ".json");
+        Files.writeString(input, """
+            <template>
+              <Text translationKey="slateui.test.title" translationArgs="one,two" />
+            </template>
+            """);
+
+        new SlateCompiler().compileFile(input, output);
+
+        String json = Files.readString(output);
+        assertTrue(json.contains("\"translationKey\": \"slateui.test.title\""));
+        assertTrue(json.contains("\"translationArgs\": \"one,two\""));
+    }
+
+    @Test
+    void styleErrorsPointNearCurrentRule() throws Exception {
+        Path input = Files.createTempFile("style-current-location", ".slate");
+        Path output = Files.createTempFile("style-current-location-out", ".json");
+        Files.writeString(input, """
+            <template>
+              <Box />
+            </template>
+            <style scoped>
+              .first { width: 1; }
+              .second { width: nope; }
+            </style>
+            """);
+
+        SlateCompileException exception = assertThrows(SlateCompileException.class, () -> new SlateCompiler().compileFile(input, output));
+        assertTrue(exception.getMessage().contains("Invalid style value"));
+        assertTrue(exception.getMessage().contains(":6:"));
+    }
+
+    @Test
+    void schemaExportIncludesStableAndExperimentalComponents() {
+        String schema = SlateAuthoringSchema.export().toString();
+
+        assertTrue(schema.contains("\"Text\""));
+        assertTrue(schema.contains("\"translationKey\""));
+        assertTrue(schema.contains("\"Image\""));
+        assertTrue(schema.contains("\"regionWidth\""));
+        assertTrue(schema.contains("\"SlotGrid\""));
+        assertTrue(schema.contains("\"experimental\":true"));
+    }
+
 }

@@ -56,7 +56,7 @@ public final class SlateCompiler {
         Map.entry("Box", Set.of("class")),
         Map.entry("Panel", Set.of("class", "title", "contentGap")),
         Map.entry("Stack", Set.of("class", "direction")),
-        Map.entry("Text", Set.of("class", "value")),
+        Map.entry("Text", Set.of("class", "value", "translationKey", "translationArgs")),
         Map.entry("Button", Set.of("class", "label", "command")),
         Map.entry("Input", Set.of("class", "placeholder", "value", "onInput", "onChange", "onCommit", "maxLength")),
         Map.entry("Toggle", Set.of("class", "label", "checked", "onChange", "command")),
@@ -84,7 +84,7 @@ public final class SlateCompiler {
     public void compileFile(Path inputFile, Path outputFile) throws Exception {
         String source = preprocess(Files.readString(inputFile, StandardCharsets.UTF_8));
         String template = extractTemplateBlock(source, inputFile);
-        String styleBlock = extractOptionalBlock(STYLE_PATTERN, source);
+        SourceBlock styleBlock = extractOptionalBlock(STYLE_PATTERN, source);
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(false);
         factory.setIgnoringComments(true);
@@ -212,32 +212,41 @@ public final class SlateCompiler {
         directives.addProperty("for", split[1].trim());
     }
 
-    private static JsonObject parseStyle(String styleBlock, String source, Path inputFile) {
+    private static JsonObject parseStyle(SourceBlock styleSource, String source, Path inputFile) {
         JsonObject scopedStyle = new JsonObject();
+        String styleBlock = styleSource == null ? null : styleSource.content();
         if (styleBlock == null || styleBlock.isBlank()) {
             return scopedStyle;
         }
+        int styleOffset = styleSource.start();
         Matcher matcher = STYLE_RULE_PATTERN.matcher(styleBlock);
         int consumedUntil = 0;
         while (matcher.find()) {
             String gap = styleBlock.substring(consumedUntil, matcher.start()).trim();
             if (!gap.isEmpty()) {
-                throw error(inputFile, source, gap, "Invalid style selector or block near '" + summarize(gap) + "'");
+                throw errorAt(inputFile, source, styleOffset + consumedUntil + styleBlock.substring(consumedUntil, matcher.start()).indexOf(gap), "Invalid style selector or block near '" + summarize(gap) + "'");
             }
             consumedUntil = matcher.end();
             JsonObject rule = new JsonObject();
-            for (String declaration : matcher.group("body").split(";")) {
+            String body = matcher.group("body");
+            int bodyOffset = styleOffset + matcher.start("body");
+            int bodyCursor = 0;
+            for (String declaration : body.split(";")) {
                 String trimmed = declaration.trim();
                 if (trimmed.isEmpty()) {
+                    bodyCursor += declaration.length() + 1;
                     continue;
                 }
+                int declarationOffset = bodyOffset + bodyCursor;
+                int trimmedOffset = declarationOffset + declaration.indexOf(trimmed);
+                bodyCursor += declaration.length() + 1;
                 String[] parts = trimmed.split(":", 2);
                 if (parts.length != 2) {
-                    throw error(inputFile, source, trimmed, "Invalid style declaration '" + trimmed + "'");
+                    throw errorAt(inputFile, source, trimmedOffset, "Invalid style declaration '" + trimmed + "'");
                 }
                 String propertyName = parts[0].trim();
                 String value = parts[1].trim();
-                validateStyleDeclaration(inputFile, source, propertyName, value, propertyName, 0);
+                validateStyleDeclaration(inputFile, source, propertyName, value, propertyName, trimmedOffset);
                 rule.addProperty(propertyName, value);
             }
             String selector = matcher.group("selector");
@@ -249,7 +258,7 @@ public final class SlateCompiler {
         }
         String trailing = styleBlock.substring(consumedUntil).trim();
         if (!trailing.isEmpty()) {
-            throw error(inputFile, source, trailing, "Invalid style selector or block near '" + summarize(trailing) + "'");
+            throw errorAt(inputFile, source, styleOffset + consumedUntil + styleBlock.substring(consumedUntil).indexOf(trailing), "Invalid style selector or block near '" + summarize(trailing) + "'");
         }
         return scopedStyle;
     }
@@ -392,9 +401,9 @@ public final class SlateCompiler {
         return source.substring(start + openTag.length(), end);
     }
 
-    private static String extractOptionalBlock(Pattern pattern, String source) {
+    private static SourceBlock extractOptionalBlock(Pattern pattern, String source) {
         Matcher matcher = pattern.matcher(source);
-        return matcher.find() ? matcher.group(1) : null;
+        return matcher.find() ? new SourceBlock(matcher.group(1), matcher.start(1)) : null;
     }
 
     private static String preprocess(String source) {
@@ -419,12 +428,17 @@ public final class SlateCompiler {
 
     private static SlateCompileException error(Path inputFile, String source, String needle, int startAt, String message) {
         int index = source.indexOf(needle, Math.max(0, startAt));
-        if (index < 0) {
+        if (index < 0 && startAt <= 0) {
             index = source.indexOf(needle);
         }
         if (index < 0) {
             index = Math.max(0, startAt);
         }
+        return errorAt(inputFile, source, index, message);
+    }
+
+    private static SlateCompileException errorAt(Path inputFile, String source, int index, String message) {
+        index = Math.max(0, Math.min(index, source.length()));
         int line = 1;
         int column = 1;
         for (int i = 0; i < index; i++) {
@@ -453,5 +467,8 @@ public final class SlateCompiler {
     private static String summarize(String value) {
         String normalized = value.replace("\r", "\\r").replace("\n", "\\n").trim();
         return normalized.length() <= 40 ? normalized : normalized.substring(0, 40) + "...";
+    }
+
+    private record SourceBlock(String content, int start) {
     }
 }
