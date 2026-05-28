@@ -20,6 +20,24 @@ public interface SlateRenderer {
         return Capabilities.BASIC;
     }
 
+    default void drawNineSliceTexture(Rect rect, String texture, top.huliawsl.slateui.layout.Insets slices, int textureWidth, int textureHeight) {
+        drawTexture(rect, texture, 0, 0, textureWidth, textureHeight, textureWidth, textureHeight);
+    }
+
+    default void drawItemIcon(Rect rect, String itemId, int count) {
+        drawBorder(rect, 0x66FFFFFF, 1, 0);
+    }
+
+    default void drawEntityPreview(Rect rect, String entityType, float yaw, float pitch) {
+        drawBorder(rect, 0x66FFFFFF, 1, 0);
+    }
+
+    default void pushTransform(float translateX, float translateY, float scale, float rotationDegrees, float opacity) {
+    }
+
+    default void popTransform() {
+    }
+
     void fill(Rect rect, int color, int radius);
 
     void drawBorder(Rect rect, int color, int thickness, int radius);

@@ -10,10 +10,30 @@ public class MutableStateProvider implements StateProvider {
 
     protected final Map<String, Object> values = new LinkedHashMap<>();
     private final List<StateListener> listeners = new ArrayList<>();
+    private int batchDepth;
+    private final List<String> batchedPaths = new ArrayList<>();
 
     public MutableStateProvider set(String path, Object value) {
         values.put(Objects.requireNonNull(path, "path"), value);
         notifyDirty(path);
+        return this;
+    }
+
+    public MutableStateProvider updateBatch(java.util.function.Consumer<MutableStateProvider> updates) {
+        Objects.requireNonNull(updates, "updates");
+        batchDepth++;
+        try {
+            updates.accept(this);
+        } finally {
+            batchDepth--;
+            if (batchDepth == 0 && !batchedPaths.isEmpty()) {
+                List<String> paths = List.copyOf(batchedPaths);
+                batchedPaths.clear();
+                for (String path : paths) {
+                    notifyNow(path);
+                }
+            }
+        }
         return this;
     }
 
@@ -38,6 +58,16 @@ public class MutableStateProvider implements StateProvider {
     }
 
     public void notifyDirty(String path) {
+        if (batchDepth > 0) {
+            if (!batchedPaths.contains(path)) {
+                batchedPaths.add(path);
+            }
+            return;
+        }
+        notifyNow(path);
+    }
+
+    private void notifyNow(String path) {
         for (StateListener listener : List.copyOf(listeners)) {
             listener.onStateDirty(path);
         }

@@ -25,10 +25,15 @@ import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommandDispatcher;
 import top.huliawsl.slateui.render.DrawCommand;
+import top.huliawsl.slateui.render.DrawEntityPreviewCommand;
+import top.huliawsl.slateui.render.DrawItemIconCommand;
+import top.huliawsl.slateui.render.DrawNineSliceTextureCommand;
 import top.huliawsl.slateui.render.DrawTextCommand;
 import top.huliawsl.slateui.render.DrawTextureCommand;
 import top.huliawsl.slateui.render.PopClipCommand;
+import top.huliawsl.slateui.render.PopTransformCommand;
 import top.huliawsl.slateui.render.PushClipCommand;
+import top.huliawsl.slateui.render.PushTransformCommand;
 import top.huliawsl.slateui.override.SlateOverrideRegistry;
 import top.huliawsl.slateui.runtime.SlateClipboard;
 import top.huliawsl.slateui.runtime.SlateHost;
@@ -443,7 +448,109 @@ class RuntimeComponentsTest {
         assertEquals("Alex", provider.get("settings.playerName"));
     }
 
-    private static final class FixedComponent extends SlateComponent {
+    @Test
+    void mutableStateProviderBatchesDirtyNotifications() {
+        MutableStateProvider provider = new MutableStateProvider();
+        java.util.List<String> dirty = new java.util.ArrayList<>();
+        provider.addListener(dirty::add);
+
+        provider.updateBatch(batch -> batch
+            .set("a", 1)
+            .set("b", 2)
+            .set("a", 3));
+
+        assertEquals(List.of("a", "b"), dirty);
+    }
+
+    @Test
+    void componentLifecycleIdentityKeyAndDisposalAreTracked() {
+        LifecycleComponent component = new LifecycleComponent();
+        component.componentKey("settings-name");
+
+        component.mountTree();
+        component.notifyStateUpdated("settings.name");
+        component.notifyThemeUpdated(top.huliawsl.slateui.api.Theme.DEFAULT);
+        component.notifyScreenResized(new Size(320, 200));
+        component.refreshDebugPaths();
+        component.unmountTree();
+        component.disposeTree();
+
+        assertTrue(component.mountedCount.value.contains("mounted"));
+        assertTrue(component.statePath.value.contains("settings.name"));
+        assertTrue(component.themeUpdated);
+        assertEquals("320x200", component.resize.value);
+        assertTrue(component.debugPath().contains("settings-name"));
+        assertTrue(component.disposed());
+        assertTrue(!component.identity().isBlank());
+    }
+
+    @Test
+    void commandRegistryExposesCommandResult() {
+        top.huliawsl.slateui.command.SlateCommandRegistry registry = new top.huliawsl.slateui.command.SlateCommandRegistry()
+            .register("demo.ok", ignored -> {});
+
+        assertTrue(registry.executeResult("demo.ok", new top.huliawsl.slateui.command.CommandContext()).executed());
+        assertTrue(!registry.executeResult("demo.missing", new top.huliawsl.slateui.command.CommandContext()).executed());
+    }
+
+    @Test
+    void diagnosticsExposeTimingAndWarnings() {
+        top.huliawsl.slateui.debug.SlateDiagnostics diagnostics = new top.huliawsl.slateui.debug.SlateDiagnostics();
+        diagnostics.capture(new FixedComponent(10, 10), java.util.Collections.nCopies(1001, new DrawTextCommand(0, 0, "x", 0xFFFFFFFF)), "<none>", "<none>", "<empty>");
+        diagnostics.captureTimings(2_000_000, 1_000_000);
+        diagnostics.logMissingCommand("missing.command");
+        diagnostics.logMissingTexture("missing:texture.png");
+
+        assertTrue(diagnostics.runtimeSummaryDump().contains("rebuildMs="));
+        assertTrue(diagnostics.diagnosticsLogDump().contains("draw command count high"));
+        assertTrue(diagnostics.diagnosticsLogDump().contains("missing.command"));
+        assertTrue(diagnostics.diagnosticsLogDump().contains("missing:texture.png"));
+    }
+
+    @Test
+    void advancedDrawCommandsDispatchToRendererFallbacks() {
+        RecordingRenderer renderer = new RecordingRenderer();
+        DrawCommandDispatcher.render(List.of(
+            new DrawNineSliceTextureCommand(new Rect(0, 0, 10, 10), "demo:texture.png", top.huliawsl.slateui.layout.Insets.all(2), 16, 16),
+            new DrawItemIconCommand(new Rect(0, 0, 16, 16), "minecraft:stone", 1),
+            new DrawEntityPreviewCommand(new Rect(0, 0, 32, 32), "minecraft:pig", 0, 0),
+            new PushTransformCommand(1, 2, 1.5F, 45, 0.5F),
+            new PopTransformCommand()
+        ), renderer);
+
+        assertEquals(5, renderer.advancedCalls);
+    }
+
+    @Test
+    void inputSupportsMouseSelectionValidationAndPasswordDisplay() {
+        Input input = new Input("placeholder", "secret", null, SlateStyle.builder().width(120).build())
+            .password(true)
+            .validator(value -> value.length() < 8 ? "too short" : "");
+        input.measure(new SlateLayoutContext(null), new Size(120, 40));
+        input.layout(new SlateLayoutContext(null), new Rect(0, 0, 120, 24));
+        TestScreen screen = new TestScreen(input);
+        SlateInteractionContext interaction = new SlateInteractionContext(
+            new top.huliawsl.slateui.command.SlateCommandRegistry(),
+            new top.huliawsl.slateui.command.CommandContext(null, screen),
+            ignored -> {},
+            ignored -> {},
+            screen,
+            top.huliawsl.slateui.api.StateProvider.EMPTY,
+            top.huliawsl.slateui.api.Theme.DEFAULT
+        );
+
+        assertTrue(input.mouseClicked(interaction, 12, 6, 0));
+        assertTrue(input.validationError().contains("too short"));
+        List<DrawCommand> commands = new java.util.ArrayList<>();
+        input.collectDrawCommands(new SlateRenderContext(false, top.huliawsl.slateui.api.Theme.DEFAULT), commands);
+
+        assertTrue(commands.stream()
+            .filter(DrawTextCommand.class::isInstance)
+            .map(DrawTextCommand.class::cast)
+            .anyMatch(command -> command.text().contains("******")));
+    }
+
+    private static class FixedComponent extends SlateComponent {
 
         private final Size size;
 
@@ -497,6 +604,38 @@ class RuntimeComponentsTest {
 
     private static final class MutableString {
         private String value = "";
+    }
+
+    private static final class LifecycleComponent extends FixedComponent {
+
+        private final MutableString mountedCount = new MutableString();
+        private final MutableString statePath = new MutableString();
+        private final MutableString resize = new MutableString();
+        private boolean themeUpdated;
+
+        private LifecycleComponent() {
+            super(10, 10);
+        }
+
+        @Override
+        public void onMount() {
+            mountedCount.value = "mounted";
+        }
+
+        @Override
+        public void onStateUpdated(String path) {
+            statePath.value = path;
+        }
+
+        @Override
+        public void onThemeUpdated(top.huliawsl.slateui.api.Theme theme) {
+            themeUpdated = true;
+        }
+
+        @Override
+        public void onScreenResized(Size size) {
+            resize.value = size.width() + "x" + size.height();
+        }
     }
 
     private static final class RecordingHost implements SlateHost {
@@ -576,6 +715,33 @@ class RuntimeComponentsTest {
 
         @Override
         public void drawTexture(Rect rect, String texture, int u, int v, int textureWidth, int textureHeight, int regionWidth, int regionHeight) {
+        }
+
+        private int advancedCalls;
+
+        @Override
+        public void drawNineSliceTexture(Rect rect, String texture, top.huliawsl.slateui.layout.Insets slices, int textureWidth, int textureHeight) {
+            advancedCalls++;
+        }
+
+        @Override
+        public void drawItemIcon(Rect rect, String itemId, int count) {
+            advancedCalls++;
+        }
+
+        @Override
+        public void drawEntityPreview(Rect rect, String entityType, float yaw, float pitch) {
+            advancedCalls++;
+        }
+
+        @Override
+        public void pushTransform(float translateX, float translateY, float scale, float rotationDegrees, float opacity) {
+            advancedCalls++;
+        }
+
+        @Override
+        public void popTransform() {
+            advancedCalls++;
         }
 
         @Override

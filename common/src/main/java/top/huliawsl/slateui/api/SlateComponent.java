@@ -1,6 +1,8 @@
 package top.huliawsl.slateui.api;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import top.huliawsl.slateui.layout.Insets;
 import top.huliawsl.slateui.layout.LayoutNode;
 import top.huliawsl.slateui.layout.Rect;
@@ -20,8 +22,12 @@ public abstract class SlateComponent {
 
     private final SlateStyle style;
     private final LayoutNode layoutNode;
+    private final String identity = UUID.randomUUID().toString();
     private Rect bounds = Rect.ZERO;
     private String debugPath;
+    private String componentKey;
+    private boolean mounted;
+    private boolean disposed;
     private boolean hovered;
     private boolean pressed;
     private boolean focused;
@@ -32,6 +38,10 @@ public abstract class SlateComponent {
 
     protected SlateComponent(SlateStyle style) {
         this.style = style == null ? SlateStyle.EMPTY : style;
+        java.util.List<String> styleErrors = this.style.validate();
+        if (!styleErrors.isEmpty()) {
+            throw new IllegalArgumentException("Invalid SlateStyle: " + String.join(", ", styleErrors));
+        }
         this.layoutNode = new LayoutNode(debugName());
     }
 
@@ -41,6 +51,27 @@ public abstract class SlateComponent {
 
     public final LayoutNode layoutNode() {
         return layoutNode;
+    }
+
+    public final String identity() {
+        return identity;
+    }
+
+    public final String componentKey() {
+        return componentKey;
+    }
+
+    public final SlateComponent componentKey(String componentKey) {
+        this.componentKey = componentKey == null || componentKey.isBlank() ? null : componentKey;
+        return this;
+    }
+
+    public final boolean mounted() {
+        return mounted;
+    }
+
+    public final boolean disposed() {
+        return disposed;
     }
 
     public final Rect bounds() {
@@ -76,6 +107,77 @@ public abstract class SlateComponent {
     }
 
     protected void onFocusChanged(boolean focused) {
+    }
+
+    public void onMount() {
+    }
+
+    public void onUnmount() {
+    }
+
+    public void onStateUpdated(String path) {
+    }
+
+    public void onThemeUpdated(Theme theme) {
+    }
+
+    public void onScreenResized(Size size) {
+    }
+
+    public void onDispose() {
+    }
+
+    public final void mountTree() {
+        if (!mounted) {
+            mounted = true;
+            disposed = false;
+            onMount();
+        }
+        for (SlateComponent child : children()) {
+            child.mountTree();
+        }
+    }
+
+    public final void unmountTree() {
+        for (SlateComponent child : children()) {
+            child.unmountTree();
+        }
+        if (mounted) {
+            mounted = false;
+            onUnmount();
+        }
+    }
+
+    public final void disposeTree() {
+        for (SlateComponent child : children()) {
+            child.disposeTree();
+        }
+        if (!disposed) {
+            disposed = true;
+            mounted = false;
+            onDispose();
+        }
+    }
+
+    public final void notifyStateUpdated(String path) {
+        onStateUpdated(path);
+        for (SlateComponent child : children()) {
+            child.notifyStateUpdated(path);
+        }
+    }
+
+    public final void notifyThemeUpdated(Theme theme) {
+        onThemeUpdated(Objects.requireNonNullElse(theme, Theme.DEFAULT));
+        for (SlateComponent child : children()) {
+            child.notifyThemeUpdated(theme);
+        }
+    }
+
+    public final void notifyScreenResized(Size size) {
+        onScreenResized(size == null ? Size.ZERO : size);
+        for (SlateComponent child : children()) {
+            child.notifyScreenResized(size);
+        }
     }
 
     public boolean focusable() {
@@ -422,7 +524,8 @@ public abstract class SlateComponent {
     }
 
     private void refreshLayoutNodeTree(String parentPath, int siblingIndex) {
-        debugPath = parentPath == null ? debugName() : parentPath + "/" + debugName() + "[" + siblingIndex + "]";
+        String localName = componentKey == null ? debugName() : debugName() + "#" + componentKey;
+        debugPath = parentPath == null ? localName : parentPath + "/" + localName + "[" + siblingIndex + "]";
         layoutNode.clearChildren();
         List<SlateComponent> childList = children();
         for (int index = 0; index < childList.size(); index++) {

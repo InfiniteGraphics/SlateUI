@@ -1,5 +1,7 @@
 package top.huliawsl.slateui.api;
 
+import java.util.ArrayList;
+import java.util.List;
 import top.huliawsl.slateui.layout.Insets;
 
 public final class SlateStyle {
@@ -239,6 +241,42 @@ public final class SlateStyle {
             + " align=" + horizontalAlign() + "/" + verticalAlign()
             + " clip=" + clipContent()
             + " disabled=" + disabled();
+    }
+
+    public List<String> validate() {
+        List<String> errors = new ArrayList<>();
+        if (width != null && width < 0) {
+            errors.add("width must be >= 0");
+        }
+        if (height != null && height < 0) {
+            errors.add("height must be >= 0");
+        }
+        if (minWidth != null && minWidth < 0) {
+            errors.add("minWidth must be >= 0");
+        }
+        if (minHeight != null && minHeight < 0) {
+            errors.add("minHeight must be >= 0");
+        }
+        if (maxWidth != null && maxWidth < 0) {
+            errors.add("maxWidth must be >= 0");
+        }
+        if (maxHeight != null && maxHeight < 0) {
+            errors.add("maxHeight must be >= 0");
+        }
+        if (minWidth != null && maxWidth != null && minWidth > maxWidth) {
+            errors.add("minWidth must be <= maxWidth");
+        }
+        if (minHeight != null && maxHeight != null && minHeight > maxHeight) {
+            errors.add("minHeight must be <= maxHeight");
+        }
+        return List.copyOf(errors);
+    }
+
+    public String diff(SlateStyle other, Theme theme) {
+        SlateStyle right = other == null ? EMPTY : other;
+        String before = describe(theme);
+        String after = right.describe(theme);
+        return before.equals(after) ? "<none>" : "before=" + before + "\nafter=" + after;
     }
 
     private static String nullable(Integer value) {

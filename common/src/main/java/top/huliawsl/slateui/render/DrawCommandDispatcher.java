@@ -25,6 +25,17 @@ public final class DrawCommandDispatcher {
                     textureCommand.regionWidth(),
                     textureCommand.regionHeight()
                 );
+                case DrawNineSliceTextureCommand nineSliceCommand -> renderer.drawNineSliceTexture(
+                    nineSliceCommand.rect(),
+                    nineSliceCommand.texture(),
+                    nineSliceCommand.slices(),
+                    nineSliceCommand.textureWidth(),
+                    nineSliceCommand.textureHeight()
+                );
+                case DrawItemIconCommand itemIconCommand -> renderer.drawItemIcon(itemIconCommand.rect(), itemIconCommand.itemId(), itemIconCommand.count());
+                case DrawEntityPreviewCommand entityPreviewCommand -> renderer.drawEntityPreview(entityPreviewCommand.rect(), entityPreviewCommand.entityType(), entityPreviewCommand.yaw(), entityPreviewCommand.pitch());
+                case PushTransformCommand transformCommand -> renderer.pushTransform(transformCommand.translateX(), transformCommand.translateY(), transformCommand.scale(), transformCommand.rotationDegrees(), transformCommand.opacity());
+                case PopTransformCommand ignored -> renderer.popTransform();
                 case PushClipCommand pushClipCommand -> renderer.pushClip(pushClipCommand.rect(), pushClipCommand.radius());
                 case PopClipCommand ignored -> renderer.popClip();
             }

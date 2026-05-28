@@ -46,12 +46,16 @@ public final class SlateCommandRegistry {
     }
 
     public boolean execute(String id, CommandContext context) {
+        return executeResult(id, context).executed();
+    }
+
+    public CommandResult executeResult(String id, CommandContext context) {
         Consumer<CommandContext> handler = commands.get(id);
         if (handler == null) {
-            return false;
+            return CommandResult.MISSING;
         }
         handler.accept(context);
-        return true;
+        return CommandResult.EXECUTED;
     }
 
     public boolean execute(String id, SlateInteractionContext context) {
@@ -59,18 +63,22 @@ public final class SlateCommandRegistry {
     }
 
     public boolean execute(String id, SlateInteractionContext context, Map<String, Object> payload) {
+        return executeResult(id, context, payload).executed();
+    }
+
+    public CommandResult executeResult(String id, SlateInteractionContext context, Map<String, Object> payload) {
         Consumer<CommandContext> handler = commands.get(id);
         if (handler != null) {
             handler.accept(context.commandContext().withPayload(payload));
-            return true;
+            return CommandResult.EXECUTED;
         }
         if (!serverIntentCommands.contains(id)) {
-            return false;
+            return CommandResult.MISSING;
         }
         CommandContext commandContext = context.commandContext().withPayload(payload);
         String title = commandContext.host().title();
         serverIntentBridge.send(SlateServerIntent.now(id, title, payload, context.stateProvider().snapshot()), commandContext);
-        return true;
+        return CommandResult.executed("server-intent");
     }
 
     public Optional<Consumer<CommandContext>> find(String id) {

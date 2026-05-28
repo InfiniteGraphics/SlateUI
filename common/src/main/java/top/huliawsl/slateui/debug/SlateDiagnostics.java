@@ -22,6 +22,8 @@ public final class SlateDiagnostics {
     private String lastEventDump = "";
     private int componentCount;
     private int drawCommandCount;
+    private long rebuildNanos;
+    private long layoutNanos;
     private SlateComponent capturedRoot;
     private final List<String> commandLog = new ArrayList<>();
     private final List<String> diagnosticsLog = new ArrayList<>();
@@ -49,6 +51,25 @@ public final class SlateDiagnostics {
         this.stateDump = stateDump == null ? "" : stateDump;
         this.componentCount = countComponents(root);
         this.drawCommandCount = drawCommands.size();
+        if (componentCount > 250) {
+            logDiagnostic("WARN component count high: " + componentCount);
+        }
+        if (drawCommandCount > 1000) {
+            logDiagnostic("WARN draw command count high: " + drawCommandCount);
+        }
+    }
+
+    public void captureTimings(long rebuildNanos, long layoutNanos) {
+        this.rebuildNanos = Math.max(0, rebuildNanos);
+        this.layoutNanos = Math.max(0, layoutNanos);
+    }
+
+    public void logMissingCommand(String id) {
+        logDiagnostic("WARN missing command id=" + id);
+    }
+
+    public void logMissingTexture(String texture) {
+        logDiagnostic("WARN missing texture=" + texture);
     }
 
     public void capturePointer(double mouseX, double mouseY) {
@@ -119,7 +140,12 @@ public final class SlateDiagnostics {
     public String hitRegionDump() { return hitRegionDump; }
     public String styleDump() { return styleDump; }
     public String lastEventDump() { return lastEventDump; }
-    public String runtimeSummaryDump() { return "components=" + componentCount + "\ndrawCommands=" + drawCommandCount; }
+    public String runtimeSummaryDump() {
+        return "components=" + componentCount
+            + "\ndrawCommands=" + drawCommandCount
+            + "\nrebuildMs=" + String.format("%.3f", rebuildNanos / 1_000_000.0D)
+            + "\nlayoutMs=" + String.format("%.3f", layoutNanos / 1_000_000.0D);
+    }
     public String commandLogDump() { return join(commandLog); }
     public String diagnosticsLogDump() { return join(diagnosticsLog); }
 

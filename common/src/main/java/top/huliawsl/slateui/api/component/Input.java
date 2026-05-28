@@ -43,7 +43,10 @@ public class Input extends SlateComponent {
     private final String commitCommand;
     private final InputValueHandler changeHandler;
     private final int maxLength;
+    private Function<String, String> validator;
+    private boolean password;
     private String draft = "";
+    private String validationError = "";
     private int cursor;
     private int selectionAnchor;
     private int textOffsetX;
@@ -52,6 +55,8 @@ public class Input extends SlateComponent {
     private int selectionEndPixelX;
     private int lineHeight = 9;
     private boolean initialized;
+    private boolean draggingSelection;
+    private long lastClickMillis;
 
     public Input(String placeholder, String initialValue, String changeCommand, SlateStyle style) {
         this(placeholder, provider -> initialValue, changeCommand, null, style);
@@ -90,6 +95,21 @@ public class Input extends SlateComponent {
     @Override
     public boolean focusable() {
         return true;
+    }
+
+    public Input validator(Function<String, String> validator) {
+        this.validator = validator;
+        validateDraft();
+        return this;
+    }
+
+    public Input password(boolean password) {
+        this.password = password;
+        return this;
+    }
+
+    public String validationError() {
+        return validationError;
     }
 
     @Override
@@ -135,14 +155,57 @@ public class Input extends SlateComponent {
             int selectionWidth = Math.max(1, selectionEndPixelX - selectionStartPixelX);
             commands.add(new DrawRectCommand(new Rect(selectionX, textY, selectionWidth, lineHeight), 0x663B82F6, 0));
         }
-        String text = draft.isEmpty() && !isFocused() ? placeholder : draft;
+        String text = draft.isEmpty() && !isFocused() ? placeholder : displayText();
         int color = draft.isEmpty() ? 0xFF94A3B8 : resolveTextColor(context.theme());
         commands.add(new DrawTextCommand(textX, textY, text, color));
         if (isFocused()) {
             int cursorX = content.x() + 2 + cursorPixelX - textOffsetX;
             commands.add(new DrawRectCommand(new Rect(cursorX, textY, 1, lineHeight), resolveTextColor(context.theme()), 0));
         }
+        if (!validationError.isBlank()) {
+            commands.add(new DrawTextCommand(content.x() + 2, Math.min(bounds().bottom() - lineHeight, textY + lineHeight + 2), validationError, 0xFFFF6B6B));
+        }
         commands.add(new PopClipCommand());
+    }
+
+    @Override
+    public boolean mouseClicked(SlateInteractionContext context, double mouseX, double mouseY, int button) {
+        if (style().disabled() || !bounds().contains(mouseX, mouseY)) {
+            return false;
+        }
+        context.requestFocus(this);
+        int next = cursorAt(mouseX);
+        long now = System.currentTimeMillis();
+        if (now - lastClickMillis <= 350) {
+            selectWord(next);
+        } else {
+            cursor = next;
+            selectionAnchor = cursor;
+        }
+        lastClickMillis = now;
+        draggingSelection = true;
+        context.requestRebuild("input-cursor");
+        return true;
+    }
+
+    @Override
+    public boolean mouseReleased(SlateInteractionContext context, double mouseX, double mouseY, int button) {
+        if (draggingSelection) {
+            draggingSelection = false;
+            context.requestRebuild("input-selection");
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean mouseMoved(SlateInteractionContext context, double mouseX, double mouseY) {
+        if (draggingSelection) {
+            cursor = cursorAt(mouseX);
+            context.requestRebuild("input-drag-selection");
+            return true;
+        }
+        return super.mouseMoved(context, mouseX, mouseY);
     }
 
     @Override
@@ -249,6 +312,7 @@ public class Input extends SlateComponent {
         draft = draft.substring(0, start) + insert + draft.substring(end);
         cursor = start + insert.length();
         selectionAnchor = cursor;
+        validateDraft();
         if (changeHandler != null) {
             changeHandler.onChange(context, draft);
         }
@@ -315,22 +379,61 @@ public class Input extends SlateComponent {
     private void syncDraftFromState() {
         String value = valueResolver.apply(stateProvider);
         draft = value == null ? "" : value;
+        validateDraft();
         cursor = Math.min(cursor, draft.length());
         selectionAnchor = Math.min(selectionAnchor, draft.length());
     }
 
     private void updateTextViewport(SlateLayoutContext context, int viewportWidth) {
-        cursorPixelX = context.textWidth(draft.substring(0, Math.min(cursor, draft.length())));
-        selectionStartPixelX = context.textWidth(draft.substring(0, selectionStart()));
-        selectionEndPixelX = context.textWidth(draft.substring(0, selectionEnd()));
+        String text = displayText();
+        cursorPixelX = context.textWidth(text.substring(0, Math.min(cursor, text.length())));
+        selectionStartPixelX = context.textWidth(text.substring(0, selectionStart()));
+        selectionEndPixelX = context.textWidth(text.substring(0, selectionEnd()));
         if (cursorPixelX - textOffsetX > viewportWidth) {
             textOffsetX = Math.max(0, cursorPixelX - viewportWidth);
         }
         if (cursorPixelX < textOffsetX) {
             textOffsetX = cursorPixelX;
         }
-        int fullWidth = context.textWidth(draft);
+        int fullWidth = context.textWidth(text);
         textOffsetX = Math.min(textOffsetX, Math.max(0, fullWidth - viewportWidth));
+    }
+
+    private int cursorAt(double mouseX) {
+        Rect content = contentRect(bounds());
+        int localX = Math.max(0, (int) Math.round(mouseX) - content.x() - 2 + textOffsetX);
+        int averageWidth = 6;
+        int best = Math.round(localX / (float) averageWidth);
+        return Math.max(0, Math.min(best, draft.length()));
+    }
+
+    private void selectWord(int index) {
+        if (draft.isEmpty()) {
+            cursor = 0;
+            selectionAnchor = 0;
+            return;
+        }
+        int start = Math.max(0, Math.min(index, draft.length()));
+        int end = start;
+        while (start > 0 && !Character.isWhitespace(draft.charAt(start - 1))) {
+            start--;
+        }
+        while (end < draft.length() && !Character.isWhitespace(draft.charAt(end))) {
+            end++;
+        }
+        selectionAnchor = start;
+        cursor = end;
+    }
+
+    private String displayText() {
+        if (!password) {
+            return draft;
+        }
+        return "*".repeat(draft.length());
+    }
+
+    private void validateDraft() {
+        validationError = validator == null ? "" : Objects.toString(validator.apply(draft), "");
     }
 
     private boolean hasSelection() {

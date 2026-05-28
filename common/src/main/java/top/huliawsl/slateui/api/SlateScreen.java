@@ -36,7 +36,9 @@ public class SlateScreen extends Screen implements SlateHost {
     private final boolean debugEnabled;
     private final SlateDiagnostics diagnostics = new SlateDiagnostics();
     private final StateProvider stateProvider;
-    private final StateListener stateListener = path -> requestRebuild("state:" + path);
+    private final StateListener stateListener;
+    private int lastWidth = -1;
+    private int lastHeight = -1;
     private final Theme theme;
     private final String bindingDump;
     private List<DrawCommand> drawCommands = List.of();
@@ -61,16 +63,27 @@ public class SlateScreen extends Screen implements SlateHost {
         this.theme = theme == null ? Theme.DEFAULT : theme;
         this.bindingDump = bindingDump == null || bindingDump.isBlank() ? "<none>" : bindingDump;
         this.debugEnabled = debugEnabled;
+        this.stateListener = path -> {
+            this.root.notifyStateUpdated(path);
+            requestRebuild("state:" + path);
+        };
         this.stateProvider.addListener(stateListener);
     }
 
     @Override
     protected void init() {
+        root.mountTree();
+        root.notifyThemeUpdated(theme);
         rebuildRuntime();
     }
 
     @Override
     public void tick() {
+        if (lastWidth != width || lastHeight != height) {
+            lastWidth = width;
+            lastHeight = height;
+            root.notifyScreenResized(new Size(width, height));
+        }
         if (runtimeDirty) {
             rebuildRuntime();
         }
@@ -83,17 +96,21 @@ public class SlateScreen extends Screen implements SlateHost {
     }
 
     protected void rebuildRuntime() {
+        long rebuildStart = System.nanoTime();
         runtimeDirty = false;
         try {
             SlateLayoutContext layoutContext = new SlateLayoutContext(new MinecraftTextMeasurer(font), theme);
             Size available = new Size(width, height);
             root.refreshDebugPaths();
+            long layoutStart = System.nanoTime();
             measureRoot(layoutContext, available);
             layoutRoot(layoutContext, new Rect(0, 0, width, height));
+            long layoutNanos = System.nanoTime() - layoutStart;
             List<DrawCommand> commands = new ArrayList<>();
             renderRoot(commands);
             this.drawCommands = List.copyOf(commands);
             diagnostics.capture(root, drawCommands, focusedComponent == null ? "<none>" : focusedComponent.debugPath(), bindingDump, dumpState(), theme);
+            diagnostics.captureTimings(System.nanoTime() - rebuildStart, layoutNanos);
         } catch (Throwable throwable) {
             openErrorScreen("rebuild", throwable);
         }
@@ -393,6 +410,8 @@ public class SlateScreen extends Screen implements SlateHost {
 
     @Override
     public void removed() {
+        root.unmountTree();
+        root.disposeTree();
         stateProvider.removeListener(stateListener);
         super.removed();
     }
