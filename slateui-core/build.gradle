@@ -1,0 +1,61 @@
+plugins {
+    id 'java-library'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
+    withSourcesJar()
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api 'com.google.code.gson:gson:2.10.1'
+    compileOnly 'org.lwjgl:lwjgl-glfw:3.3.3'
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir rootProject.file('common/src/main/java')
+            include 'top/huliawsl/slateui/api/**'
+            include 'top/huliawsl/slateui/binding/**'
+            include 'top/huliawsl/slateui/command/**'
+            include 'top/huliawsl/slateui/debug/SlateDiagnostics.java'
+            include 'top/huliawsl/slateui/debug/SlateRuntimeException.java'
+            include 'top/huliawsl/slateui/layout/**'
+            include 'top/huliawsl/slateui/override/**'
+            include 'top/huliawsl/slateui/render/**'
+            include 'top/huliawsl/slateui/runtime/**'
+            include 'top/huliawsl/slateui/server/**'
+            exclude 'top/huliawsl/slateui/api/SlateScreen.java'
+            exclude 'top/huliawsl/slateui/command/MinecraftCommandContext.java'
+            exclude 'top/huliawsl/slateui/render/Minecraft*.java'
+            exclude 'top/huliawsl/slateui/runtime/MinecraftTextMeasurer.java'
+        }
+    }
+}
+
+tasks.register('checkForbiddenMinecraftImports') {
+    group = 'verification'
+    description = 'Fails if slateui-core sources import Minecraft client APIs.'
+    inputs.files(sourceSets.main.allJava)
+    doLast {
+        def offenders = sourceSets.main.allJava.files.findAll { file ->
+            file.text.contains('net.minecraft')
+        }
+        if (!offenders.isEmpty()) {
+            throw new GradleException("slateui-core must not import net.minecraft: ${offenders*.name}")
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+check.dependsOn(tasks.named('checkForbiddenMinecraftImports'))

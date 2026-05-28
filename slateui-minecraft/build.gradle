@@ -1,0 +1,44 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
+}
+
+neoForge {
+    neoFormVersion = neo_form_version
+    parchment {
+        minecraftVersion = parchment_minecraft
+        mappingsVersion = parchment_version
+    }
+}
+
+dependencies {
+    compileOnly(project(':common')) {
+        capabilities {
+            requireCapability "$group:$mod_id"
+        }
+    }
+    api 'com.google.code.gson:gson:2.10.1'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir rootProject.file('common/src/main/java')
+            include 'top/huliawsl/slateui/api/SlateScreen.java'
+            include 'top/huliawsl/slateui/command/MinecraftCommandContext.java'
+            include 'top/huliawsl/slateui/render/Minecraft*.java'
+            include 'top/huliawsl/slateui/runtime/MinecraftTextMeasurer.java'
+            include 'top/huliawsl/slateui/debug/SlateDebugText.java'
+            include 'top/huliawsl/slateui/debug/SlateErrorScreen.java'
+            include 'top/huliawsl/slateui/debug/SlateInspectorScreen.java'
+            include 'top/huliawsl/slateui/authoring/SlateIrRuntimeFactory.java'
+            include 'top/huliawsl/slateui/authoring/SlateReloadSupport.java'
+            include 'top/huliawsl/slateui/hud/**'
+            include 'top/huliawsl/slateui/world/**'
+        }
+    }
+}
