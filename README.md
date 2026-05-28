@@ -129,3 +129,15 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 ```
 
 Expected result: Java tests pass. Missing texture or translation resources should be treated as resource warnings unless a Java compile or test failure is reported.
+
+## Supported Versions
+
+| Loader | Minecraft | Policy |
+| --- | --- | --- |
+| Fabric | 1.21.x | tested |
+| Forge | 1.21.x | tested |
+| NeoForge | 1.21.x | tested |
+| Forge | 1.20.1 | considered |
+| Other versions | any | unsupported until added to `SlateCompatibilityMatrix` |
+
+Version-specific Minecraft APIs live behind the Minecraft adapter module and loader modules. Core runtime APIs are checked separately by `slateui-core`.

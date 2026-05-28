@@ -382,8 +382,8 @@ v0.2 要证明：UI core 可以尽量脱离 Minecraft API，版本差异集中�
 
 需要继续：
 
-- [ ] Create `slateui-core` module without `net.minecraft.*`.
-- [ ] Move pure runtime APIs into core:
+- [x] Create `slateui-core` module without `net.minecraft.*`.
+- [x] Move pure runtime APIs into core:
     - component
     - layout
     - style
@@ -392,19 +392,19 @@ v0.2 要证明：UI core 可以尽量脱离 Minecraft API，版本差异集中�
     - binding
     - draw command
     - diagnostics model
-- [ ] Create `slateui-minecraft` module for MC-specific implementation.
-- [ ] Move `SlateScreen` into Minecraft module.
-- [ ] Move `MinecraftDrawCommandRenderer` into Minecraft module.
-- [ ] Move `MinecraftTextMeasurer` into Minecraft module.
-- [ ] Move `Minecraft` clipboard integration into Minecraft module.
-- [ ] Keep loader-specific entrypoints in loader modules.
-- [ ] Add forbidden import checks for core.
-- [ ] Add architecture test: core must not import `net.minecraft`.
+- [x] Create `slateui-minecraft` module for MC-specific implementation.
+- [x] Move `SlateScreen` into Minecraft module.
+- [x] Move `MinecraftDrawCommandRenderer` into Minecraft module.
+- [x] Move `MinecraftTextMeasurer` into Minecraft module.
+- [x] Move `Minecraft` clipboard integration into Minecraft module.
+- [x] Keep loader-specific entrypoints in loader modules.
+- [x] Add forbidden import checks for core.
+- [x] Add architecture test: core must not import `net.minecraft`.
 
 ## 2.2 Host Abstraction
-- [ ] Add `SlateHost`.
-- [ ] Replace `SlateInteractionContext.screen()` with host methods.
-- [ ] Host should provide:
+- [x] Add `SlateHost`.
+- [x] Replace `SlateInteractionContext.screen()` with host methods.
+- [x] Host should provide:
     - requestRebuild
     - requestFocus
     - clearFocus
@@ -412,24 +412,24 @@ v0.2 要证明：UI core 可以尽量脱离 Minecraft API，版本差异集中�
     - closeScreen
     - inspect
     - reportDiagnostic
-- [ ] Decouple command context from MC screen.
-- [ ] Add Minecraft host implementation.
-- [ ] Add test host implementation for unit tests.
-- [ ] Add fake host for authoring previews.
+- [x] Decouple command context from MC screen.
+- [x] Add Minecraft host implementation.
+- [x] Add test host implementation for unit tests.
+- [x] Add fake host for authoring previews.
 
 ## 2.3 Renderer Adapter
-- [ ] Make `SlateRenderer` the only low-level render target.
-- [ ] Add `DrawCommandDispatcher`.
-- [ ] Convert `MinecraftDrawCommandRenderer` into `MinecraftSlateRenderer`.
-- [ ] Add renderer capability flags:
+- [x] Make `SlateRenderer` the only low-level render target.
+- [x] Add `DrawCommandDispatcher`.
+- [x] Convert `MinecraftDrawCommandRenderer` into `MinecraftSlateRenderer`.
+- [x] Add renderer capability flags:
     - supportsRoundedRect
     - supportsScissor
     - supportsTextureRegion
     - supportsItemIcon
     - supportsTextComponent
-- [ ] Add fallback rendering path.
-- [ ] Add renderer tests with fake renderer.
-- [ ] Add command serialization for diagnostics.
+- [x] Add fallback rendering path.
+- [x] Add renderer tests with fake renderer.
+- [x] Add command serialization for diagnostics.
 
 ## 2.4 Version Matrix
 - [x] `LoaderId` exists.
@@ -438,18 +438,18 @@ v0.2 要证明：UI core 可以尽量脱离 Minecraft API，版本差异集中�
 - [x] `SlateCompatibilityMatrix` exists.
 - [x] `SupportLevel` exists.
 - [x] Fabric / Forge / NeoForge helper classes exist.
-- [ ] Convert matrix from documentation-style helper into tested release policy.
-- [ ] Add supported versions table in README.
-- [ ] Add CI jobs for supported MC versions.
-- [ ] Add smoke test mod per loader.
-- [ ] Define support levels:
+- [x] Convert matrix from documentation-style helper into tested release policy.
+- [x] Add supported versions table in README.
+- [x] Add CI jobs for supported MC versions.
+- [x] Add smoke test mod per loader.
+- [x] Define support levels:
     - supported
     - tested
     - considered
     - experimental
     - unsupported
-- [ ] Add version adapter notes for each MC version.
-- [ ] Add migration notes per MC version.
+- [x] Add version adapter notes for each MC version.
+- [x] Add migration notes per MC version.
 
 ---
 

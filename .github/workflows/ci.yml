@@ -15,6 +15,8 @@ jobs:
         java: [ '21' ]
         task:
           - test
+          - :slateui-core:test
+          - :slateui-minecraft:compileJava
           - :fabric:build
           - :forge:build
           - :neoforge:build
