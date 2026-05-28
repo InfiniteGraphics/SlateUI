@@ -14,6 +14,9 @@ import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
 
+/**
+ * Experimental component. It is available for lightweight overlays, but it is not part of the stable core component contract.
+ */
 public final class Modal extends SlateComponent {
 
     private static final int BACKDROP_COLOR = 0xAA020617;

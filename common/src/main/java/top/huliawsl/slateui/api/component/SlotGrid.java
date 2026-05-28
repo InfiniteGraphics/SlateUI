@@ -19,6 +19,9 @@ import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
 
+/**
+ * Experimental component. It is available for testing container-style screens, but it is not part of the stable core component contract.
+ */
 public final class SlotGrid extends SlateComponent {
 
     private static final int DEFAULT_SLOT_SIZE = 18;

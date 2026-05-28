@@ -30,7 +30,12 @@ public final class SlateCompiler {
     private static final Pattern SLOT_SHORTHAND_PATTERN = Pattern.compile("<template\\s+#([a-zA-Z0-9_-]+)([^>]*)>");
     private static final Set<String> BUILTIN_COMPONENTS = Set.of("OverlayRoot", "Box", "Panel", "Stack", "Text", "Button", "Input", "Toggle", "List", "ScrollView", "Image", "Tooltip", "Popup", "Modal", "SlotGrid");
     private static final Set<String> EXPERIMENTAL_COMPONENTS = Set.of("Tooltip", "Popup", "Modal", "SlotGrid");
-    private static final Set<String> BUILTIN_ONLY_SLOTS = Set.of("tooltip", "popup", "modal");
+    private static final Map<String, Set<String>> BUILTIN_SLOTS = Map.of(
+        "Panel", Set.of("default", "header", "footer"),
+        "Tooltip", Set.of("default", "tooltip"),
+        "Popup", Set.of("default", "popup"),
+        "Modal", Set.of("default", "modal")
+    );
     private static final Set<String> STYLE_PROPERTIES = Set.of(
         "width", "height", "minwidth", "min-height", "minheight", "min-width", "maxwidth", "max-height", "maxheight", "max-width",
         "padding", "gap", "gaptoken", "gap-token",
@@ -57,7 +62,7 @@ public final class SlateCompiler {
         Map.entry("Toggle", Set.of("class", "label", "checked", "onChange", "command")),
         Map.entry("List", Set.of("class", "itemGap")),
         Map.entry("ScrollView", Set.of("class")),
-        Map.entry("Image", Set.of("class", "resource")),
+        Map.entry("Image", Set.of("class", "resource", "u", "v", "textureWidth", "textureHeight", "regionWidth", "regionHeight")),
         Map.entry("Tooltip", Set.of("class")),
         Map.entry("Popup", Set.of("class", "open")),
         Map.entry("Modal", Set.of("class", "open")),
@@ -108,7 +113,8 @@ public final class SlateCompiler {
         if (EXPERIMENTAL_COMPONENTS.contains(componentType)) {
             node.addProperty("experimental", true);
         }
-        sourceMap.add(sourceMapEntry(path, componentType, source, inputFile, "<" + componentType, sourceCursor));
+        int nodeStart = locateNext(source, "<" + componentType, sourceCursor);
+        sourceMap.add(sourceMapEntry(path, componentType, source, inputFile, nodeStart));
         JsonObject props = new JsonObject();
         JsonObject bindings = new JsonObject();
         JsonObject directives = new JsonObject();
@@ -119,7 +125,7 @@ public final class SlateCompiler {
             String value = attribute.getNodeValue().trim();
             if (name.startsWith("style-")) {
                 String propertyName = name.substring("style-".length());
-                validateStyleDeclaration(inputFile, source, propertyName, value, name + "=\"");
+                validateStyleDeclaration(inputFile, source, propertyName, value, name + "=\"", nodeStart);
                 props.addProperty(name, value);
                 continue;
             }
@@ -135,7 +141,7 @@ public final class SlateCompiler {
                 continue;
             }
             if (isBuiltin(componentType) && !"id".equals(name) && !PROPS.getOrDefault(componentType, Set.of()).contains(name)) {
-                throw error(inputFile, source, name + "=\"", "Unknown prop '" + name + "' on component '" + componentType + "'");
+                throw error(inputFile, source, name + "=\"", nodeStart, "Unknown prop '" + name + "' on component '" + componentType + "'");
             }
             if (value.startsWith("{") && value.endsWith("}")) {
                 bindings.addProperty(name, value);
@@ -168,10 +174,10 @@ public final class SlateCompiler {
             if ("template".equals(childElement.getTagName())) {
                 String slotName = childElement.getAttribute("slot");
                 if (slotName == null || slotName.isBlank()) {
-                    throw error(inputFile, source, "<template", "Named slot template requires a slot name");
+                    throw error(inputFile, source, "<template", nodeStart, "Named slot template requires a slot name");
                 }
                 if (isBuiltin(componentType) && !isAllowedBuiltinSlot(componentType, slotName)) {
-                    throw error(inputFile, source, "<template", "Unknown slot '" + slotName + "' on component '" + componentType + "'");
+                    throw error(inputFile, source, "<template", nodeStart, "Unknown slot '" + slotName + "' on component '" + componentType + "'");
                 }
                 JsonArray slotChildren = slots.has(slotName) ? slots.getAsJsonArray(slotName) : new JsonArray();
                 NodeList templateChildren = childElement.getChildNodes();
@@ -231,7 +237,7 @@ public final class SlateCompiler {
                 }
                 String propertyName = parts[0].trim();
                 String value = parts[1].trim();
-                validateStyleDeclaration(inputFile, source, propertyName, value, propertyName);
+                validateStyleDeclaration(inputFile, source, propertyName, value, propertyName, 0);
                 rule.addProperty(propertyName, value);
             }
             String selector = matcher.group("selector");
@@ -248,10 +254,10 @@ public final class SlateCompiler {
         return scopedStyle;
     }
 
-    private static void validateStyleDeclaration(Path inputFile, String source, String propertyName, String value, String needle) {
+    private static void validateStyleDeclaration(Path inputFile, String source, String propertyName, String value, String needle, int startAt) {
         String normalized = propertyName.replace("_", "-").toLowerCase();
         if (!STYLE_PROPERTIES.contains(normalized)) {
-            throw error(inputFile, source, needle, "Unknown style property '" + propertyName + "'");
+            throw error(inputFile, source, needle, startAt, "Unknown style property '" + propertyName + "'");
         }
         try {
             if (isIntegerStyle(normalized)) {
@@ -276,7 +282,7 @@ public final class SlateCompiler {
                 parseAllowed(value, Set.of("start", "center", "end", "stretch"));
             }
         } catch (RuntimeException exception) {
-            throw error(inputFile, source, needle, "Invalid style value for '" + propertyName + "': '" + value + "' (" + exception.getMessage() + ")");
+            throw error(inputFile, source, needle, startAt, "Invalid style value for '" + propertyName + "': '" + value + "' (" + exception.getMessage() + ")");
         }
     }
 
@@ -334,16 +340,9 @@ public final class SlateCompiler {
         return selector;
     }
 
-    private static JsonObject sourceMapEntry(String path, String componentType, String source, Path inputFile, String needle, Map<String, Integer> sourceCursor) {
-        int startAt = sourceCursor.getOrDefault(needle, 0);
-        int index = source.indexOf(needle, startAt);
-        if (index < 0) {
-            index = source.indexOf(needle);
-        }
+    private static JsonObject sourceMapEntry(String path, String componentType, String source, Path inputFile, int index) {
         if (index < 0) {
             index = 0;
-        } else {
-            sourceCursor.put(needle, index + needle.length());
         }
         int line = 1;
         int column = 1;
@@ -403,13 +402,7 @@ public final class SlateCompiler {
     }
 
     private static boolean isAllowedBuiltinSlot(String componentType, String slotName) {
-        if ("default".equals(slotName)) {
-            return true;
-        }
-        if ("Panel".equals(componentType)) {
-            return Set.of("header", "footer").contains(slotName);
-        }
-        return BUILTIN_ONLY_SLOTS.contains(slotName);
+        return BUILTIN_SLOTS.getOrDefault(componentType, Set.of("default")).contains(slotName);
     }
 
     private static boolean isBuiltin(String componentType) {
@@ -421,9 +414,16 @@ public final class SlateCompiler {
     }
 
     private static SlateCompileException error(Path inputFile, String source, String needle, String message) {
-        int index = source.indexOf(needle);
+        return error(inputFile, source, needle, 0, message);
+    }
+
+    private static SlateCompileException error(Path inputFile, String source, String needle, int startAt, String message) {
+        int index = source.indexOf(needle, Math.max(0, startAt));
         if (index < 0) {
-            index = 0;
+            index = source.indexOf(needle);
+        }
+        if (index < 0) {
+            index = Math.max(0, startAt);
         }
         int line = 1;
         int column = 1;
@@ -436,6 +436,18 @@ public final class SlateCompiler {
             }
         }
         return new SlateCompileException(inputFile.getFileName() + ":" + line + ":" + column + " " + message);
+    }
+
+    private static int locateNext(String source, String needle, Map<String, Integer> sourceCursor) {
+        int startAt = sourceCursor.getOrDefault(needle, 0);
+        int index = source.indexOf(needle, startAt);
+        if (index < 0) {
+            index = source.indexOf(needle);
+        }
+        if (index >= 0) {
+            sourceCursor.put(needle, index + needle.length());
+        }
+        return Math.max(0, index);
     }
 
     private static String summarize(String value) {

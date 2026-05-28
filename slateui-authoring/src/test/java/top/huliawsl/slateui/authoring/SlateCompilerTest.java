@@ -73,6 +73,24 @@ class SlateCompilerTest {
     }
 
     @Test
+    void rejectsNamedSlotThatRuntimeWouldIgnore() throws Exception {
+        Path input = Files.createTempFile("ignored-slot", ".slate");
+        Path output = Files.createTempFile("ignored-slot-out", ".json");
+        Files.writeString(input, """
+            <template>
+              <Box>
+                <template #tooltip>
+                  <Text value="Nope" />
+                </template>
+              </Box>
+            </template>
+            """);
+
+        SlateCompileException exception = assertThrows(SlateCompileException.class, () -> new SlateCompiler().compileFile(input, output));
+        assertTrue(exception.getMessage().contains("Unknown slot"));
+    }
+
+    @Test
     void rejectsLowercaseUnknownComponent() throws Exception {
         Path input = Files.createTempFile("broken-lower", ".slate");
         Path output = Files.createTempFile("broken-lower-out", ".json");
@@ -195,6 +213,24 @@ class SlateCompilerTest {
         int firstTextLine = sourceMap.get(1).getAsJsonObject().get("line").getAsInt();
         int secondTextLine = sourceMap.get(2).getAsJsonObject().get("line").getAsInt();
         assertTrue(secondTextLine > firstTextLine);
+    }
+
+    @Test
+    void imageAcceptsTextureRegionProps() throws Exception {
+        Path input = Files.createTempFile("image-region", ".slate");
+        Path output = Files.createTempFile("image-region-out", ".json");
+        Files.writeString(input, """
+            <template>
+              <Image resource="minecraft:textures/gui/widgets.png" u="1" v="2" regionWidth="18" regionHeight="19" textureWidth="256" textureHeight="128" />
+            </template>
+            """);
+
+        new SlateCompiler().compileFile(input, output);
+
+        String json = Files.readString(output);
+        assertTrue(json.contains("\"u\": \"1\""));
+        assertTrue(json.contains("\"regionWidth\": \"18\""));
+        assertTrue(json.contains("\"textureHeight\": \"128\""));
     }
 
 }
