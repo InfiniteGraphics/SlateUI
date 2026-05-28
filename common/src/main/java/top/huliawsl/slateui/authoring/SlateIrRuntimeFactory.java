@@ -193,7 +193,16 @@ public final class SlateIrRuntimeFactory {
                 SlateStyle.builder().gap(propInt(node, "itemGap", 6)).build()
             ))
             .register("ScrollView", (node, children, namedSlots, context) -> new ScrollView(singleChild(children), resolveStyle(node, context)))
-            .register("Image", (node, children, namedSlots, context) -> new Image(prop(node, "resource", "minecraft:textures/gui/options_background.png"), resolveStyle(node, context)))
+            .register("Image", (node, children, namedSlots, context) -> new Image(
+                prop(node, "resource", "minecraft:textures/gui/options_background.png"),
+                propInt(node, "u", 0),
+                propInt(node, "v", 0),
+                propInt(node, "textureWidth", 256),
+                propInt(node, "textureHeight", 256),
+                propInt(node, "regionWidth", 0),
+                propInt(node, "regionHeight", 0),
+                resolveStyle(node, context)
+            ))
             .register("SlotGrid", (node, children, namedSlots, context) -> new SlotGrid(
                 createSlotProvider(node, context),
                 propInt(node, "columns", 9),

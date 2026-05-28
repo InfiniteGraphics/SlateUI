@@ -15,6 +15,7 @@ import top.huliawsl.slateui.layout.Insets;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
+import top.huliawsl.slateui.render.DrawRectCommand;
 import top.huliawsl.slateui.render.DrawTextCommand;
 import top.huliawsl.slateui.render.PopClipCommand;
 import top.huliawsl.slateui.render.PushClipCommand;
@@ -45,6 +46,11 @@ public class Input extends SlateComponent {
     private String draft = "";
     private int cursor;
     private int selectionAnchor;
+    private int textOffsetX;
+    private int cursorPixelX;
+    private int selectionStartPixelX;
+    private int selectionEndPixelX;
+    private int lineHeight = 9;
     private boolean initialized;
 
     public Input(String placeholder, String initialValue, String changeCommand, SlateStyle style) {
@@ -89,24 +95,25 @@ public class Input extends SlateComponent {
     @Override
     protected void onFocusChanged(boolean focused) {
         if (!focused) {
-            draft = draft.isBlank() ? draft : draft;
+            syncDraftFromState();
         }
     }
 
     @Override
     public Size measure(SlateLayoutContext context, Size available) {
         if (!initialized) {
-            draft = valueResolver.apply(stateProvider);
-            if (draft == null) {
-                draft = "";
-            }
+            syncDraftFromState();
             cursor = draft.length();
             selectionAnchor = cursor;
             initialized = true;
+        } else if (!isFocused()) {
+            syncDraftFromState();
         }
+        lineHeight = context.lineHeight();
         int width = style().width() != null ? style().width() : Math.min(available.width(), 180);
-        int height = style().height() != null ? style().height() : context.lineHeight() + style().padding().vertical() + 8;
+        int height = style().height() != null ? style().height() : lineHeight + style().padding().vertical() + 8;
         Size measured = applyStyleSize(new Size(width, height));
+        updateTextViewport(context, Math.max(0, measured.width() - style().padding().horizontal() - 4));
         setMeasuredSize(measured);
         return measured;
     }
@@ -121,12 +128,20 @@ public class Input extends SlateComponent {
         emitBoxChrome(context, commands);
         Rect content = contentRect(bounds());
         commands.add(new PushClipCommand(content, contentClipRadius(context.theme())));
-        String text = draft.isEmpty() ? placeholder : draft;
+        int textX = content.x() + 2 - textOffsetX;
+        int textY = content.y() + 2;
+        if (isFocused() && hasSelection()) {
+            int selectionX = content.x() + 2 + selectionStartPixelX - textOffsetX;
+            int selectionWidth = Math.max(1, selectionEndPixelX - selectionStartPixelX);
+            commands.add(new DrawRectCommand(new Rect(selectionX, textY, selectionWidth, lineHeight), 0x663B82F6, 0));
+        }
+        String text = draft.isEmpty() && !isFocused() ? placeholder : draft;
         int color = draft.isEmpty() ? 0xFF94A3B8 : resolveTextColor(context.theme());
-        String renderedText = isFocused() && !draft.isEmpty()
-            ? draft.substring(0, cursor) + "|" + draft.substring(cursor)
-            : text + (isFocused() ? "|" : "");
-        commands.add(new DrawTextCommand(content.x() + 2, content.y() + 2, renderedText, color));
+        commands.add(new DrawTextCommand(textX, textY, text, color));
+        if (isFocused()) {
+            int cursorX = content.x() + 2 + cursorPixelX - textOffsetX;
+            commands.add(new DrawRectCommand(new Rect(cursorX, textY, 1, lineHeight), resolveTextColor(context.theme()), 0));
+        }
         commands.add(new PopClipCommand());
     }
 
@@ -140,7 +155,7 @@ public class Input extends SlateComponent {
         if (control && keyCode == GLFW.GLFW_KEY_A) {
             cursor = draft.length();
             selectionAnchor = 0;
-            context.screen().requestRebuild("input-select-all");
+            context.requestRebuild("input-select-all");
             return true;
         }
         if (control && keyCode == GLFW.GLFW_KEY_C) {
@@ -168,22 +183,22 @@ public class Input extends SlateComponent {
         }
         if (keyCode == GLFW.GLFW_KEY_LEFT) {
             moveCursor(Math.max(0, cursor - 1), shift);
-            context.screen().requestRebuild("input-left");
+            context.requestRebuild("input-left");
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_RIGHT) {
             moveCursor(Math.min(draft.length(), cursor + 1), shift);
-            context.screen().requestRebuild("input-right");
+            context.requestRebuild("input-right");
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_HOME) {
             moveCursor(0, shift);
-            context.screen().requestRebuild("input-home");
+            context.requestRebuild("input-home");
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_END) {
             moveCursor(draft.length(), shift);
-            context.screen().requestRebuild("input-end");
+            context.requestRebuild("input-end");
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
@@ -239,7 +254,7 @@ public class Input extends SlateComponent {
         }
         runValueCommand(context, inputCommand, "input");
         runValueCommand(context, changeCommand, "change");
-        context.screen().requestRebuild("input-change");
+        context.requestRebuild("input-change");
     }
 
     private String fitToMaxLength(String value, int selectionStart, int selectionEnd) {
@@ -295,6 +310,27 @@ public class Input extends SlateComponent {
         if (!keepSelection) {
             selectionAnchor = cursor;
         }
+    }
+
+    private void syncDraftFromState() {
+        String value = valueResolver.apply(stateProvider);
+        draft = value == null ? "" : value;
+        cursor = Math.min(cursor, draft.length());
+        selectionAnchor = Math.min(selectionAnchor, draft.length());
+    }
+
+    private void updateTextViewport(SlateLayoutContext context, int viewportWidth) {
+        cursorPixelX = context.textWidth(draft.substring(0, Math.min(cursor, draft.length())));
+        selectionStartPixelX = context.textWidth(draft.substring(0, selectionStart()));
+        selectionEndPixelX = context.textWidth(draft.substring(0, selectionEnd()));
+        if (cursorPixelX - textOffsetX > viewportWidth) {
+            textOffsetX = Math.max(0, cursorPixelX - viewportWidth);
+        }
+        if (cursorPixelX < textOffsetX) {
+            textOffsetX = cursorPixelX;
+        }
+        int fullWidth = context.textWidth(draft);
+        textOffsetX = Math.min(textOffsetX, Math.max(0, fullWidth - viewportWidth));
     }
 
     private boolean hasSelection() {

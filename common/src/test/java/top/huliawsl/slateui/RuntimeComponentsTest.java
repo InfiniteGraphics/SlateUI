@@ -10,7 +10,9 @@ import org.junit.jupiter.api.Test;
 import top.huliawsl.slateui.api.MutableStateProvider;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
+import top.huliawsl.slateui.api.SlateText;
 import top.huliawsl.slateui.api.StackDirection;
+import top.huliawsl.slateui.api.component.Image;
 import top.huliawsl.slateui.api.component.Input;
 import top.huliawsl.slateui.api.component.Button;
 import top.huliawsl.slateui.api.component.Text;
@@ -18,14 +20,17 @@ import top.huliawsl.slateui.api.component.ScrollView;
 import top.huliawsl.slateui.api.component.Stack;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
+import top.huliawsl.slateui.render.DrawCommandDispatcher;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.DrawTextCommand;
+import top.huliawsl.slateui.render.DrawTextureCommand;
 import top.huliawsl.slateui.render.PopClipCommand;
 import top.huliawsl.slateui.render.PushClipCommand;
 import top.huliawsl.slateui.runtime.SlateClipboard;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
+import top.huliawsl.slateui.runtime.SlateRenderer;
 
 class RuntimeComponentsTest {
 
@@ -244,6 +249,73 @@ class RuntimeComponentsTest {
     }
 
     @Test
+    void inputSyncsExternalStateWhenNotFocused() {
+        MutableStateProvider provider = new MutableStateProvider().set("name", "Alex");
+        Input input = new Input(provider, "placeholder", ignored -> String.valueOf(provider.get("name")), null, null, SlateStyle.EMPTY);
+
+        input.measure(new SlateLayoutContext(null), new Size(120, 40));
+        provider.set("name", "Sam");
+        input.measure(new SlateLayoutContext(null), new Size(120, 40));
+        input.layout(new SlateLayoutContext(null), new Rect(0, 0, 120, 24));
+
+        List<DrawCommand> commands = new java.util.ArrayList<>();
+        input.collectDrawCommands(new SlateRenderContext(false, top.huliawsl.slateui.api.Theme.DEFAULT), commands);
+
+        assertTrue(commands.stream()
+            .filter(DrawTextCommand.class::isInstance)
+            .map(DrawTextCommand.class::cast)
+            .anyMatch(command -> command.text().contains("Sam")));
+    }
+
+    @Test
+    void drawCommandDispatcherUsesRendererAdapterAndKeepsTranslatableText() {
+        SlateText.Translatable text = new SlateText.Translatable("slate.test.key", List.of("arg"));
+        List<DrawCommand> commands = List.of(new DrawTextCommand(1, 2, text, 0xFFFFFFFF));
+        RecordingRenderer renderer = new RecordingRenderer();
+
+        DrawCommandDispatcher.render(commands, renderer);
+
+        assertEquals(text, renderer.lastText);
+    }
+
+    @Test
+    void imageSupportsTextureRegions() {
+        Image image = new Image("minecraft:textures/gui/widgets.png", 4, 5, 256, 128, 18, 19, SlateStyle.builder().width(18).height(19).build());
+        image.measure(new SlateLayoutContext(null), new Size(40, 40));
+        image.layout(new SlateLayoutContext(null), new Rect(0, 0, 18, 19));
+
+        List<DrawCommand> commands = new java.util.ArrayList<>();
+        image.collectDrawCommands(new SlateRenderContext(false, top.huliawsl.slateui.api.Theme.DEFAULT), commands);
+        DrawTextureCommand texture = commands.stream()
+            .filter(DrawTextureCommand.class::isInstance)
+            .map(DrawTextureCommand.class::cast)
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals(4, texture.u());
+        assertEquals(5, texture.v());
+        assertEquals(18, texture.regionWidth());
+        assertEquals(19, texture.regionHeight());
+        assertEquals(256, texture.textureWidth());
+        assertEquals(128, texture.textureHeight());
+    }
+
+    @Test
+    void screenRemovesStateListenerWhenClosed() {
+        MutableStateProvider provider = new MutableStateProvider();
+        TestScreen screen = new TestScreen(new FixedComponent(10, 10), provider);
+
+        provider.set("name", "before");
+        assertTrue(screen.diagnostics().diagnosticsLogDump().contains("state:name"));
+
+        screen.removed();
+        String before = screen.diagnostics().diagnosticsLogDump();
+        provider.set("name", "after");
+
+        assertEquals(before, screen.diagnostics().diagnosticsLogDump());
+    }
+
+    @Test
     void screenMovesFocusWithTabAndShiftTab() {
         Button first = new Button("First", null, SlateStyle.EMPTY);
         Button second = new Button("Second", null, SlateStyle.EMPTY);
@@ -349,14 +421,48 @@ class RuntimeComponentsTest {
     private static final class TestScreen extends top.huliawsl.slateui.api.SlateScreen {
 
         private TestScreen(SlateComponent root) {
+            this(root, top.huliawsl.slateui.api.StateProvider.EMPTY);
+        }
+
+        private TestScreen(SlateComponent root, top.huliawsl.slateui.api.StateProvider provider) {
             super(
                 net.minecraft.network.chat.Component.literal("Test"),
                 root,
                 new top.huliawsl.slateui.command.SlateCommandRegistry(),
-                top.huliawsl.slateui.api.StateProvider.EMPTY,
+                provider,
                 top.huliawsl.slateui.api.Theme.DEFAULT,
                 false
             );
+        }
+    }
+
+    private static final class RecordingRenderer implements SlateRenderer {
+
+        private SlateText lastText;
+
+        @Override
+        public void fill(Rect rect, int color, int radius) {
+        }
+
+        @Override
+        public void drawBorder(Rect rect, int color, int thickness, int radius) {
+        }
+
+        @Override
+        public void drawText(int x, int y, SlateText text, int color) {
+            lastText = text;
+        }
+
+        @Override
+        public void drawTexture(Rect rect, String texture, int u, int v, int textureWidth, int textureHeight, int regionWidth, int regionHeight) {
+        }
+
+        @Override
+        public void pushClip(Rect rect, int radius) {
+        }
+
+        @Override
+        public void popClip() {
         }
     }
 }
