@@ -13,6 +13,11 @@ jobs:
       fail-fast: false
       matrix:
         java: [ '21' ]
+        task:
+          - test
+          - :fabric:build
+          - :forge:build
+          - :neoforge:build
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,4 +32,4 @@ jobs:
         uses: gradle/actions/wrapper-validation@v4
 
       - name: Run tests
-        run: .\gradlew.bat test --stacktrace
+        run: .\gradlew.bat ${{ matrix.task }} --stacktrace
