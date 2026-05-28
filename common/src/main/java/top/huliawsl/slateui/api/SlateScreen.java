@@ -55,8 +55,8 @@ public class SlateScreen extends Screen implements SlateHost {
         super(title);
         this.root = root;
         this.commands = commands.copy()
-            .register("screen.close", context -> MinecraftCommandContext.require(context).minecraft().setScreen(null))
-            .register("screen.inspect", context -> MinecraftCommandContext.require(context).minecraft().setScreen(new SlateInspectorScreen(this, diagnostics)));
+            .register("screen.close", context -> context.host().closeScreen())
+            .register("screen.inspect", context -> context.host().inspect());
         this.stateProvider = stateProvider == null ? StateProvider.EMPTY : stateProvider;
         this.theme = theme == null ? Theme.DEFAULT : theme;
         this.bindingDump = bindingDump == null || bindingDump.isBlank() ? "<none>" : bindingDump;
@@ -252,6 +252,28 @@ public class SlateScreen extends Screen implements SlateHost {
         return getTitle().getString();
     }
 
+    @Override
+    public void openScreen(Object screenHandle) {
+        if (screenHandle instanceof Screen screen) {
+            Minecraft.getInstance().setScreen(screen);
+        }
+    }
+
+    @Override
+    public void closeScreen() {
+        Minecraft.getInstance().setScreen(null);
+    }
+
+    @Override
+    public void inspect() {
+        Minecraft.getInstance().setScreen(new SlateInspectorScreen(this, diagnostics));
+    }
+
+    @Override
+    public void reportDiagnostic(String entry) {
+        diagnostics.logDiagnostic(entry);
+    }
+
     public void setFocusedComponent(SlateComponent component) {
         if (focusedComponent == component) {
             return;
@@ -313,7 +335,7 @@ public class SlateScreen extends Screen implements SlateHost {
             commands,
             new MinecraftCommandContext(Minecraft.getInstance(), this, this),
             diagnostics::logCommand,
-            diagnostics::logDiagnostic,
+            ignored -> {},
             this,
             stateProvider,
             theme,

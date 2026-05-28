@@ -11,6 +11,8 @@ import top.huliawsl.slateui.runtime.SlateRenderer;
 
 public final class MinecraftSlateRenderer implements SlateRenderer {
 
+    private static final Capabilities CAPABILITIES = new Capabilities(true, true, true, false, true);
+
     private final GuiGraphics graphics;
     private final Font font;
     private final ClipStack clipStack = new ClipStack();
@@ -18,6 +20,11 @@ public final class MinecraftSlateRenderer implements SlateRenderer {
     public MinecraftSlateRenderer(GuiGraphics graphics, Font font) {
         this.graphics = graphics;
         this.font = font;
+    }
+
+    @Override
+    public Capabilities capabilities() {
+        return CAPABILITIES;
     }
 
     @Override

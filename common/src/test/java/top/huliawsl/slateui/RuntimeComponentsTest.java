@@ -3,6 +3,8 @@ package top.huliawsl.slateui;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.lwjgl.glfw.GLFW;
@@ -27,6 +29,7 @@ import top.huliawsl.slateui.render.DrawTextureCommand;
 import top.huliawsl.slateui.render.PopClipCommand;
 import top.huliawsl.slateui.render.PushClipCommand;
 import top.huliawsl.slateui.runtime.SlateClipboard;
+import top.huliawsl.slateui.runtime.SlateHost;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -276,6 +279,72 @@ class RuntimeComponentsTest {
         DrawCommandDispatcher.render(commands, renderer);
 
         assertEquals(text, renderer.lastText);
+        assertEquals(SlateRenderer.Capabilities.BASIC, renderer.capabilities());
+    }
+
+    @Test
+    void interactionContextCanUseHostWithoutSlateScreen() {
+        RecordingHost host = new RecordingHost();
+        SlateInteractionContext interaction = new SlateInteractionContext(
+            new top.huliawsl.slateui.command.SlateCommandRegistry(),
+            new top.huliawsl.slateui.command.CommandContext(host),
+            ignored -> {},
+            ignored -> {},
+            host,
+            top.huliawsl.slateui.api.StateProvider.EMPTY,
+            top.huliawsl.slateui.api.Theme.DEFAULT
+        );
+        Button button = new Button("Focus", null, SlateStyle.EMPTY);
+
+        interaction.requestFocus(button);
+        interaction.requestRebuild("test");
+        interaction.logDiagnostic("diag");
+        interaction.commandContext().host().closeScreen();
+
+        assertEquals(button, host.focusedComponent());
+        assertEquals("test", host.rebuildReason.value);
+        assertEquals("diag", host.diagnostic.value);
+        assertTrue(host.closed);
+    }
+
+    @Test
+    void coreRuntimeSourcesDoNotImportMinecraft() throws Exception {
+        Path sourceRoot = Path.of("src/main/java/top/huliawsl/slateui");
+        List<String> corePaths = List.of(
+            "api/component",
+            "layout",
+            "binding",
+            "command/CommandContext.java",
+            "runtime/SlateClipboard.java",
+            "runtime/SlateHost.java",
+            "runtime/SlateInteractionContext.java",
+            "runtime/SlateLayoutContext.java",
+            "runtime/SlateRenderContext.java",
+            "runtime/SlateRenderer.java",
+            "runtime/SlateTextMeasurer.java",
+            "render/DrawBorderCommand.java",
+            "render/DrawCommand.java",
+            "render/DrawCommandDispatcher.java",
+            "render/DrawDebugRectCommand.java",
+            "render/DrawRectCommand.java",
+            "render/DrawTextCommand.java",
+            "render/DrawTextureCommand.java",
+            "render/PopClipCommand.java",
+            "render/PushClipCommand.java"
+        );
+
+        for (String relative : corePaths) {
+            Path path = sourceRoot.resolve(relative);
+            if (Files.isDirectory(path)) {
+                try (var files = Files.walk(path)) {
+                    for (Path file : files.filter(item -> item.toString().endsWith(".java")).toList()) {
+                        assertTrue(!Files.readString(file).contains("net.minecraft"), file.toString());
+                    }
+                }
+                continue;
+            }
+            assertTrue(!Files.readString(path).contains("net.minecraft"), path.toString());
+        }
     }
 
     @Test
@@ -416,6 +485,46 @@ class RuntimeComponentsTest {
 
     private static final class MutableString {
         private String value = "";
+    }
+
+    private static final class RecordingHost implements SlateHost {
+
+        private final MutableString rebuildReason = new MutableString();
+        private final MutableString diagnostic = new MutableString();
+        private SlateComponent focused;
+        private boolean closed;
+
+        @Override
+        public void requestRebuild(String reason) {
+            rebuildReason.value = reason;
+        }
+
+        @Override
+        public void requestFocus(SlateComponent component) {
+            focused = component;
+        }
+
+        @Override
+        public void clearFocus(SlateComponent component) {
+            if (focused == component) {
+                focused = null;
+            }
+        }
+
+        @Override
+        public SlateComponent focusedComponent() {
+            return focused;
+        }
+
+        @Override
+        public void closeScreen() {
+            closed = true;
+        }
+
+        @Override
+        public void reportDiagnostic(String entry) {
+            diagnostic.value = entry;
+        }
     }
 
     private static final class TestScreen extends top.huliawsl.slateui.api.SlateScreen {

@@ -65,6 +65,7 @@ public final class SlateInteractionContext {
 
     public void logDiagnostic(String entry) {
         diagnosticsLogger.accept(entry);
+        host.reportDiagnostic(entry);
     }
 
     public SlateHost host() {

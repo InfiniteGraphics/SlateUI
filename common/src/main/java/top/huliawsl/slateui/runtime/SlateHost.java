@@ -1,6 +1,7 @@
 package top.huliawsl.slateui.runtime;
 
 import top.huliawsl.slateui.api.SlateComponent;
+import top.huliawsl.slateui.api.StateProvider;
 
 public interface SlateHost {
 
@@ -33,5 +34,21 @@ public interface SlateHost {
 
     default String title() {
         return "";
+    }
+
+    default void openScreen(Object screenHandle) {
+    }
+
+    default void closeScreen() {
+    }
+
+    default void inspect() {
+    }
+
+    default void reportDiagnostic(String entry) {
+    }
+
+    default StateProvider stateProvider() {
+        return StateProvider.EMPTY;
     }
 }
