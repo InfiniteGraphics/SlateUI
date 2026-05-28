@@ -1,0 +1,23 @@
+<template>
+  <Panel id="settings" title="Settings" class="panel">
+    <Text value="Name" />
+    <Input placeholder="Player name" value="{settings.name}" onChange="settings.nameChanged" maxLength="32" />
+    <Toggle label="Enabled" checked="{settings.enabled}" onChange="settings.enabledChanged" />
+    <Button label="Save" command="settings.save" />
+    <Image
+      resource="minecraft:textures/gui/widgets.png"
+      style-width="18"
+      style-height="18"
+      u="0"
+      v="0"
+      regionWidth="18"
+      regionHeight="18"
+      textureWidth="256"
+      textureHeight="256" />
+  </Panel>
+</template>
+
+<style scoped>
+  Panel { padding: 12; gap: 8; borderRadius: 8; }
+  #settings:focus { focusBorderColor: #60A5FA; }
+</style>
