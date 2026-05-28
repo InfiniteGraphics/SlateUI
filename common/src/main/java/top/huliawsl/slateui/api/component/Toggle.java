@@ -125,7 +125,7 @@ public class Toggle extends SlateComponent {
             }
         }
         context.logDiagnostic("TOGGLE checked=" + next + " component=" + debugPath());
-        context.screen().requestRebuild("toggle:" + debugName());
+        context.requestRebuild("toggle:" + debugName());
         return true;
     }
 }

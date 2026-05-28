@@ -1,21 +1,40 @@
 package top.huliawsl.slateui.command;
 
 import java.util.Map;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
+import top.huliawsl.slateui.runtime.SlateHost;
 
-public record CommandContext(Minecraft minecraft, Screen screen, Map<String, Object> payload) {
+public class CommandContext {
 
-    public CommandContext(Minecraft minecraft, Screen screen) {
-        this(minecraft, screen, Map.of());
+    private final SlateHost host;
+    private final Map<String, Object> payload;
+
+    public CommandContext() {
+        this(SlateHost.NOOP, Map.of());
     }
 
-    public CommandContext {
-        payload = payload == null ? Map.of() : Map.copyOf(payload);
+    public CommandContext(SlateHost host) {
+        this(host, Map.of());
+    }
+
+    public CommandContext(Object ignored, SlateHost host) {
+        this(host, Map.of());
+    }
+
+    public CommandContext(SlateHost host, Map<String, Object> payload) {
+        this.host = host == null ? SlateHost.NOOP : host;
+        this.payload = payload == null ? Map.of() : Map.copyOf(payload);
+    }
+
+    public SlateHost host() {
+        return host;
+    }
+
+    public Map<String, Object> payload() {
+        return payload;
     }
 
     public CommandContext withPayload(Map<String, Object> payload) {
-        return new CommandContext(minecraft, screen, payload);
+        return new CommandContext(host, payload);
     }
 
     public Object payload(String key) {

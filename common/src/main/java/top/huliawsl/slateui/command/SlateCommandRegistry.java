@@ -68,7 +68,7 @@ public final class SlateCommandRegistry {
             return false;
         }
         CommandContext commandContext = context.commandContext().withPayload(payload);
-        String title = commandContext.screen() == null ? "" : commandContext.screen().getTitle().getString();
+        String title = commandContext.host().title();
         serverIntentBridge.send(SlateServerIntent.now(id, title, payload, context.stateProvider().snapshot()), commandContext);
         return true;
     }

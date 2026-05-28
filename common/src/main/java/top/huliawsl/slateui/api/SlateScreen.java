@@ -7,7 +7,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
-import top.huliawsl.slateui.command.CommandContext;
+import top.huliawsl.slateui.command.MinecraftCommandContext;
 import top.huliawsl.slateui.command.SlateCommandRegistry;
 import top.huliawsl.slateui.api.component.Button;
 import top.huliawsl.slateui.api.component.Toggle;
@@ -17,15 +17,17 @@ import top.huliawsl.slateui.debug.SlateInspectorScreen;
 import top.huliawsl.slateui.debug.SlateRuntimeException;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
+import top.huliawsl.slateui.render.DrawCommandDispatcher;
 import top.huliawsl.slateui.render.DrawCommand;
-import top.huliawsl.slateui.render.MinecraftDrawCommandRenderer;
+import top.huliawsl.slateui.render.MinecraftSlateRenderer;
 import top.huliawsl.slateui.runtime.MinecraftTextMeasurer;
 import top.huliawsl.slateui.runtime.SlateClipboard;
+import top.huliawsl.slateui.runtime.SlateHost;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
 
-public class SlateScreen extends Screen {
+public class SlateScreen extends Screen implements SlateHost {
 
     private static final int BACKGROUND_COLOR = 0xFF0B1220;
 
@@ -34,6 +36,7 @@ public class SlateScreen extends Screen {
     private final boolean debugEnabled;
     private final SlateDiagnostics diagnostics = new SlateDiagnostics();
     private final StateProvider stateProvider;
+    private final StateListener stateListener = path -> requestRebuild("state:" + path);
     private final Theme theme;
     private final String bindingDump;
     private List<DrawCommand> drawCommands = List.of();
@@ -52,13 +55,13 @@ public class SlateScreen extends Screen {
         super(title);
         this.root = root;
         this.commands = commands.copy()
-            .register("screen.close", context -> context.minecraft().setScreen(null))
-            .register("screen.inspect", context -> context.minecraft().setScreen(new SlateInspectorScreen(this, diagnostics)));
+            .register("screen.close", context -> MinecraftCommandContext.require(context).minecraft().setScreen(null))
+            .register("screen.inspect", context -> MinecraftCommandContext.require(context).minecraft().setScreen(new SlateInspectorScreen(this, diagnostics)));
         this.stateProvider = stateProvider == null ? StateProvider.EMPTY : stateProvider;
         this.theme = theme == null ? Theme.DEFAULT : theme;
         this.bindingDump = bindingDump == null || bindingDump.isBlank() ? "<none>" : bindingDump;
         this.debugEnabled = debugEnabled;
-        this.stateProvider.addListener(path -> requestRebuild("state:" + path));
+        this.stateProvider.addListener(stateListener);
     }
 
     @Override
@@ -73,6 +76,7 @@ public class SlateScreen extends Screen {
         }
     }
 
+    @Override
     public void requestRebuild(String reason) {
         diagnostics.logDiagnostic("REBUILD " + reason);
         runtimeDirty = true;
@@ -103,7 +107,12 @@ public class SlateScreen extends Screen {
             }
             diagnostics.capturePointer(mouseX, mouseY);
             guiGraphics.fill(0, 0, width, height, BACKGROUND_COLOR);
-            MinecraftDrawCommandRenderer.render(guiGraphics, font, drawCommands);
+            MinecraftSlateRenderer renderer = new MinecraftSlateRenderer(guiGraphics, font);
+            try {
+                DrawCommandDispatcher.render(drawCommands, renderer);
+            } finally {
+                renderer.close();
+            }
         } catch (Throwable throwable) {
             openErrorScreen("render", throwable);
         }
@@ -226,6 +235,23 @@ public class SlateScreen extends Screen {
         return focusedComponent;
     }
 
+    @Override
+    public void requestFocus(SlateComponent component) {
+        setFocusedComponent(component);
+    }
+
+    @Override
+    public void clearFocus(SlateComponent component) {
+        if (focusedComponent == component) {
+            setFocusedComponent(null);
+        }
+    }
+
+    @Override
+    public String title() {
+        return getTitle().getString();
+    }
+
     public void setFocusedComponent(SlateComponent component) {
         if (focusedComponent == component) {
             return;
@@ -285,7 +311,7 @@ public class SlateScreen extends Screen {
         };
         return new SlateInteractionContext(
             commands,
-            new CommandContext(Minecraft.getInstance(), this),
+            new MinecraftCommandContext(Minecraft.getInstance(), this, this),
             diagnostics::logCommand,
             diagnostics::logDiagnostic,
             this,
@@ -341,5 +367,11 @@ public class SlateScreen extends Screen {
 
     private void openErrorScreen(String stage, Throwable throwable) {
         Minecraft.getInstance().setScreen(new SlateErrorScreen(stage, throwable, diagnostics));
+    }
+
+    @Override
+    public void removed() {
+        stateProvider.removeListener(stateListener);
+        super.removed();
     }
 }

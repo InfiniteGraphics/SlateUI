@@ -119,7 +119,7 @@ public abstract class SlateComponent {
         boolean changed = !pressed;
         setPressed(true);
         if (changed) {
-            context.screen().requestRebuild("press:" + debugName());
+            context.requestRebuild("press:" + debugName());
         }
         if (focusable()) {
             context.requestFocus(this);
@@ -137,7 +137,7 @@ public abstract class SlateComponent {
         boolean wasPressed = pressed;
         setPressed(false);
         if (wasPressed) {
-            context.screen().requestRebuild("release:" + debugName());
+            context.requestRebuild("release:" + debugName());
         }
         List<SlateComponent> children = children();
         for (int index = children.size() - 1; index >= 0; index--) {
@@ -158,7 +158,7 @@ public abstract class SlateComponent {
         boolean changed = hovered != localHovered;
         setHovered(localHovered);
         if (changed) {
-            context.screen().requestRebuild("hover:" + debugName());
+            context.requestRebuild("hover:" + debugName());
         }
         return localHovered || childHovered;
     }

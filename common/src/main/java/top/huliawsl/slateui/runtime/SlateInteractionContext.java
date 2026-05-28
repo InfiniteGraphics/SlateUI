@@ -3,7 +3,6 @@ package top.huliawsl.slateui.runtime;
 import java.util.Objects;
 import java.util.function.Consumer;
 import top.huliawsl.slateui.api.SlateComponent;
-import top.huliawsl.slateui.api.SlateScreen;
 import top.huliawsl.slateui.api.StateProvider;
 import top.huliawsl.slateui.api.Theme;
 import top.huliawsl.slateui.command.CommandContext;
@@ -15,7 +14,7 @@ public final class SlateInteractionContext {
     private final CommandContext commandContext;
     private final Consumer<String> commandLogger;
     private final Consumer<String> diagnosticsLogger;
-    private final SlateScreen screen;
+    private final SlateHost host;
     private final StateProvider stateProvider;
     private final Theme theme;
     private final SlateClipboard clipboard;
@@ -25,11 +24,11 @@ public final class SlateInteractionContext {
         CommandContext commandContext,
         Consumer<String> commandLogger,
         Consumer<String> diagnosticsLogger,
-        SlateScreen screen,
+        SlateHost host,
         StateProvider stateProvider,
         Theme theme
     ) {
-        this(commands, commandContext, commandLogger, diagnosticsLogger, screen, stateProvider, theme, SlateClipboard.EMPTY);
+        this(commands, commandContext, commandLogger, diagnosticsLogger, host, stateProvider, theme, SlateClipboard.EMPTY);
     }
 
     public SlateInteractionContext(
@@ -37,7 +36,7 @@ public final class SlateInteractionContext {
         CommandContext commandContext,
         Consumer<String> commandLogger,
         Consumer<String> diagnosticsLogger,
-        SlateScreen screen,
+        SlateHost host,
         StateProvider stateProvider,
         Theme theme,
         SlateClipboard clipboard
@@ -46,7 +45,7 @@ public final class SlateInteractionContext {
         this.commandContext = Objects.requireNonNull(commandContext, "commandContext");
         this.commandLogger = Objects.requireNonNull(commandLogger, "commandLogger");
         this.diagnosticsLogger = Objects.requireNonNull(diagnosticsLogger, "diagnosticsLogger");
-        this.screen = Objects.requireNonNull(screen, "screen");
+        this.host = host == null ? SlateHost.NOOP : host;
         this.stateProvider = Objects.requireNonNull(stateProvider, "stateProvider");
         this.theme = Objects.requireNonNull(theme, "theme");
         this.clipboard = clipboard == null ? SlateClipboard.EMPTY : clipboard;
@@ -68,8 +67,12 @@ public final class SlateInteractionContext {
         diagnosticsLogger.accept(entry);
     }
 
-    public SlateScreen screen() {
-        return screen;
+    public SlateHost host() {
+        return host;
+    }
+
+    public void requestRebuild(String reason) {
+        host.requestRebuild(reason);
     }
 
     public StateProvider stateProvider() {
@@ -85,12 +88,10 @@ public final class SlateInteractionContext {
     }
 
     public void requestFocus(SlateComponent component) {
-        screen.setFocusedComponent(component);
+        host.requestFocus(component);
     }
 
     public void clearFocus(SlateComponent component) {
-        if (screen.focusedComponent() == component) {
-            screen.setFocusedComponent(null);
-        }
+        host.clearFocus(component);
     }
 }

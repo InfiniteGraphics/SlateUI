@@ -108,7 +108,7 @@ public class ScrollView extends SlateComponent {
         if (nextOffset != scrollOffset) {
             scrollOffset = nextOffset;
             context.logDiagnostic("SCROLL offset=" + scrollOffset);
-            context.screen().requestRebuild("scroll");
+            context.requestRebuild("scroll");
         }
         return true;
     }
