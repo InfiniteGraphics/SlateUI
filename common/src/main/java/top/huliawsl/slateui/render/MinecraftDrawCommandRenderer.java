@@ -13,26 +13,11 @@ public final class MinecraftDrawCommandRenderer {
     }
 
     public static void render(GuiGraphics graphics, Font font, List<DrawCommand> commands) {
-        ClipStack clipStack = new ClipStack();
+        MinecraftSlateRenderer renderer = new MinecraftSlateRenderer(graphics, font);
         try {
-            for (DrawCommand command : commands) {
-                if (clipStack.shouldSkip(command)) {
-                    continue;
-                }
-                switch (command) {
-                    case DrawRectCommand rectCommand -> fill(graphics, rectCommand.rect(), rectCommand.color(), rectCommand.radius(), clipStack.current());
-                    case DrawBorderCommand borderCommand -> drawBorder(graphics, borderCommand.rect(), borderCommand.color(), borderCommand.thickness(), borderCommand.radius(), clipStack.current());
-                    case DrawTextCommand textCommand -> graphics.drawString(font, textCommand.text(), textCommand.x(), textCommand.y(), textCommand.color(), false);
-                    case DrawDebugRectCommand debugRectCommand -> drawBorder(graphics, debugRectCommand.rect(), debugRectCommand.color(), 1, 0, clipStack.current());
-                    case DrawTextureCommand textureCommand -> drawTexture(graphics, font, textureCommand, clipStack.current());
-                    case PushClipCommand pushClipCommand -> pushClip(graphics, clipStack, pushClipCommand.rect(), pushClipCommand.radius());
-                    case PopClipCommand ignored -> popClip(graphics, clipStack);
-                }
-            }
+            DrawCommandDispatcher.render(commands, renderer);
         } finally {
-            while (!clipStack.isEmpty()) {
-                popClip(graphics, clipStack);
-            }
+            renderer.close();
         }
     }
 

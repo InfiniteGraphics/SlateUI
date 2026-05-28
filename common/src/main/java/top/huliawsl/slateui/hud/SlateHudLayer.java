@@ -9,8 +9,9 @@ import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.Theme;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
+import top.huliawsl.slateui.render.DrawCommandDispatcher;
 import top.huliawsl.slateui.render.DrawCommand;
-import top.huliawsl.slateui.render.MinecraftDrawCommandRenderer;
+import top.huliawsl.slateui.render.MinecraftSlateRenderer;
 import top.huliawsl.slateui.runtime.MinecraftTextMeasurer;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -52,6 +53,11 @@ public final class SlateHudLayer {
         if (dirty || bounds.width() != screenWidth || bounds.height() != screenHeight) {
             rebuild(font, screenWidth, screenHeight);
         }
-        MinecraftDrawCommandRenderer.render(guiGraphics, font, drawCommands);
+        MinecraftSlateRenderer renderer = new MinecraftSlateRenderer(guiGraphics, font);
+        try {
+            DrawCommandDispatcher.render(drawCommands, renderer);
+        } finally {
+            renderer.close();
+        }
     }
 }

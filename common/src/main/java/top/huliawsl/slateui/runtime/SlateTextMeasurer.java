@@ -1,11 +1,14 @@
 package top.huliawsl.slateui.runtime;
 
+import top.huliawsl.slateui.api.SlateText;
+
 public interface SlateTextMeasurer {
 
     SlateTextMeasurer FALLBACK = new SlateTextMeasurer() {
         @Override
-        public int width(String text) {
-            return text == null ? 0 : text.length() * 6;
+        public int width(SlateText text) {
+            String value = text == null ? "" : text.fallbackText();
+            return value.length() * 6;
         }
 
         @Override
@@ -14,7 +17,11 @@ public interface SlateTextMeasurer {
         }
     };
 
-    int width(String text);
+    int width(SlateText text);
+
+    default int width(String text) {
+        return width(new SlateText.Literal(text));
+    }
 
     int lineHeight();
 }
