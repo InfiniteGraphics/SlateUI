@@ -41,7 +41,7 @@ public final class SlateIrLoader {
         InputStream stream = SlateIrLoader.class.getClassLoader().getResourceAsStream(resourcePath);
         if (stream != null) {
             try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
-                return GSON.fromJson(reader, JsonObject.class);
+                return SlateIrMigration.migrate(GSON.fromJson(reader, JsonObject.class), 1);
             } catch (Exception exception) {
                 throw new IllegalStateException("Failed to load Slate IR resource: " + resourcePath, exception);
             }
@@ -57,7 +57,7 @@ public final class SlateIrLoader {
 
     static JsonObject loadFromFile(Path path, String resourcePath) {
         try (InputStreamReader reader = new InputStreamReader(Files.newInputStream(path), StandardCharsets.UTF_8)) {
-            return GSON.fromJson(reader, JsonObject.class);
+            return SlateIrMigration.migrate(GSON.fromJson(reader, JsonObject.class), 1);
         } catch (Exception exception) {
             throw new IllegalStateException("Failed to load Slate IR resource: " + resourcePath, exception);
         }

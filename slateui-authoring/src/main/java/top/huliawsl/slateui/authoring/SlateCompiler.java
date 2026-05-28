@@ -57,8 +57,8 @@ public final class SlateCompiler {
         Map.entry("Panel", Set.of("class", "title", "contentGap")),
         Map.entry("Stack", Set.of("class", "direction")),
         Map.entry("Text", Set.of("class", "value", "translationKey", "translationArgs")),
-        Map.entry("Button", Set.of("class", "label", "command")),
-        Map.entry("Input", Set.of("class", "placeholder", "value", "onInput", "onChange", "onCommit", "maxLength")),
+        Map.entry("Button", Set.of("class", "label", "command", "commandPayload", "tooltip")),
+        Map.entry("Input", Set.of("class", "placeholder", "value", "controlled", "onInput", "onChange", "onCommit", "maxLength", "validator", "error")),
         Map.entry("Toggle", Set.of("class", "label", "checked", "onChange", "command")),
         Map.entry("List", Set.of("class", "itemGap")),
         Map.entry("ScrollView", Set.of("class")),
@@ -224,7 +224,7 @@ public final class SlateCompiler {
         while (matcher.find()) {
             String gap = styleBlock.substring(consumedUntil, matcher.start()).trim();
             if (!gap.isEmpty()) {
-                throw errorAt(inputFile, source, styleOffset + consumedUntil + styleBlock.substring(consumedUntil, matcher.start()).indexOf(gap), "Invalid style selector or block near '" + summarize(gap) + "'");
+                throw errorAt(inputFile, source, styleOffset + consumedUntil + firstNonWhitespace(styleBlock, consumedUntil, matcher.start()), "Invalid style selector or block near '" + summarize(gap) + "'");
             }
             consumedUntil = matcher.end();
             JsonObject rule = new JsonObject();
@@ -238,7 +238,7 @@ public final class SlateCompiler {
                     continue;
                 }
                 int declarationOffset = bodyOffset + bodyCursor;
-                int trimmedOffset = declarationOffset + declaration.indexOf(trimmed);
+                int trimmedOffset = declarationOffset + firstNonWhitespace(declaration, 0, declaration.length());
                 bodyCursor += declaration.length() + 1;
                 String[] parts = trimmed.split(":", 2);
                 if (parts.length != 2) {
@@ -258,7 +258,7 @@ public final class SlateCompiler {
         }
         String trailing = styleBlock.substring(consumedUntil).trim();
         if (!trailing.isEmpty()) {
-            throw errorAt(inputFile, source, styleOffset + consumedUntil + styleBlock.substring(consumedUntil).indexOf(trailing), "Invalid style selector or block near '" + summarize(trailing) + "'");
+            throw errorAt(inputFile, source, styleOffset + consumedUntil + firstNonWhitespace(styleBlock, consumedUntil, styleBlock.length()), "Invalid style selector or block near '" + summarize(trailing) + "'");
         }
         return scopedStyle;
     }
@@ -393,8 +393,8 @@ public final class SlateCompiler {
     private static String extractTemplateBlock(String source, Path inputFile) {
         String openTag = "<template>";
         String closeTag = "</template>";
-        int start = source.indexOf(openTag);
-        int end = source.lastIndexOf(closeTag);
+        int start = findFrom(source, openTag, 0);
+        int end = findLast(source, closeTag);
         if (start < 0 || end < 0 || end <= start) {
             throw new SlateCompileException("Missing <template> block in " + inputFile.getFileName());
         }
@@ -427,9 +427,9 @@ public final class SlateCompiler {
     }
 
     private static SlateCompileException error(Path inputFile, String source, String needle, int startAt, String message) {
-        int index = source.indexOf(needle, Math.max(0, startAt));
+        int index = findFrom(source, needle, Math.max(0, startAt));
         if (index < 0 && startAt <= 0) {
-            index = source.indexOf(needle);
+            index = findFrom(source, needle, 0);
         }
         if (index < 0) {
             index = Math.max(0, startAt);
@@ -454,9 +454,9 @@ public final class SlateCompiler {
 
     private static int locateNext(String source, String needle, Map<String, Integer> sourceCursor) {
         int startAt = sourceCursor.getOrDefault(needle, 0);
-        int index = source.indexOf(needle, startAt);
+        int index = findFrom(source, needle, startAt);
         if (index < 0) {
-            index = source.indexOf(needle);
+            index = findFrom(source, needle, 0);
         }
         if (index >= 0) {
             sourceCursor.put(needle, index + needle.length());
@@ -467,6 +467,23 @@ public final class SlateCompiler {
     private static String summarize(String value) {
         String normalized = value.replace("\r", "\\r").replace("\n", "\\n").trim();
         return normalized.length() <= 40 ? normalized : normalized.substring(0, 40) + "...";
+    }
+
+    private static int findFrom(String haystack, String needle, int startAt) {
+        return haystack.indexOf(needle, Math.max(0, startAt));
+    }
+
+    private static int findLast(String haystack, String needle) {
+        return haystack.lastIndexOf(needle);
+    }
+
+    private static int firstNonWhitespace(String value, int start, int end) {
+        for (int index = Math.max(0, start); index < Math.min(value.length(), end); index++) {
+            if (!Character.isWhitespace(value.charAt(index))) {
+                return index - start;
+            }
+        }
+        return 0;
     }
 
     private record SourceBlock(String content, int start) {

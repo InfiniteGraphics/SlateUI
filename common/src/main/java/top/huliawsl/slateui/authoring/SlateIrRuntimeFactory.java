@@ -66,7 +66,7 @@ public final class SlateIrRuntimeFactory {
     }
 
     public SlateScreen createScreen(Component title, String resourcePath, SlateCommandRegistry commands, StateProvider provider, Theme theme, boolean debugEnabled) {
-        JsonObject ir = overrideRegistry.applyComponentOverride(resourcePath, SlateIrLoader.load(resourcePath));
+        JsonObject ir = SlateIrMigration.migrate(overrideRegistry.applyComponentOverride(resourcePath, SlateIrLoader.load(resourcePath)), SUPPORTED_SCHEMA);
         int schemaVersion = ir.get("schemaVersion").getAsInt();
         if (schemaVersion != SUPPORTED_SCHEMA) {
             throw new IllegalStateException("Unsupported Slate IR schema: " + schemaVersion);
@@ -75,14 +75,15 @@ public final class SlateIrRuntimeFactory {
             resourcePath,
             provider == null ? StateProvider.EMPTY : provider,
             overrideRegistry.applyThemeOverride(theme),
-            ir.getAsJsonObject("scopedStyle")
+            ir.getAsJsonObject("scopedStyle"),
+            ir.getAsJsonArray("sourceMap")
         );
         SlateComponent root = buildComponentNode(ir.getAsJsonObject("root"), context);
         return new SlateScreen(title, root, commands, provider, context.theme(), debugEnabled, context.bindingDump());
     }
 
     public SlateComponent buildComponentTree(JsonObject root, StateProvider provider, Theme theme) {
-        return buildComponentNode(root, RuntimeBuildContext.root("<memory>", provider == null ? StateProvider.EMPTY : provider, theme == null ? Theme.DEFAULT : theme, new JsonObject()));
+        return buildComponentNode(root, RuntimeBuildContext.root("<memory>", provider == null ? StateProvider.EMPTY : provider, theme == null ? Theme.DEFAULT : theme, new JsonObject(), new JsonArray()));
     }
 
     SlateComponent buildComponentNode(JsonObject node, RuntimeBuildContext context) {
@@ -93,6 +94,9 @@ public final class SlateIrRuntimeFactory {
 
         String type = node.get("componentType").getAsString();
         context.recordComponent(type);
+        if (node.has("experimental") && node.get("experimental").getAsBoolean()) {
+            context.appendTrace("warning " + context.nodePath() + " experimental component=" + type);
+        }
         List<SlateComponent> children = buildChildren(node, context);
         Map<String, List<SlateComponent>> namedSlots = buildNamedSlots(node, context);
         SlateComponent component;
@@ -638,6 +642,7 @@ public final class SlateIrRuntimeFactory {
         StateProvider provider,
         Theme theme,
         JsonObject scopedStyle,
+        JsonArray sourceMap,
         List<String> bindingTrace
     ) {
 
@@ -647,19 +652,20 @@ public final class SlateIrRuntimeFactory {
             Objects.requireNonNull(provider, "provider");
             Objects.requireNonNull(theme, "theme");
             scopedStyle = scopedStyle == null ? new JsonObject() : scopedStyle;
+            sourceMap = sourceMap == null ? new JsonArray() : sourceMap;
             bindingTrace = bindingTrace == null ? new ArrayList<>() : bindingTrace;
         }
 
-        public static RuntimeBuildContext root(String resourcePath, StateProvider provider, Theme theme, JsonObject scopedStyle) {
-            return new RuntimeBuildContext(resourcePath, "root", provider, theme, scopedStyle, new ArrayList<>());
+        public static RuntimeBuildContext root(String resourcePath, StateProvider provider, Theme theme, JsonObject scopedStyle, JsonArray sourceMap) {
+            return new RuntimeBuildContext(resourcePath, "root", provider, theme, scopedStyle, sourceMap, new ArrayList<>());
         }
 
         public RuntimeBuildContext withProvider(StateProvider nextProvider) {
-            return new RuntimeBuildContext(resourcePath, nodePath, nextProvider, theme, scopedStyle, bindingTrace);
+            return new RuntimeBuildContext(resourcePath, nodePath, nextProvider, theme, scopedStyle, sourceMap, bindingTrace);
         }
 
         public RuntimeBuildContext withNode(String childPath) {
-            return new RuntimeBuildContext(resourcePath, nodePath + "/" + childPath, provider, theme, scopedStyle, bindingTrace);
+            return new RuntimeBuildContext(resourcePath, nodePath + "/" + childPath, provider, theme, scopedStyle, sourceMap, bindingTrace);
         }
 
         public void recordComponent(String componentType) {
@@ -687,7 +693,7 @@ public final class SlateIrRuntimeFactory {
             return joiner.toString();
         }
 
-        private void appendTrace(String entry) {
+        public void appendTrace(String entry) {
             if (bindingTrace.size() == 128) {
                 bindingTrace.remove(0);
             }
