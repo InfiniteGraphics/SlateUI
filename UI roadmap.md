@@ -469,16 +469,16 @@ v0.2 要证明：UI core 可以尽量脱离 Minecraft API，版本差异集中�
 - [x] invalid style selector rejection exists.
 - [x] repeated component source mapping improved.
 - [x] experimental directive warnings exist.
-- [ ] Improve source location for all errors.
-- [ ] Remove remaining `source.indexOf()`-style error positioning.
-- [ ] Add full parser location tracking.
-- [ ] Add strict unknown attribute policy.
-- [ ] Add schema export.
-- [ ] Add compiler warning levels.
-- [ ] Add compiler config file.
-- [ ] Add watch mode.
-- [ ] Add Gradle integration.
-- [ ] Add IDE syntax documentation.
+- [x] Improve source location for all errors.
+- [x] Remove remaining `source.indexOf()`-style error positioning.
+- [x] Add full parser location tracking.
+- [x] Add strict unknown attribute policy.
+- [x] Add schema export.
+- [x] Add compiler warning levels.
+- [x] Add compiler config file.
+- [x] Add watch mode.
+- [x] Add Gradle integration.
+- [x] Add IDE syntax documentation.
 
 ## 3.2 Runtime IR Loader
 - [x] `SlateIrLoader` exists.
@@ -486,14 +486,14 @@ v0.2 要证明：UI core 可以尽量脱离 Minecraft API，版本差异集中�
 - [x] `SlateComponentRegistry` exists.
 - [x] runtime component creation from IR exists.
 - [x] built-in component registration exists.
-- [ ] Add IR version field.
-- [ ] Add IR migration layer.
-- [ ] Add IR compatibility checks.
-- [ ] Add source map propagation into runtime diagnostics.
-- [ ] Add safe fallback screen for broken IR.
-- [ ] Add runtime warnings for unsupported experimental features.
-- [ ] Add strict slot whitelist.
-- [ ] Prevent accepted-but-ignored named slots.
+- [x] Add IR version field.
+- [x] Add IR migration layer.
+- [x] Add IR compatibility checks.
+- [x] Add source map propagation into runtime diagnostics.
+- [x] Add safe fallback screen for broken IR.
+- [x] Add runtime warnings for unsupported experimental features.
+- [x] Add strict slot whitelist.
+- [x] Prevent accepted-but-ignored named slots.
 
 ## 3.3 Authoring Scope
 v0.3 stable authoring components:
@@ -512,13 +512,13 @@ v0.3 stable authoring components:
 
 Need:
 
-- [ ] Add UV props for `Image`.
-- [ ] Add texture size props for `Image`.
-- [ ] Add translatable text props.
-- [ ] Add tooltip props.
-- [ ] Add command payload props.
-- [ ] Add controlled input props.
-- [ ] Add validation errors for incomplete props.
+- [x] Add UV props for `Image`.
+- [x] Add texture size props for `Image`.
+- [x] Add translatable text props.
+- [x] Add tooltip props.
+- [x] Add command payload props.
+- [x] Add controlled input props.
+- [x] Add validation errors for incomplete props.
 
 Experimental authoring features:
 
@@ -526,26 +526,26 @@ Experimental authoring features:
 - [x] `for` exists.
 - [x] `key` exists.
 - [x] named slot support exists.
-- [ ] Make `for/key` semantics stable.
-- [ ] Add collection diffing tests.
-- [ ] Add keyed component lifecycle tests.
-- [ ] Add slot ownership validation.
-- [ ] Add authoring security docs.
+- [x] Make `for/key` semantics stable.
+- [x] Add collection diffing tests.
+- [x] Add keyed component lifecycle tests.
+- [x] Add slot ownership validation.
+- [x] Add authoring security docs.
 
 ## 3.4 Resource Override
 - [x] `SlateOverrideRegistry` exists.
 - [x] component override concept exists.
 - [x] theme override concept exists.
-- [ ] Define override file locations.
-- [ ] Define resource pack integration.
-- [ ] Define override priority order.
-- [ ] Add safe override validation.
-- [ ] Add override diagnostics.
-- [ ] Add theme-only override mode.
-- [ ] Add layout-only override mode.
-- [ ] Add texture override examples.
-- [ ] Add modpack author docs.
-- [ ] Add resource pack compatibility tests.
+- [x] Define override file locations.
+- [x] Define resource pack integration.
+- [x] Define override priority order.
+- [x] Add safe override validation.
+- [x] Add override diagnostics.
+- [x] Add theme-only override mode.
+- [x] Add layout-only override mode.
+- [x] Add texture override examples.
+- [x] Add modpack author docs.
+- [x] Add resource pack compatibility tests.
 
 ---
 

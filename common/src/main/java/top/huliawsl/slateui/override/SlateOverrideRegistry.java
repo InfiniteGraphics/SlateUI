@@ -3,6 +3,8 @@ package top.huliawsl.slateui.override;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import top.huliawsl.slateui.api.Theme;
@@ -11,8 +13,12 @@ import top.huliawsl.slateui.api.ThemeTokens;
 public final class SlateOverrideRegistry {
 
     public static final SlateOverrideRegistry EMPTY = new SlateOverrideRegistry();
+    public static final String COMPONENT_OVERRIDE_ROOT = "assets/<modid>/slateui/overrides/components";
+    public static final String THEME_OVERRIDE_ROOT = "assets/<modid>/slateui/overrides/themes";
+    public static final String TEXTURE_OVERRIDE_ROOT = "assets/<modid>/slateui/overrides/textures";
 
     private final Map<String, JsonObject> componentOverrides = new LinkedHashMap<>();
+    private final List<String> diagnostics = new ArrayList<>();
     private ThemeTokens themeOverride = ThemeTokens.builder().build();
 
     public SlateOverrideRegistry registerComponentOverride(String resourcePath, JsonObject rootOverride) {
@@ -21,12 +27,22 @@ public final class SlateOverrideRegistry {
             throw new IllegalArgumentException("component override root must include componentType");
         }
         componentOverrides.put(normalize(resourcePath), override.deepCopy());
+        diagnostics.add("component override " + normalize(resourcePath));
         return this;
     }
 
     public SlateOverrideRegistry registerThemeOverride(ThemeTokens tokens) {
         themeOverride = themeOverride.merge(tokens);
+        diagnostics.add("theme override tokens");
         return this;
+    }
+
+    public SlateOverrideRegistry registerThemeOnlyOverride(JsonObject themeObject) {
+        return registerThemeOverride(themeObject);
+    }
+
+    public SlateOverrideRegistry registerLayoutOnlyOverride(String resourcePath, JsonObject rootOverride) {
+        return registerComponentOverride(resourcePath, rootOverride);
     }
 
     public SlateOverrideRegistry registerThemeOverride(JsonObject themeObject) {
@@ -61,6 +77,10 @@ public final class SlateOverrideRegistry {
 
     public boolean hasThemeOverride() {
         return !themeOverride.colors().isEmpty() || !themeOverride.spacing().isEmpty() || !themeOverride.radii().isEmpty();
+    }
+
+    public List<String> diagnostics() {
+        return List.copyOf(diagnostics);
     }
 
     private static String normalize(String resourcePath) {

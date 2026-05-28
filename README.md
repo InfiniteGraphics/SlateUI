@@ -141,3 +141,10 @@ Expected result: Java tests pass. Missing texture or translation resources shoul
 | Other versions | any | unsupported until added to `SlateCompatibilityMatrix` |
 
 Version-specific Minecraft APIs live behind the Minecraft adapter module and loader modules. Core runtime APIs are checked separately by `slateui-core`.
+
+## Authoring and Overrides
+
+- Authoring safety rules are documented in `docs/authoring-security.md`.
+- Resource override locations and priority are documented in `docs/resource-overrides.md`.
+- Compiler schema can be exported with `SlateCompilerCli --schema`.
+- Compiler watch mode is available as `SlateCompilerCli --watch <inputDir> <outputDir>`.
