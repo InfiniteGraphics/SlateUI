@@ -16,7 +16,11 @@ public final class SlateOverrideRegistry {
     private ThemeTokens themeOverride = ThemeTokens.builder().build();
 
     public SlateOverrideRegistry registerComponentOverride(String resourcePath, JsonObject rootOverride) {
-        componentOverrides.put(normalize(resourcePath), Objects.requireNonNull(rootOverride, "rootOverride").deepCopy());
+        JsonObject override = Objects.requireNonNull(rootOverride, "rootOverride");
+        if (!override.has("componentType") || !override.get("componentType").isJsonPrimitive()) {
+            throw new IllegalArgumentException("component override root must include componentType");
+        }
+        componentOverrides.put(normalize(resourcePath), override.deepCopy());
         return this;
     }
 

@@ -3,6 +3,7 @@ package top.huliawsl.slateui;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.JsonObject;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -28,6 +29,7 @@ import top.huliawsl.slateui.render.DrawTextCommand;
 import top.huliawsl.slateui.render.DrawTextureCommand;
 import top.huliawsl.slateui.render.PopClipCommand;
 import top.huliawsl.slateui.render.PushClipCommand;
+import top.huliawsl.slateui.override.SlateOverrideRegistry;
 import top.huliawsl.slateui.runtime.SlateClipboard;
 import top.huliawsl.slateui.runtime.SlateHost;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
@@ -382,6 +384,16 @@ class RuntimeComponentsTest {
         provider.set("name", "after");
 
         assertEquals(before, screen.diagnostics().diagnosticsLogDump());
+    }
+
+    @Test
+    void overrideRegistryRejectsInvalidComponentRoot() {
+        JsonObject invalid = new JsonObject();
+
+        IllegalArgumentException exception = org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () ->
+            new SlateOverrideRegistry().registerComponentOverride("screens/settings.json", invalid));
+
+        assertTrue(exception.getMessage().contains("componentType"));
     }
 
     @Test
