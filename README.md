@@ -67,6 +67,8 @@ Minecraft.getInstance().setScreen(new SlateScreen(
 - Clipboard-backed input, selection, cursor rendering, horizontal scrolling, and max length.
 - Tab focus traversal and focused Button / Toggle activation.
 - Runtime diagnostics for component tree, layout, hit regions, draw commands, bindings, commands, state, and diagnostics logs.
+- Runtime contracts are documented in `docs/runtime-contracts.md`.
+- Gallery and example notes are documented in `docs/gallery.md`.
 
 ## Experimental Scope
 
