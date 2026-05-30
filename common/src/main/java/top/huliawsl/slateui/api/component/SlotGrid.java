@@ -7,12 +7,17 @@ import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.api.container.ContainerSlot;
 import top.huliawsl.slateui.api.container.ContainerSlotProvider;
+import top.huliawsl.slateui.api.container.SlotClickType;
+import top.huliawsl.slateui.api.container.SlotMode;
+import top.huliawsl.slateui.api.container.SlotValidationResult;
+import top.huliawsl.slateui.api.container.SlotValidator;
 import top.huliawsl.slateui.debug.SlateRuntimeException;
 import top.huliawsl.slateui.layout.Insets;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawBorderCommand;
 import top.huliawsl.slateui.render.DrawCommand;
+import top.huliawsl.slateui.render.DrawItemIconCommand;
 import top.huliawsl.slateui.render.DrawRectCommand;
 import top.huliawsl.slateui.render.DrawTextCommand;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
@@ -22,7 +27,7 @@ import top.huliawsl.slateui.runtime.SlateRenderContext;
 /**
  * Experimental component. It is available for testing container-style screens, but it is not part of the stable core component contract.
  */
-public final class SlotGrid extends SlateComponent {
+public class SlotGrid extends SlateComponent {
 
     private static final int DEFAULT_SLOT_SIZE = 18;
     private static final int DEFAULT_GAP = 2;
@@ -38,7 +43,11 @@ public final class SlotGrid extends SlateComponent {
     private final int slotSize;
     private final int slotGap;
     private final String clickCommand;
+    private SlotMode slotMode = SlotMode.NORMAL;
+    private SlotValidator slotValidator = SlotValidator.allowAll();
     private List<ContainerSlot> lastSlots = List.of();
+    private int hoveredSlotIndex = -1;
+    private long lastClickMillis;
 
     public SlotGrid(ContainerSlotProvider provider, int columns, String clickCommand, SlateStyle style) {
         this(provider, columns, DEFAULT_SLOT_SIZE, DEFAULT_GAP, clickCommand, style);
@@ -51,6 +60,28 @@ public final class SlotGrid extends SlateComponent {
         this.slotSize = Math.max(8, slotSize);
         this.slotGap = Math.max(0, slotGap);
         this.clickCommand = clickCommand;
+    }
+
+    public SlotGrid slotMode(SlotMode slotMode) {
+        this.slotMode = slotMode == null ? SlotMode.NORMAL : slotMode;
+        return this;
+    }
+
+    public SlotGrid slotValidator(SlotValidator slotValidator) {
+        this.slotValidator = slotValidator == null ? SlotValidator.allowAll() : slotValidator;
+        return this;
+    }
+
+    public String accessibilityDiagnostics() {
+        return "slots=" + lastSlots.size() + " columns=" + columns + " mode=" + slotMode + " hovered=" + hoveredSlotIndex;
+    }
+
+    public String tooltipTextAt(double mouseX, double mouseY) {
+        ContainerSlot slot = slotAt(mouseX, mouseY);
+        if (slot == null || slot.empty()) {
+            return "";
+        }
+        return slot.itemId() + " x" + slot.count();
     }
 
     @Override
@@ -77,11 +108,18 @@ public final class SlotGrid extends SlateComponent {
             ContainerSlot slot = lastSlots.get(i);
             Rect slotRect = slotRect(content, i);
             int fill = slot.enabled() ? 0xFF1E293B : 0xFF111827;
+            if (slotMode == SlotMode.GHOST) {
+                fill = 0x551E293B;
+            } else if (slotMode == SlotMode.FILTER) {
+                fill = 0xFF1E3A3A;
+            } else if (slotMode == SlotMode.LOCKED) {
+                fill = 0xFF262626;
+            }
             commands.add(new DrawRectCommand(slotRect, fill));
-            commands.add(new DrawBorderCommand(slotRect, slot.empty() ? 0xFF475569 : 0xFF94A3B8, 1));
+            int borderColor = i == hoveredSlotIndex ? 0xFFFFFFFF : slot.empty() ? 0xFF475569 : 0xFF94A3B8;
+            commands.add(new DrawBorderCommand(slotRect, borderColor, 1));
             if (!slot.empty()) {
-                String label = shortItemName(slot.itemId());
-                commands.add(new DrawTextCommand(slotRect.x() + 2, slotRect.y() + 2, label, resolveTextColor(context.theme())));
+                commands.add(new DrawItemIconCommand(slotRect, slot.itemId(), slot.count()));
                 if (slot.count() > 1) {
                     commands.add(new DrawTextCommand(slotRect.right() - 8, slotRect.bottom() - 9, String.valueOf(slot.count()), 0xFFFFFFFF));
                 }
@@ -95,8 +133,19 @@ public final class SlotGrid extends SlateComponent {
             return false;
         }
         ContainerSlot slot = slotAt(mouseX, mouseY);
-        if (slot == null || !slot.enabled()) {
+        SlotClickType clickType = clickType(button);
+        long now = System.currentTimeMillis();
+        if (now - lastClickMillis <= 350) {
+            clickType = SlotClickType.DOUBLE_CLICK;
+        }
+        lastClickMillis = now;
+        if (slot == null || !slot.enabled() || slotMode == SlotMode.LOCKED) {
             return bounds().contains(mouseX, mouseY);
+        }
+        SlotValidationResult validation = slotValidator.validate(slot, clickType);
+        if (!validation.valid()) {
+            context.logDiagnostic("SLOT validation failed component=" + debugPath() + " slot=" + slot.index() + " message=" + validation.message());
+            return true;
         }
         if (clickCommand != null && !clickCommand.isBlank()) {
             try {
@@ -104,7 +153,9 @@ public final class SlotGrid extends SlateComponent {
                     "slotIndex", slot.index(),
                     "itemId", slot.itemId(),
                     "count", slot.count(),
-                    "button", button
+                    "button", button,
+                    "clickType", clickType.name(),
+                    "mode", slotMode.name()
                 ));
                 context.commandLogger().accept((executed ? "EXEC " : "MISS ") + clickCommand + " component=" + debugPath() + " slot=" + slot.index());
                 if (!executed) {
@@ -116,6 +167,17 @@ public final class SlotGrid extends SlateComponent {
         }
         context.requestFocus(this);
         return true;
+    }
+
+    @Override
+    public boolean mouseMoved(SlateInteractionContext context, double mouseX, double mouseY) {
+        ContainerSlot slot = slotAt(mouseX, mouseY);
+        int nextHovered = slot == null ? -1 : slot.index();
+        if (hoveredSlotIndex != nextHovered) {
+            hoveredSlotIndex = nextHovered;
+            context.requestRebuild("slot-hover");
+        }
+        return super.mouseMoved(context, mouseX, mouseY);
     }
 
     @Override
@@ -141,12 +203,13 @@ public final class SlotGrid extends SlateComponent {
         return new Rect(x, y, slotSize, slotSize);
     }
 
-    private static String shortItemName(String itemId) {
-        if (itemId == null || itemId.isBlank()) {
-            return "";
+    private static SlotClickType clickType(int button) {
+        if (button == 1) {
+            return SlotClickType.RIGHT_CLICK;
         }
-        int colon = itemId.lastIndexOf(':');
-        String name = colon >= 0 ? itemId.substring(colon + 1) : itemId;
-        return name.length() <= 3 ? name : name.substring(0, 3);
+        if (button >= 2 && button <= 9) {
+            return SlotClickType.NUMBER_KEY;
+        }
+        return SlotClickType.LEFT_CLICK;
     }
 }
