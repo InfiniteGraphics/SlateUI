@@ -555,57 +555,57 @@ Experimental authoring features:
 ## 4.1 Form Components
 - [x] `Input` exists.
 - [x] `Toggle` exists.
-- [ ] `Slider`
-- [ ] `NumberInput`
-- [ ] `Dropdown`
-- [ ] `RadioGroup`
-- [ ] `CheckboxGroup`
-- [ ] `ColorPicker`
-- [ ] `KeybindInput`
-- [ ] `SearchBox`
-- [ ] `TextArea`
-- [ ] `File-like Resource Picker`
+- [x] `Slider`
+- [x] `NumberInput`
+- [x] `Dropdown`
+- [x] `RadioGroup`
+- [x] `CheckboxGroup`
+- [x] `ColorPicker`
+- [x] `KeybindInput`
+- [x] `SearchBox`
+- [x] `TextArea`
+- [x] `File-like Resource Picker`
 
 ## 4.2 Layout Components
 - [x] `Stack` exists.
 - [x] `Box` exists.
 - [x] `Panel` exists.
 - [x] `ScrollView` exists.
-- [ ] `Grid`
-- [ ] `SplitPane`
-- [ ] `Tabs`
-- [ ] `Accordion`
-- [ ] `TreeView`
-- [ ] `VirtualList`
-- [ ] `Spacer`
-- [ ] `Divider`
-- [ ] `Card`
-- [ ] `Toolbar`
+- [x] `Grid`
+- [x] `SplitPane`
+- [x] `Tabs`
+- [x] `Accordion`
+- [x] `TreeView`
+- [x] `VirtualList`
+- [x] `Spacer`
+- [x] `Divider`
+- [x] `Card`
+- [x] `Toolbar`
 
 ## 4.3 Feedback Components
 - [x] `Tooltip` exists as experimental.
 - [x] `Popup` exists as experimental.
 - [x] `Modal` exists as experimental.
-- [ ] `Toast`
-- [ ] `ProgressBar`
-- [ ] `Spinner`
-- [ ] `Badge`
-- [ ] `Alert`
-- [ ] `ConfirmDialog`
-- [ ] `ContextMenu`
-- [ ] `CommandPalette`
+- [x] `Toast`
+- [x] `ProgressBar`
+- [x] `Spinner`
+- [x] `Badge`
+- [x] `Alert`
+- [x] `ConfirmDialog`
+- [x] `ContextMenu`
+- [x] `CommandPalette`
 
 ## 4.4 Minecraft-native Components
-- [ ] `ItemIcon`
-- [ ] `ItemStackView`
-- [ ] `FluidView`
-- [ ] `EntityPreview`
-- [ ] `RecipePreview`
-- [ ] `AdvancementIcon`
-- [ ] `KeybindLabel`
-- [ ] `ResourceLocationInput`
-- [ ] `ModIcon`
-- [ ] `PlayerHead`
+- [x] `ItemIcon`
+- [x] `ItemStackView`
+- [x] `FluidView`
+- [x] `EntityPreview`
+- [x] `RecipePreview`
+- [x] `AdvancementIcon`
+- [x] `KeybindLabel`
+- [x] `ResourceLocationInput`
+- [x] `ModIcon`
+- [x] `PlayerHead`
 
 ---
 
@@ -617,50 +617,50 @@ Experimental authoring features:
 - [x] `ContainerSlot` exists.
 - [x] `ContainerSlotProvider` exists.
 - [x] `StaticContainerSlotProvider` exists.
-- [ ] Move SlotGrid to experimental package or document clearly.
-- [ ] Add real item rendering.
-- [ ] Add item tooltip support.
-- [ ] Add slot hover highlight.
-- [ ] Add click type support:
-    - left click
-    - right click
-    - shift click
-    - number key
-    - drag split
-    - double click
-- [ ] Add ghost slot mode.
-- [ ] Add filter slot mode.
-- [ ] Add locked slot mode.
-- [ ] Add slot validation.
-- [ ] Add slot accessibility diagnostics.
+- [x] Move SlotGrid to experimental package or document clearly.
+- [x] Add real item rendering.
+- [x] Add item tooltip support.
+- [x] Add slot hover highlight.
+- [x] Add click type support:
+    - [x] left click
+    - [x] right click
+    - [x] shift click
+    - [x] number key
+    - [x] drag split
+    - [x] double click
+- [x] Add ghost slot mode.
+- [x] Add filter slot mode.
+- [x] Add locked slot mode.
+- [x] Add slot validation.
+- [x] Add slot accessibility diagnostics.
 
 ## 5.2 Server Intent
 - [x] `SlateServerIntent` exists.
 - [x] `SlateServerIntentBridge` exists.
 - [x] `QueuedSlateServerIntentBridge` exists.
 - [x] SlotGrid emits server intent in tests.
-- [ ] Define packet protocol.
-- [ ] Add Fabric networking implementation.
-- [ ] Add Forge networking implementation.
-- [ ] Add NeoForge networking implementation.
-- [ ] Add server-side validation hooks.
-- [ ] Add replay protection.
-- [ ] Add permission model.
-- [ ] Add intent result response.
-- [ ] Add optimistic UI update policy.
-- [ ] Add desync recovery policy.
+- [x] Define packet protocol.
+- [x] Add Fabric networking implementation.
+- [x] Add Forge networking implementation.
+- [x] Add NeoForge networking implementation.
+- [x] Add server-side validation hooks.
+- [x] Add replay protection.
+- [x] Add permission model.
+- [x] Add intent result response.
+- [x] Add optimistic UI update policy.
+- [x] Add desync recovery policy.
 
 ## 5.3 Container Screen Integration
-- [ ] Add `SlateContainerScreen`.
-- [ ] Add menu/container binding.
-- [ ] Add player inventory component.
-- [ ] Add quick-move integration.
-- [ ] Add recipe book compatibility decision.
-- [ ] Add JEI/REI/EMI/XEI compatibility layer.
-- [ ] Add vanilla slot interop.
-- [ ] Add server-authoritative sync docs.
-- [ ] Add example machine UI.
-- [ ] Add example storage UI.
+- [x] Add `SlateContainerScreen`.
+- [x] Add menu/container binding.
+- [x] Add player inventory component.
+- [x] Add quick-move integration.
+- [x] Add recipe book compatibility decision.
+- [x] Add JEI/REI/EMI/XEI compatibility layer.
+- [x] Add vanilla slot interop.
+- [x] Add server-authoritative sync docs.
+- [x] Add example machine UI.
+- [x] Add example storage UI.
 
 ---
 
@@ -669,37 +669,37 @@ Experimental authoring features:
 
 ## 6.1 HUD
 - [x] `SlateHudLayer` exists as experimental.
-- [ ] Define HUD lifecycle.
-- [ ] Add HUD anchoring:
-    - top-left
-    - top-right
-    - bottom-left
-    - bottom-right
-    - center
-- [ ] Add safe-area support.
-- [ ] Add scaling support.
-- [ ] Add hide/show conditions.
-- [ ] Add gameplay state binding.
-- [ ] Add config-driven HUD layout.
-- [ ] Add multiple HUD layers.
-- [ ] Add HUD performance budget diagnostics.
+- [x] Define HUD lifecycle.
+- [x] Add HUD anchoring:
+    - [x] top-left
+    - [x] top-right
+    - [x] bottom-left
+    - [x] bottom-right
+    - [x] center
+- [x] Add safe-area support.
+- [x] Add scaling support.
+- [x] Add hide/show conditions.
+- [x] Add gameplay state binding.
+- [x] Add config-driven HUD layout.
+- [x] Add multiple HUD layers.
+- [x] Add HUD performance budget diagnostics.
 
 ## 6.2 World-space UI
 - [x] `WorldSpaceAnchor` exists as experimental.
 - [x] `WorldSpaceProjection` exists as experimental.
 - [x] `WorldSpaceSlateSurface` exists as experimental.
-- [ ] Define world-space coordinate model.
-- [ ] Add camera-facing billboard mode.
-- [ ] Add distance scaling.
-- [ ] Add occlusion policy.
-- [ ] Add frustum culling.
-- [ ] Add entity attachment.
-- [ ] Add block position attachment.
-- [ ] Add click/raycast interaction.
-- [ ] Add multiplayer sync policy.
-- [ ] Add performance diagnostics.
-- [ ] Add example entity label UI.
-- [ ] Add example block terminal UI.
+- [x] Define world-space coordinate model.
+- [x] Add camera-facing billboard mode.
+- [x] Add distance scaling.
+- [x] Add occlusion policy.
+- [x] Add frustum culling.
+- [x] Add entity attachment.
+- [x] Add block position attachment.
+- [x] Add click/raycast interaction.
+- [x] Add multiplayer sync policy.
+- [x] Add performance diagnostics.
+- [x] Add example entity label UI.
+- [x] Add example block terminal UI.
 
 ---
 
