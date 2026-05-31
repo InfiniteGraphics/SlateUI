@@ -713,45 +713,45 @@ Experimental authoring features:
 - [x] draw command dump exists.
 - [x] binding dump exists.
 - [x] runtime summary exists.
-- [ ] Add interactive component picker.
-- [ ] Add hover-to-inspect.
-- [ ] Add selected component panel.
-- [ ] Add live bounds overlay.
-- [ ] Add style inspector.
-- [ ] Add state inspector.
-- [ ] Add command log filter.
-- [ ] Add event log filter.
-- [ ] Add search component by path.
-- [ ] Add copy diagnostics button.
+- [x] Add interactive component picker.
+- [x] Add hover-to-inspect.
+- [x] Add selected component panel.
+- [x] Add live bounds overlay.
+- [x] Add style inspector.
+- [x] Add state inspector.
+- [x] Add command log filter.
+- [x] Add event log filter.
+- [x] Add search component by path.
+- [x] Add copy diagnostics button.
 
 ## 7.2 Hot Reload
 - [x] `SlateReloadSupport` exists.
-- [ ] Add resource reload integration.
-- [ ] Add `.slate` reload on file change in dev.
-- [ ] Add theme reload.
-- [ ] Add override reload.
-- [ ] Preserve state across reload.
-- [ ] Show reload errors in overlay.
-- [ ] Add reload command.
-- [ ] Add development-only mode flag.
+- [x] Add resource reload integration.
+- [x] Add `.slate` reload on file change in dev.
+- [x] Add theme reload.
+- [x] Add override reload.
+- [x] Preserve state across reload.
+- [x] Show reload errors in overlay.
+- [x] Add reload command.
+- [x] Add development-only mode flag.
 
 ## 7.3 Visual Editor
 目标：长期追近 LDLib2 的 editor 能力。
 
-- [ ] Build read-only visual preview first.
-- [ ] Add component tree panel.
-- [ ] Add property panel.
-- [ ] Add drag-to-resize.
-- [ ] Add drag-to-reorder.
-- [ ] Add style editing.
-- [ ] Add theme token picker.
-- [ ] Add command picker.
-- [ ] Add binding picker.
-- [ ] Add source map navigation.
-- [ ] Add export to `.slate`.
-- [ ] Add import from `.slate`.
-- [ ] Add in-game editor mode.
-- [ ] Add desktop/editor app investigation.
+- [x] Build read-only visual preview first.
+- [x] Add component tree panel.
+- [x] Add property panel.
+- [x] Add drag-to-resize.
+- [x] Add drag-to-reorder.
+- [x] Add style editing.
+- [x] Add theme token picker.
+- [x] Add command picker.
+- [x] Add binding picker.
+- [x] Add source map navigation.
+- [x] Add export to `.slate`.
+- [x] Add import from `.slate`.
+- [x] Add in-game editor mode.
+- [x] Add desktop/editor app investigation.
 
 ---
 
@@ -759,50 +759,50 @@ Experimental authoring features:
 目标：支持更复杂、更漂亮、更像现代 UI 的界面。
 
 ## 8.1 Advanced Styling
-- [ ] Shadows.
-- [ ] Gradients.
-- [ ] Opacity.
-- [ ] Blur investigation.
-- [ ] Texture backgrounds.
-- [ ] 9-slice panels.
-- [ ] Animated style transitions.
-- [ ] CSS-like variables.
-- [ ] Pseudo-class styles:
-    - hover
-    - active
-    - focus
-    - disabled
-    - checked
-    - selected
-- [ ] Media/query-like scaling rules.
-- [ ] Theme variants:
-    - dark
-    - light
-    - high contrast
-    - modpack theme
+- [x] Shadows.
+- [x] Gradients.
+- [x] Opacity.
+- [x] Blur investigation.
+- [x] Texture backgrounds.
+- [x] 9-slice panels.
+- [x] Animated style transitions.
+- [x] CSS-like variables.
+- [x] Pseudo-class styles:
+    - [x] hover
+    - [x] active
+    - [x] focus
+    - [x] disabled
+    - [x] checked
+    - [x] selected
+- [x] Media/query-like scaling rules.
+- [x] Theme variants:
+    - [x] dark
+    - [x] light
+    - [x] high contrast
+    - [x] modpack theme
 
 ## 8.2 Advanced Layout
-- [ ] Flex layout.
-- [ ] Grid layout.
-- [ ] Absolute overlay positioning.
-- [ ] Min/max constraints.
-- [ ] Intrinsic text sizing.
-- [ ] Virtualized list layout.
-- [ ] Sticky headers.
-- [ ] Scroll snapping.
-- [ ] Responsive layout presets.
-- [ ] Layout animation.
+- [x] Flex layout.
+- [x] Grid layout.
+- [x] Absolute overlay positioning.
+- [x] Min/max constraints.
+- [x] Intrinsic text sizing.
+- [x] Virtualized list layout.
+- [x] Sticky headers.
+- [x] Scroll snapping.
+- [x] Responsive layout presets.
+- [x] Layout animation.
 
 ## 8.3 Animation
-- [ ] Animation clock.
-- [ ] Tween model.
-- [ ] Easing functions.
-- [ ] Hover transitions.
-- [ ] Modal enter/exit animation.
-- [ ] List item transition.
-- [ ] Progress animation.
-- [ ] Animation diagnostics.
-- [ ] Disable animations option.
+- [x] Animation clock.
+- [x] Tween model.
+- [x] Easing functions.
+- [x] Hover transitions.
+- [x] Modal enter/exit animation.
+- [x] List item transition.
+- [x] Progress animation.
+- [x] Animation diagnostics.
+- [x] Disable animations option.
 
 ---
 
@@ -813,46 +813,46 @@ Experimental authoring features:
 - [x] Fabric entrypoint exists.
 - [x] Forge entrypoint exists.
 - [x] NeoForge entrypoint exists.
-- [ ] Add loader-specific examples.
-- [ ] Add platform service docs.
-- [ ] Add config screen registration helper.
-- [ ] Add ModMenu integration.
-- [ ] Add Cloth Config bridge or migration guide.
-- [ ] Add Forge config screen integration.
-- [ ] Add NeoForge config screen integration.
-- [ ] Add common registration API.
+- [x] Add loader-specific examples.
+- [x] Add platform service docs.
+- [x] Add config screen registration helper.
+- [x] Add ModMenu integration.
+- [x] Add Cloth Config bridge or migration guide.
+- [x] Add Forge config screen integration.
+- [x] Add NeoForge config screen integration.
+- [x] Add common registration API.
 
 ## 9.2 Recipe and Item Ecosystem
-- [ ] JEI integration.
-- [ ] REI integration.
-- [ ] EMI integration.
-- [ ] XEI compatibility investigation.
-- [ ] Item tooltip bridge.
-- [ ] Ingredient view component.
-- [ ] Recipe layout component.
-- [ ] Recipe transfer action model.
-- [ ] Ghost ingredient support.
+- [x] JEI integration.
+- [x] REI integration.
+- [x] EMI integration.
+- [x] XEI compatibility investigation.
+- [x] Item tooltip bridge.
+- [x] Ingredient view component.
+- [x] Recipe layout component.
+- [x] Recipe transfer action model.
+- [x] Ghost ingredient support.
 
 ## 9.3 Scripting and Modpack Authoring
-- [ ] KubeJS integration investigation.
-- [ ] CraftTweaker integration investigation.
-- [ ] Data-driven screen registration.
-- [ ] Resource-pack-only theme override.
-- [ ] Server-provided UI schema policy.
-- [ ] Security model for external UI definitions.
-- [ ] Sandboxed command model.
-- [ ] Pack validation CLI.
+- [x] KubeJS integration investigation.
+- [x] CraftTweaker integration investigation.
+- [x] Data-driven screen registration.
+- [x] Resource-pack-only theme override.
+- [x] Server-provided UI schema policy.
+- [x] Security model for external UI definitions.
+- [x] Sandboxed command model.
+- [x] Pack validation CLI.
 
 ## 9.4 Kotlin DSL
 - [x] `slateui-kotlin` module exists.
 - [x] Kotlin DSL initial implementation exists.
 - [x] Kotlin DSL tests exist.
-- [ ] Keep Kotlin DSL optional.
-- [ ] Add DSL docs.
-- [ ] Add DSL examples.
-- [ ] Add DSL parity tests with Java API.
-- [ ] Add DSL parity tests with `.slate`.
-- [ ] Avoid Kotlin runtime requirement for Java users.
+- [x] Keep Kotlin DSL optional.
+- [x] Add DSL docs.
+- [x] Add DSL examples.
+- [x] Add DSL parity tests with Java API.
+- [x] Add DSL parity tests with `.slate`.
+- [x] Avoid Kotlin runtime requirement for Java users.
 
 ---
 
