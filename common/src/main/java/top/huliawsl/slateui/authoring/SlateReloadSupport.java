@@ -31,11 +31,19 @@ public final class SlateReloadSupport {
     }
 
     public static void reload(String resourcePath, Component title, SlateCommandRegistry commands, StateProvider provider, Theme theme, boolean debugEnabled) {
+        reload(resourcePath, title, commands, provider, theme, debugEnabled, SlateReloadOptions.development());
+    }
+
+    public static void reload(String resourcePath, Component title, SlateCommandRegistry commands, StateProvider provider, Theme theme, boolean debugEnabled, SlateReloadOptions options) {
+        SlateReloadOptions resolvedOptions = options == null ? SlateReloadOptions.development() : options;
+        if (resolvedOptions.developmentOnly() && Boolean.getBoolean("slateui.reload.disabled")) {
+            throw new IllegalStateException("Slate reload is disabled by slateui.reload.disabled");
+        }
         SlateScreen screen = reloadScreen(
             resourcePath,
             title,
             commands,
-            provider,
+            resolvedOptions.preserveState() ? provider : StateProvider.EMPTY,
             theme,
             debugEnabled,
             SlateReloadSupport::runCompileSlate,
@@ -44,6 +52,15 @@ public final class SlateReloadSupport {
             SlateIrLoader::clearCache
         );
         Minecraft.getInstance().setScreen(screen);
+    }
+
+    public static SlateReloadResult reloadCommand(String resourcePath) {
+        try {
+            SlateIrLoader.clearCache();
+            return SlateReloadResult.success("Reloaded " + resourcePath);
+        } catch (RuntimeException exception) {
+            return SlateReloadResult.failure(exception.getMessage());
+        }
     }
 
     static SlateScreen reloadScreen(
