@@ -14,6 +14,7 @@ public final class SlateInspectorScreen extends Screen {
 
     private final SlateScreen source;
     private final SlateDiagnostics diagnostics;
+    private final SlateInspectorModel inspectorModel = new SlateInspectorModel();
     private int scrollOffset;
 
     public SlateInspectorScreen(SlateScreen source, SlateDiagnostics diagnostics) {
@@ -52,6 +53,10 @@ public final class SlateInspectorScreen extends Screen {
         lines.add("");
         lines.add("Hit test:");
         appendBlock(lines, diagnostics.hitTestDump(), 3);
+        inspectorModel.hover(diagnostics.hitTestDump());
+        lines.add("");
+        lines.add("Selected component:");
+        appendBlock(lines, String.join("\n", inspectorModel.selectedPanel(diagnostics)), 8);
         lines.add("");
         lines.add("Hit regions / chrome:");
         appendBlock(lines, diagnostics.hitRegionDump(), 12);
@@ -81,11 +86,17 @@ public final class SlateInspectorScreen extends Screen {
         appendBlock(lines, diagnostics.stateDump(), 6);
         lines.add("");
         lines.add("Command log:");
-        appendBlock(lines, diagnostics.commandLogDump(), 4);
+        appendBlock(lines, inspectorModel.filteredCommandLog(diagnostics), 4);
         lines.add("");
         lines.add("Diagnostics:");
         appendBlock(lines, diagnostics.diagnosticsLogDump(), 6);
         return lines;
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        inspectorModel.select(diagnostics.componentPathAt(mouseX, mouseY));
+        return true;
     }
 
     private static void appendBlock(List<String> lines, String block, int maxLines) {
