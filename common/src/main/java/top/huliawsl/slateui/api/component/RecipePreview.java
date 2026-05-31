@@ -6,7 +6,7 @@ import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.api.StackDirection;
 
-public final class RecipePreview extends Stack {
+public class RecipePreview extends Stack {
 
     public RecipePreview(List<String> inputs, String output, SlateStyle style) {
         super(StackDirection.ROW, createItems(inputs, output), style);
