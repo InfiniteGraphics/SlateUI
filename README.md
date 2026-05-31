@@ -69,6 +69,8 @@ Minecraft.getInstance().setScreen(new SlateScreen(
 - Runtime diagnostics for component tree, layout, hit regions, draw commands, bindings, commands, state, and diagnostics logs.
 - Runtime contracts are documented in `docs/runtime-contracts.md`.
 - Gallery and example notes are documented in `docs/gallery.md`.
+- 1.0 API stability is documented in `docs/api-stability.md`.
+- The 1.0 quality bar is documented in `docs/v1-quality-bar.md`.
 
 ## Experimental Scope
 
@@ -82,6 +84,8 @@ These APIs can be used, but compatibility is intentionally looser:
 - world-space surfaces
 - server intent bridge
 - resource override registry
+
+These experimental surfaces are intentionally outside the 1.0 stable compatibility promise.
 
 ## `.slate` Authoring
 

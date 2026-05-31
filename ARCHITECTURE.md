@@ -43,3 +43,9 @@ These APIs are available for experimentation but are not covered by the same com
 - world-space surfaces
 - server intent bridge
 - resource override registry
+
+## 1.0 Stability Boundary
+
+The stable boundary is screen-first. Public packages, internal packages, frozen theme tokens, command model version, and authoring IR version are defined by `SlateApiSurface`.
+
+Minecraft-specific screen, renderer, text measurement, and loader glue remain adapter responsibilities. Experimental surfaces may change while the stable screen runtime stays source-compatible within the 1.x line.

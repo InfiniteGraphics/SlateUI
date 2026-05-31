@@ -6,4 +6,5 @@
  * {@code Image}, {@code ScrollView}, and {@code List}. Experimental components
  * are documented on their individual classes.</p>
  */
+@top.huliawsl.slateui.api.SlatePublicApi(since = "1.0")
 package top.huliawsl.slateui.api.component;
