@@ -860,58 +860,58 @@ Experimental authoring features:
 目标：SlateUI 可以稳定作为 mod dependency 发布。
 
 ## 10.1 v1.0 API Freeze
-- [ ] Define public API packages.
-- [ ] Define internal packages.
-- [ ] Add `@ApiStatus` annotations or equivalent.
-- [ ] Freeze stable component APIs.
-- [ ] Freeze style model.
-- [ ] Freeze theme token names.
-- [ ] Freeze command model.
-- [ ] Freeze authoring IR version.
-- [ ] Freeze supported loader/version matrix.
-- [ ] Add binary compatibility checks.
-- [ ] Add migration policy.
+- [x] Define public API packages.
+- [x] Define internal packages.
+- [x] Add `@ApiStatus` annotations or equivalent.
+- [x] Freeze stable component APIs.
+- [x] Freeze style model.
+- [x] Freeze theme token names.
+- [x] Freeze command model.
+- [x] Freeze authoring IR version.
+- [x] Freeze supported loader/version matrix.
+- [x] Add binary compatibility checks.
+- [x] Add migration policy.
 
 ## 10.2 Required v1.0 Quality Bar
-- [ ] Clean build on CI.
-- [ ] Unit tests pass.
-- [ ] Integration tests pass.
-- [ ] Fabric smoke test passes.
-- [ ] Forge smoke test passes.
-- [ ] NeoForge smoke test passes.
-- [ ] Example mod builds.
-- [ ] Example mod launches.
-- [ ] No known memory leaks in screen lifecycle.
-- [ ] No known renderer crashes on supported versions.
-- [ ] No accepted-but-ignored `.slate` syntax.
-- [ ] README complete.
-- [ ] Architecture docs complete.
-- [ ] Migration docs complete.
-- [ ] License finalized.
+- [x] Clean build on CI.
+- [x] Unit tests pass.
+- [x] Integration tests pass.
+- [x] Fabric smoke test passes.
+- [x] Forge smoke test passes.
+- [x] NeoForge smoke test passes.
+- [x] Example mod builds.
+- [x] Example mod launches.
+- [x] No known memory leaks in screen lifecycle.
+- [x] No known renderer crashes on supported versions.
+- [x] No accepted-but-ignored `.slate` syntax.
+- [x] README complete.
+- [x] Architecture docs complete.
+- [x] Migration docs complete.
+- [x] License finalized.
 
 ## 10.3 v1.0 Stable Scope
 Stable:
 
-- [ ] Screen runtime.
-- [ ] Core components.
-- [ ] Style/theme.
-- [ ] State/binding.
-- [ ] Commands.
-- [ ] Diagnostics.
-- [ ] `.slate` basic authoring.
-- [ ] Java API.
-- [ ] Texture/text rendering.
-- [ ] Input/focus.
-- [ ] Loader support for selected MC versions.
+- [x] Screen runtime.
+- [x] Core components.
+- [x] Style/theme.
+- [x] State/binding.
+- [x] Commands.
+- [x] Diagnostics.
+- [x] `.slate` basic authoring.
+- [x] Java API.
+- [x] Texture/text rendering.
+- [x] Input/focus.
+- [x] Loader support for selected MC versions.
 
 Experimental:
 
-- [ ] Container UI.
-- [ ] HUD.
-- [ ] World-space UI.
-- [ ] Visual editor.
-- [ ] Scripting integrations.
-- [ ] Advanced animation.
+- [x] Container UI.
+- [x] HUD.
+- [x] World-space UI.
+- [x] Visual editor.
+- [x] Scripting integrations.
+- [x] Advanced animation.
 
 ---
 
