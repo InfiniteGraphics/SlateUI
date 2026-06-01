@@ -21,17 +21,25 @@ import top.huliawsl.slateui.api.ThemeTokens;
 import top.huliawsl.slateui.api.VerticalAlign;
 import top.huliawsl.slateui.api.component.Box;
 import top.huliawsl.slateui.api.component.Conditional;
+import top.huliawsl.slateui.api.component.AbsoluteOverlay;
+import top.huliawsl.slateui.api.component.GhostIngredient;
 import top.huliawsl.slateui.api.component.Image;
+import top.huliawsl.slateui.api.component.IngredientView;
 import top.huliawsl.slateui.api.component.Input;
 import top.huliawsl.slateui.api.component.Modal;
 import top.huliawsl.slateui.api.component.OverlayRoot;
 import top.huliawsl.slateui.api.component.Popup;
+import top.huliawsl.slateui.api.component.RecipePreview;
 import top.huliawsl.slateui.api.component.ScrollView;
 import top.huliawsl.slateui.api.component.SlotGrid;
 import top.huliawsl.slateui.api.component.Stack;
+import top.huliawsl.slateui.api.component.StickyHeader;
 import top.huliawsl.slateui.api.component.Text;
 import top.huliawsl.slateui.api.component.Tooltip;
 import top.huliawsl.slateui.api.component.Toggle;
+import top.huliawsl.slateui.api.component.VirtualList;
+import top.huliawsl.slateui.animation.SlateEasing;
+import top.huliawsl.slateui.animation.SlateTween;
 import top.huliawsl.slateui.authoring.SlateIrLoader;
 import top.huliawsl.slateui.authoring.SlateIrRuntimeFactory;
 import top.huliawsl.slateui.authoring.SlateReloadSupport;
@@ -39,7 +47,16 @@ import top.huliawsl.slateui.api.container.ContainerSlot;
 import top.huliawsl.slateui.api.container.StaticContainerSlotProvider;
 import top.huliawsl.slateui.command.SlateCommandRegistry;
 import top.huliawsl.slateui.command.MinecraftCommandContext;
+import top.huliawsl.slateui.layout.AbsolutePlacement;
+import top.huliawsl.slateui.layout.FlexSpec;
 import top.huliawsl.slateui.layout.Insets;
+import top.huliawsl.slateui.layout.Rect;
+import top.huliawsl.slateui.layout.ResponsivePreset;
+import top.huliawsl.slateui.layout.ScrollSnap;
+import top.huliawsl.slateui.layout.Size;
+import top.huliawsl.slateui.render.DrawCommand;
+import top.huliawsl.slateui.runtime.SlateLayoutContext;
+import top.huliawsl.slateui.runtime.SlateRenderContext;
 
 public final class SlateDemoEntrypoint {
 
@@ -75,6 +92,7 @@ public final class SlateDemoEntrypoint {
             .set("theme.name", debugEnabled ? "Debug Theme" : "Default Theme")
             .set("ui.popupOpen", false)
             .set("ui.modalOpen", false)
+            .set("ui.runtimeHits", 0)
             .registerComputed("settings.summary", List.of("settings.playerName", "settings.status"), state ->
                 state.get("settings.playerName") + " / " + state.get("settings.status"))
             .registerComputed("form.summary", List.of("form.email", "form.query"), state ->
@@ -157,6 +175,11 @@ public final class SlateDemoEntrypoint {
                     new top.huliawsl.slateui.api.component.Button("Container", "demo.page.container", subtleButtonStyle)
                 ), SlateStyle.builder().gap(8).clipContent(true).build()),
                 new Stack(StackDirection.ROW, List.of(
+                    new top.huliawsl.slateui.api.component.Button("Runtime", "demo.page.runtime", subtleButtonStyle),
+                    new top.huliawsl.slateui.api.component.Button("Layout", "demo.page.layout", subtleButtonStyle),
+                    new top.huliawsl.slateui.api.component.Button("Ecosystem", "demo.page.ecosystem", subtleButtonStyle)
+                ), SlateStyle.builder().gap(8).clipContent(true).build()),
+                new Stack(StackDirection.ROW, List.of(
                     new top.huliawsl.slateui.api.component.Button("Inspect Runtime", "screen.inspect", primaryButtonStyle),
                     new top.huliawsl.slateui.api.component.Button(debugEnabled ? "Normal" : "Debug", debugEnabled ? "demo.normal" : "demo.debug", primaryButtonStyle)
                 ), SlateStyle.builder().gap(8).clipContent(true).build())
@@ -214,12 +237,34 @@ public final class SlateDemoEntrypoint {
                 .clipContent(true)
                 .build()));
         }
+        List<SlateComponent> virtualItems = new ArrayList<>();
+        for (int index = 1; index <= 200; index++) {
+            virtualItems.add(new Stack(StackDirection.COLUMN, List.of(
+                new Text("Virtual row #" + index),
+                new Text("Only visible rows are measured and drawn.", SlateStyle.builder().textColor(0xFFCBD5E1).build())
+            ), SlateStyle.builder()
+                .padding(Insets.symmetric(8, 5))
+                .gap(2)
+                .backgroundColor(index % 2 == 0 ? 0xFF111827 : 0xFF0F172A)
+                .border(new SlateBorder(0xFF334155, 1))
+                .borderRadiusToken("radius.sm")
+                .clipContent(true)
+                .build()));
+        }
         DemoPanel listPage = new DemoPanel(
             "List Page",
             List.of(
+                new Text("VirtualList: 200 rows, wheel scroll should stay responsive.", noticeStyle),
+                new VirtualList(
+                    virtualItems,
+                    30,
+                    4,
+                    SlateStyle.builder().height(150).width(340).padding(Insets.all(8)).build()
+                ),
+                new Text("SlateList baseline: regular scroll container.", noticeStyle),
                 new top.huliawsl.slateui.api.component.SlateList(
                     scrollItems,
-                    SlateStyle.builder().height(160).padding(Insets.all(8)).backgroundColor(0xFF020617).border(new SlateBorder(0xFF334155, 1)).borderRadiusToken("radius.md").clipContent(true).build()
+                    SlateStyle.builder().height(120).padding(Insets.all(8)).backgroundColor(0xFF020617).border(new SlateBorder(0xFF334155, 1)).borderRadiusToken("radius.md").clipContent(true).build()
                 )
             ),
             panelStyle,
@@ -267,11 +312,124 @@ public final class SlateDemoEntrypoint {
             SlateStyle.builder().gap(8).build()
         );
 
+        SlateStyle disabledPanelStyle = SlateStyle.builder()
+            .padding(Insets.all(8))
+            .backgroundColor(0xFF111827)
+            .border(new SlateBorder(0xFF475569, 1))
+            .borderRadiusToken("radius.sm")
+            .disabled(true)
+            .clipContent(true)
+            .build();
+        DemoPanel runtimePage = new DemoPanel(
+            "Runtime Event Model",
+            List.of(
+                new Text("Tab / Shift+Tab traverses focusable controls and skips the disabled subtree.", noticeStyle),
+                new Input("Focusable input", ignored -> String.valueOf(provider.get("settings.status")), null, statusHandler, fieldStyle),
+                new Box(List.of(
+                    new Text("Disabled parent: child button should not focus or click."),
+                    new top.huliawsl.slateui.api.component.Button("Disabled Child", "demo.disabled.hit", subtleButtonStyle)
+                ), disabledPanelStyle),
+                new top.huliawsl.slateui.api.component.Button("Next Focusable Button", "demo.runtime.focus", primaryButtonStyle),
+                new Text(ignored -> "Clip hit count: " + provider.get("ui.runtimeHits"), noticeStyle),
+                new ClipHitDemo(
+                    new top.huliawsl.slateui.api.component.Button("Half clipped button", "demo.clip.hit", primaryButtonStyle),
+                    SlateStyle.builder()
+                        .width(340)
+                        .height(76)
+                        .padding(new Insets(0, 24, 0, 0))
+                        .backgroundColor(0xFF020617)
+                        .border(new SlateBorder(0xFF334155, 1))
+                        .borderRadiusToken("radius.md")
+                        .clipContent(true)
+                        .build()
+                ),
+                new Text("The top half is outside the clipped content area, so it should not receive clicks.", SlateStyle.builder().textColor(0xFFCBD5E1).build())
+            ),
+            panelStyle,
+            SlateStyle.builder().gap(8).build()
+        );
+
+        SlateTween tween = new SlateTween(0F, 100F, 1000L, SlateEasing.EASE_OUT);
+        FlexSpec flexSpec = new FlexSpec(1.5F, 0.5F, 120);
+        DemoPanel layoutPage = new DemoPanel(
+            "Layout + Animation Models",
+            List.of(
+                new Text("Recent non-resource runtime models are shown with live component composition.", noticeStyle),
+                new AbsoluteOverlay(List.of(
+                    new AbsoluteOverlay.Child(
+                        new Box(List.of(new Text("AbsoluteOverlay base panel")), SlateStyle.builder()
+                            .padding(Insets.all(8))
+                            .backgroundColor(0xFF0F172A)
+                            .border(new SlateBorder(0xFF334155, 1))
+                            .borderRadiusToken("radius.md")
+                            .build()),
+                        new AbsolutePlacement(0, 0, 300, 56)
+                    ),
+                    new AbsoluteOverlay.Child(
+                        new Box(List.of(new Text("badge")), SlateStyle.builder()
+                            .padding(Insets.symmetric(6, 3))
+                            .backgroundColor(0xFF2563EB)
+                            .borderRadiusToken("radius.sm")
+                            .build()),
+                        new AbsolutePlacement(216, 10, 72, 24)
+                    )
+                ), SlateStyle.builder().width(320).height(64).build()),
+                new StickyHeader(
+                    new Text("StickyHeader wrapper"),
+                    new Stack(StackDirection.COLUMN, List.of(
+                        new Text("Header and body stay grouped as a formal component."),
+                        new Text("ResponsivePreset(420): " + ResponsivePreset.fromWidth(420)),
+                        new Text("FlexSpec: grow=" + flexSpec.grow() + ", shrink=" + flexSpec.shrink() + ", basis=" + flexSpec.basis()),
+                        new Text("ScrollSnap(20).snap(37): " + new ScrollSnap(20).snap(37)),
+                        new Text("SlateTween ease-out at 250ms: " + Math.round(tween.valueAt(250)))
+                    ), SlateStyle.builder().gap(4).build()),
+                    SlateStyle.builder()
+                        .padding(Insets.all(8))
+                        .gap(6)
+                        .backgroundColor(0xFF111827)
+                        .border(new SlateBorder(0xFF334155, 1))
+                        .borderRadiusToken("radius.md")
+                        .build()
+                )
+            ),
+            panelStyle,
+            SlateStyle.builder().gap(8).build()
+        );
+
+        DemoPanel ecosystemPage = new DemoPanel(
+            "Recipe + Ecosystem Components",
+            List.of(
+                new Text("These components intentionally use item IDs only; no project texture resources are assumed.", noticeStyle),
+                new RecipePreview(
+                    List.of("minecraft:stick", "minecraft:coal"),
+                    "minecraft:torch",
+                    SlateStyle.builder()
+                        .padding(Insets.all(8))
+                        .gap(6)
+                        .backgroundColor(0xFF0F172A)
+                        .border(new SlateBorder(0xFF334155, 1))
+                        .borderRadiusToken("radius.sm")
+                        .build()
+                ),
+                new IngredientView("minecraft:iron_ingot", 12, SlateStyle.builder().gap(6).build()),
+                new Stack(StackDirection.ROW, List.of(
+                    new GhostIngredient("minecraft:diamond", SlateStyle.EMPTY),
+                    new Text("GhostIngredient preview for recipe overlays.")
+                ), SlateStyle.builder().gap(8).build()),
+                new Text("Platform integration, scripting policy, API stability and release checks are contract-level features; use docs/tests for full validation.", SlateStyle.builder().textColor(0xFFCBD5E1).build())
+            ),
+            panelStyle,
+            SlateStyle.builder().gap(8).build()
+        );
+
         Stack pages = new Stack(StackDirection.COLUMN, List.of(
             new Conditional(() -> "settings".equals(String.valueOf(provider.get("gallery.page"))), settingsPage),
             new Conditional(() -> "form".equals(String.valueOf(provider.get("gallery.page"))), formPage),
             new Conditional(() -> "list".equals(String.valueOf(provider.get("gallery.page"))), listPage),
-            new Conditional(() -> "container".equals(String.valueOf(provider.get("gallery.page"))), containerPage)
+            new Conditional(() -> "container".equals(String.valueOf(provider.get("gallery.page"))), containerPage),
+            new Conditional(() -> "runtime".equals(String.valueOf(provider.get("gallery.page"))), runtimePage),
+            new Conditional(() -> "layout".equals(String.valueOf(provider.get("gallery.page"))), layoutPage),
+            new Conditional(() -> "ecosystem".equals(String.valueOf(provider.get("gallery.page"))), ecosystemPage)
         ), SlateStyle.builder().gap(8).build());
 
         SlateComponent content = new ScrollView(
@@ -308,7 +466,13 @@ public final class SlateDemoEntrypoint {
         commands.register("demo.page.form", context -> provider.set("gallery.page", "form"));
         commands.register("demo.page.list", context -> provider.set("gallery.page", "list"));
         commands.register("demo.page.container", context -> provider.set("gallery.page", "container"));
+        commands.register("demo.page.runtime", context -> provider.set("gallery.page", "runtime"));
+        commands.register("demo.page.layout", context -> provider.set("gallery.page", "layout"));
+        commands.register("demo.page.ecosystem", context -> provider.set("gallery.page", "ecosystem"));
         commands.register("demo.form.submit", context -> provider.set("settings.status", "Form submitted"));
+        commands.register("demo.runtime.focus", context -> provider.set("settings.status", "Runtime focus button activated"));
+        commands.register("demo.disabled.hit", context -> provider.set("settings.status", "Disabled child should not run"));
+        commands.register("demo.clip.hit", context -> provider.set("ui.runtimeHits", ((Number) provider.get("ui.runtimeHits")).intValue() + 1));
         commands.register("demo.slot.click", context -> provider.set("settings.status", "Slot clicked: #" + context.payloadInt("slotIndex", -1) + " " + context.payloadString("itemId", "")));
         commands.register("demo.popup.toggle", context -> provider.set("ui.popupOpen", !(Boolean) provider.get("ui.popupOpen")));
         commands.register("demo.modal.open", context -> provider.set("ui.modalOpen", true));
@@ -347,5 +511,43 @@ public final class SlateDemoEntrypoint {
 
     private static SlateScreen createFaultyScreen(boolean debugEnabled) {
         return new SlateScreen(Component.literal("SlateUI Error Demo"), new FaultyComponent(), new SlateCommandRegistry(), StateProvider.EMPTY, Theme.DEFAULT, debugEnabled);
+    }
+
+    private static final class ClipHitDemo extends SlateComponent {
+
+        private final SlateComponent child;
+
+        private ClipHitDemo(SlateComponent child, SlateStyle style) {
+            super(style);
+            this.child = child;
+        }
+
+        @Override
+        public List<SlateComponent> children() {
+            return List.of(child);
+        }
+
+        @Override
+        public Size measure(SlateLayoutContext context, Size available) {
+            measureChild(context, child, new Size(Math.max(0, available.width() - style().padding().horizontal()), 28));
+            Size measured = applyStyleSize(new Size(available.width(), 76));
+            setMeasuredSize(measured);
+            return measured;
+        }
+
+        @Override
+        public void layout(SlateLayoutContext context, Rect bounds) {
+            setBounds(bounds);
+            layoutChild(context, child, new Rect(bounds.x() + 12, bounds.y() + 6, Math.max(0, bounds.width() - 24), 28));
+        }
+
+        @Override
+        public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
+            emitBoxChrome(context, commands);
+            Rect contentRect = contentRect(bounds());
+            pushClip(context, commands, contentRect);
+            collectChild(context, commands, child);
+            popClip(commands);
+        }
     }
 }

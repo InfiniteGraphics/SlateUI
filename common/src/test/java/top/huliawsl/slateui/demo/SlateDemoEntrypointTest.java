@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import top.huliawsl.slateui.api.ComputedStateProvider;
 import top.huliawsl.slateui.api.SlateScreen;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
@@ -41,6 +42,30 @@ class SlateDemoEntrypointTest {
 
         assertTextFits(textCommands, "Open .slate Screen", 360);
         assertTextFits(textCommands, "Inspect Runtime", 360);
+    }
+
+    @Test
+    void galleryShowsRecentRuntimeLayoutAndEcosystemPages() {
+        SlateScreen screen = SlateDemoEntrypoint.createGalleryScreen(false, "Ready", null);
+        ComputedStateProvider provider = (ComputedStateProvider) screen.stateProvider();
+
+        provider.set("gallery.page", "list");
+        assertTrue(collectTexts(screen, 420, 800).stream().anyMatch(text -> text.contains("VirtualList")));
+
+        provider.set("gallery.page", "runtime");
+        List<String> runtimeTexts = collectTexts(screen, 420, 800);
+        assertTrue(runtimeTexts.stream().anyMatch(text -> text.contains("Disabled parent")));
+        assertTrue(runtimeTexts.stream().anyMatch(text -> text.contains("Clip hit count")));
+
+        provider.set("gallery.page", "layout");
+        List<String> layoutTexts = collectTexts(screen, 420, 800);
+        assertTrue(layoutTexts.stream().anyMatch(text -> text.contains("AbsoluteOverlay")));
+        assertTrue(layoutTexts.stream().anyMatch(text -> text.contains("SlateTween")));
+
+        provider.set("gallery.page", "ecosystem");
+        List<String> ecosystemTexts = collectTexts(screen, 420, 800);
+        assertTrue(ecosystemTexts.stream().anyMatch(text -> text.contains("GhostIngredient")));
+        assertTrue(ecosystemTexts.stream().anyMatch(text -> text.contains("Recipe + Ecosystem")));
     }
 
     private static List<String> collectTexts(SlateScreen screen, int width, int height) {
