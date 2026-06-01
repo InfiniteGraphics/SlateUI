@@ -2,6 +2,7 @@ package top.huliawsl.slateui.api;
 
 import top.huliawsl.slateui.api.container.SlateContainerPolicy;
 import top.huliawsl.slateui.api.container.SlateMenuBinding;
+import top.huliawsl.slateui.api.container.SlateNativeContainerBinding;
 import top.huliawsl.slateui.command.SlateCommandRegistry;
 
 public final class SlateContainerScreen {
@@ -14,6 +15,7 @@ public final class SlateContainerScreen {
     private final boolean debugEnabled;
     private final SlateMenuBinding menuBinding;
     private final SlateContainerPolicy containerPolicy;
+    private final SlateNativeContainerBinding nativeContainerBinding;
 
     public SlateContainerScreen(
         String title,
@@ -25,6 +27,20 @@ public final class SlateContainerScreen {
         SlateMenuBinding menuBinding,
         SlateContainerPolicy containerPolicy
     ) {
+        this(title, root, commands, stateProvider, theme, debugEnabled, menuBinding, containerPolicy, null);
+    }
+
+    public SlateContainerScreen(
+        String title,
+        SlateComponent root,
+        SlateCommandRegistry commands,
+        StateProvider stateProvider,
+        Theme theme,
+        boolean debugEnabled,
+        SlateMenuBinding menuBinding,
+        SlateContainerPolicy containerPolicy,
+        SlateNativeContainerBinding nativeContainerBinding
+    ) {
         this.title = title == null ? "" : title;
         this.root = java.util.Objects.requireNonNull(root, "root");
         this.commands = commands == null ? new SlateCommandRegistry() : commands;
@@ -33,6 +49,7 @@ public final class SlateContainerScreen {
         this.debugEnabled = debugEnabled;
         this.menuBinding = menuBinding == null ? new SlateMenuBinding("", java.util.Map.of()) : menuBinding;
         this.containerPolicy = containerPolicy == null ? SlateContainerPolicy.serverAuthoritative() : containerPolicy;
+        this.nativeContainerBinding = nativeContainerBinding;
     }
 
     public String title() {
@@ -65,5 +82,13 @@ public final class SlateContainerScreen {
 
     public SlateContainerPolicy containerPolicy() {
         return containerPolicy;
+    }
+
+    public SlateNativeContainerBinding nativeContainerBinding() {
+        return nativeContainerBinding;
+    }
+
+    public boolean usesNativeContainerBinding() {
+        return nativeContainerBinding != null;
     }
 }

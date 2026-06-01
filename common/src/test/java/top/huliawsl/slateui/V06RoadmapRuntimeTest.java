@@ -5,10 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateContainerScreen;
+import top.huliawsl.slateui.api.SlateScreen;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.api.Theme;
 import top.huliawsl.slateui.api.component.*;
@@ -20,6 +23,7 @@ import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.DrawItemIconCommand;
+import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
 import top.huliawsl.slateui.server.*;
@@ -104,6 +108,98 @@ class V06RoadmapRuntimeTest {
     }
 
     @Test
+    void v11NativeContainerBindingDescribesOrdinaryMachineGui() {
+        SlateNativeContainerBinding binding = SlateNativeContainerBinding.builder("example:crusher")
+            .range(new NativeContainerSlotRange(0, 0, 2, NativeContainerSlotRole.MACHINE, true, true, "machine-input"))
+            .slot(NativeContainerSlot.output(2, 2))
+            .slot(NativeContainerSlot.upgrade(3, 3, "upgrade-only"))
+            .playerInventory(PlayerInventoryLayout.vanilla(4, 4))
+            .serverAuthoritative()
+            .build();
+        SlotGrid machineGrid = new SlotGrid(new StaticContainerSlotProvider(List.of(
+            new ContainerSlot(0, "minecraft:iron_ore", 16, true),
+            new ContainerSlot(1, "minecraft:coal", 8, true),
+            new ContainerSlot(2, "minecraft:iron_ingot", 2, true),
+            new ContainerSlot(3, "minecraft:speed_upgrade", 1, true)
+        )), 4, "machine.slot", SlateStyle.EMPTY).nativeContainerBinding(binding);
+        SlateContainerScreen screen = new SlateContainerScreen(
+            "Crusher",
+            machineGrid,
+            new SlateCommandRegistry(),
+            null,
+            Theme.DEFAULT,
+            false,
+            new SlateMenuBinding("example:crusher", binding.describe()),
+            SlateContainerPolicy.serverAuthoritative(),
+            binding
+        );
+
+        NativeContainerSlot output = binding.slot(2).orElseThrow();
+        NativeContainerSlot upgrade = binding.slot(3).orElseThrow();
+        NativeContainerClick shiftClick = binding.click(0, SlotClickType.SHIFT_CLICK, 0, -1).orElseThrow();
+        NativeContainerClick hotbarSwap = binding.click(4, SlotClickType.NUMBER_KEY, 3, 2).orElseThrow();
+
+        assertTrue(screen.usesNativeContainerBinding());
+        assertEquals(40, binding.slots().size());
+        assertEquals(NativeContainerSlotRole.OUTPUT, output.role());
+        assertFalse(output.insertAllowed());
+        assertTrue(output.extractAllowed());
+        assertEquals("upgrade-only", upgrade.validatorId());
+        assertEquals(NativeContainerInteraction.QUICK_MOVE, shiftClick.interaction());
+        assertTrue(shiftClick.serverAuthoritative());
+        assertEquals(NativeContainerInteraction.HOTBAR_SWAP, hotbarSwap.interaction());
+        assertEquals(2, hotbarSwap.hotbarIndex());
+        assertTrue(binding.describe().containsKey("serverAuthoritative"));
+    }
+
+    @Test
+    void v11NativeContainerBindingCoversCreativeAndClickSemantics() {
+        SlateNativeContainerBinding binding = SlateNativeContainerBinding.builder("example:creative")
+            .slot(NativeContainerSlot.machine(0, 7))
+            .creativeMode(true)
+            .build();
+
+        assertEquals(NativeContainerInteraction.PICKUP_OR_PLACE, binding.click(0, SlotClickType.LEFT_CLICK, 0, -1).orElseThrow().interaction());
+        assertEquals(NativeContainerInteraction.SPLIT_OR_PLACE_ONE, binding.click(0, SlotClickType.RIGHT_CLICK, 1, -1).orElseThrow().interaction());
+        assertEquals(NativeContainerInteraction.DRAG_SPLIT, binding.click(0, SlotClickType.DRAG_SPLIT, 0, -1).orElseThrow().interaction());
+        assertEquals(NativeContainerInteraction.PICKUP_ALL, binding.click(0, SlotClickType.DOUBLE_CLICK, 0, -1).orElseThrow().interaction());
+        assertEquals(NativeContainerInteraction.CREATIVE_CLONE, binding.click(0, SlotClickType.LEFT_CLICK, 2, -1).orElseThrow().interaction());
+    }
+
+    @Test
+    void v11SlotGridPayloadCarriesNativeContainerClick() {
+        SlateNativeContainerBinding binding = SlateNativeContainerBinding.builder("example:crusher")
+            .slot(NativeContainerSlot.upgrade(0, 5, "upgrade-only"))
+            .build();
+        AtomicReference<Map<String, Object>> payload = new AtomicReference<>(Map.of());
+        SlotGrid grid = new SlotGrid(new StaticContainerSlotProvider(List.of(
+            new ContainerSlot(0, "minecraft:speed_upgrade", 1, true)
+        )), 1, "machine.slot", SlateStyle.EMPTY).nativeContainerBinding(binding);
+        SlateCommandRegistry commands = new SlateCommandRegistry()
+            .register("machine.slot", context -> payload.set(context.payload()));
+        TestScreen screen = new TestScreen(grid, commands);
+        SlateInteractionContext interaction = new SlateInteractionContext(
+            commands,
+            new top.huliawsl.slateui.command.CommandContext(null, screen),
+            ignored -> {},
+            ignored -> {},
+            screen,
+            top.huliawsl.slateui.api.StateProvider.EMPTY,
+            Theme.DEFAULT
+        );
+
+        Size measured = grid.measure(new SlateLayoutContext(null), new Size(80, 80));
+        grid.layout(new SlateLayoutContext(null), new Rect(0, 0, measured.width(), measured.height()));
+        assertTrue(grid.mouseClicked(interaction, 6, 6, 0));
+
+        assertEquals(5, payload.get().get("nativeSlotIndex"));
+        assertEquals("UPGRADE", payload.get().get("role"));
+        assertEquals("PICKUP_OR_PLACE", payload.get().get("interaction"));
+        assertEquals("upgrade-only", payload.get().get("validatorId"));
+        assertEquals(true, payload.get().get("serverAuthoritative"));
+    }
+
+    @Test
     void v06HudAndWorldPoliciesProjectSurfaces() {
         SlateHudLayer hud = new SlateHudLayer(
             "status",
@@ -154,6 +250,13 @@ class V06RoadmapRuntimeTest {
         @Override
         public void collectDrawCommands(SlateRenderContext context, List<DrawCommand> commands) {
             emitBoxChrome(context, commands);
+        }
+    }
+
+    private static final class TestScreen extends SlateScreen {
+
+        private TestScreen(SlateComponent root, SlateCommandRegistry commands) {
+            super(net.minecraft.network.chat.Component.literal("Test"), root, commands, top.huliawsl.slateui.api.StateProvider.EMPTY, Theme.DEFAULT, false);
         }
     }
 }

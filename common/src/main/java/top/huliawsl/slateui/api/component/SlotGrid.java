@@ -1,6 +1,7 @@
 package top.huliawsl.slateui.api.component;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import top.huliawsl.slateui.api.SlateBorder;
 import top.huliawsl.slateui.api.SlateComponent;
@@ -11,6 +12,7 @@ import top.huliawsl.slateui.api.container.SlotClickType;
 import top.huliawsl.slateui.api.container.SlotMode;
 import top.huliawsl.slateui.api.container.SlotValidationResult;
 import top.huliawsl.slateui.api.container.SlotValidator;
+import top.huliawsl.slateui.api.container.SlateNativeContainerBinding;
 import top.huliawsl.slateui.debug.SlateRuntimeException;
 import top.huliawsl.slateui.layout.Insets;
 import top.huliawsl.slateui.layout.Rect;
@@ -46,6 +48,7 @@ public class SlotGrid extends SlateComponent {
     private final String clickCommand;
     private SlotMode slotMode = SlotMode.NORMAL;
     private SlotValidator slotValidator = SlotValidator.allowAll();
+    private SlateNativeContainerBinding nativeContainerBinding;
     private List<ContainerSlot> lastSlots = List.of();
     private int hoveredSlotIndex = -1;
     private long lastClickMillis;
@@ -70,6 +73,11 @@ public class SlotGrid extends SlateComponent {
 
     public SlotGrid slotValidator(SlotValidator slotValidator) {
         this.slotValidator = slotValidator == null ? SlotValidator.allowAll() : slotValidator;
+        return this;
+    }
+
+    public SlotGrid nativeContainerBinding(SlateNativeContainerBinding nativeContainerBinding) {
+        this.nativeContainerBinding = nativeContainerBinding;
         return this;
     }
 
@@ -150,14 +158,19 @@ public class SlotGrid extends SlateComponent {
         }
         if (clickCommand != null && !clickCommand.isBlank()) {
             try {
-                boolean executed = context.commands().execute(clickCommand, context, Map.of(
-                    "slotIndex", slot.index(),
-                    "itemId", slot.itemId(),
-                    "count", slot.count(),
-                    "button", button,
-                    "clickType", clickType.name(),
-                    "mode", slotMode.name()
-                ));
+                Map<String, Object> payload = new LinkedHashMap<>();
+                payload.put("slotIndex", slot.index());
+                payload.put("itemId", slot.itemId());
+                payload.put("count", slot.count());
+                payload.put("button", button);
+                payload.put("clickType", clickType.name());
+                payload.put("mode", slotMode.name());
+                if (nativeContainerBinding != null) {
+                    int hotbarIndex = clickType == SlotClickType.NUMBER_KEY ? Math.max(0, Math.min(8, button - 1)) : -1;
+                    nativeContainerBinding.click(slot.index(), clickType, button, hotbarIndex)
+                        .ifPresent(nativeClick -> payload.putAll(nativeClick.payload()));
+                }
+                boolean executed = context.commands().execute(clickCommand, context, payload);
                 context.commandLogger().accept((executed ? "EXEC " : "MISS ") + clickCommand + " component=" + debugPath() + " slot=" + slot.index());
                 if (!executed) {
                     context.logDiagnostic("COMMAND missing id=" + clickCommand + " component=" + debugPath() + " slot=" + slot.index());
