@@ -274,6 +274,25 @@ class P0RegressionTest {
     }
 
     @Test
+    void toggleCheckMarkIsCenteredInCheckbox() {
+        MutableStateProvider provider = new MutableStateProvider().set("settings.enabled", true);
+        Toggle toggle = new Toggle(provider, "Enable", ignored -> Boolean.TRUE.equals(provider.get("settings.enabled")), null,
+            (context, checked) -> provider.set("settings.enabled", checked), SlateStyle.EMPTY);
+        toggle.measure(new SlateLayoutContext(null), new Size(120, 40));
+        toggle.layout(new SlateLayoutContext(null), new Rect(0, 0, 120, 24));
+
+        DrawTextCommand mark = collect(toggle).stream()
+            .filter(DrawTextCommand.class::isInstance)
+            .map(DrawTextCommand.class::cast)
+            .filter(command -> "x".equals(command.text()))
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals(11, mark.x());
+        assertEquals(7, mark.y());
+    }
+
+    @Test
     void panelComposesHeaderContentAndChrome() {
         Panel panel = new Panel("Settings", List.of(new FixedComponent("content", 30, 10)), SlateStyle.EMPTY);
         Size measured = panel.measure(new SlateLayoutContext(null), new Size(120, 80));
