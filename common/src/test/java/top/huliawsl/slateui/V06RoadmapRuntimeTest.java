@@ -7,8 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.lwjgl.glfw.GLFW;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateContainerScreen;
 import top.huliawsl.slateui.api.SlateScreen;
@@ -200,6 +202,42 @@ class V06RoadmapRuntimeTest {
     }
 
     @Test
+    void v11SlotGridEmitsShiftHotbarAndDragSemanticsFromRealEvents() {
+        SlateNativeContainerBinding binding = SlateNativeContainerBinding.builder("example:machine")
+            .slot(NativeContainerSlot.machine(0, 0))
+            .slot(NativeContainerSlot.machine(1, 1))
+            .playerInventory(PlayerInventoryLayout.vanilla(2, 2))
+            .serverAuthoritative()
+            .build();
+        List<Map<String, Object>> payloads = new ArrayList<>();
+        SlotGrid grid = new SlotGrid(new StaticContainerSlotProvider(List.of(
+            new ContainerSlot(0, "minecraft:iron_ore", 16, true),
+            new ContainerSlot(1, "minecraft:coal", 8, true)
+        )), 2, "machine.slot", SlateStyle.EMPTY).nativeContainerBinding(binding);
+        SlateCommandRegistry commands = new SlateCommandRegistry()
+            .register("machine.slot", context -> payloads.add(context.payload()));
+        TestScreen screen = new TestScreen(grid, commands);
+        Size measured = grid.measure(new SlateLayoutContext(null), new Size(120, 80));
+        grid.layout(new SlateLayoutContext(null), new Rect(0, 0, measured.width(), measured.height()));
+
+        SlateInteractionContext shiftInteraction = interaction(screen, commands, GLFW.GLFW_MOD_SHIFT);
+        assertTrue(grid.mouseClicked(shiftInteraction, 8, 8, 0));
+
+        SlateInteractionContext normalInteraction = interaction(screen, commands, 0);
+        assertTrue(grid.mouseClicked(normalInteraction, 30, 8, 0));
+        assertTrue(grid.keyPressed(normalInteraction, GLFW.GLFW_KEY_2, 0, 0));
+        assertTrue(grid.mouseDragged(normalInteraction, 8, 8, 0, -22, 0));
+
+        assertEquals("SHIFT_CLICK", payloads.get(0).get("clickType"));
+        assertEquals("QUICK_MOVE", payloads.get(0).get("interaction"));
+        assertEquals("NUMBER_KEY", payloads.get(2).get("clickType"));
+        assertEquals(1, payloads.get(2).get("hotbarIndex"));
+        assertEquals("HOTBAR_SWAP", payloads.get(2).get("interaction"));
+        assertEquals("DRAG_SPLIT", payloads.get(3).get("clickType"));
+        assertEquals("DRAG_SPLIT", payloads.get(3).get("interaction"));
+    }
+
+    @Test
     void v06HudAndWorldPoliciesProjectSurfaces() {
         SlateHudLayer hud = new SlateHudLayer(
             "status",
@@ -258,5 +296,19 @@ class V06RoadmapRuntimeTest {
         private TestScreen(SlateComponent root, SlateCommandRegistry commands) {
             super(net.minecraft.network.chat.Component.literal("Test"), root, commands, top.huliawsl.slateui.api.StateProvider.EMPTY, Theme.DEFAULT, false);
         }
+    }
+
+    private static SlateInteractionContext interaction(SlateScreen screen, SlateCommandRegistry commands, int modifiers) {
+        return new SlateInteractionContext(
+            commands,
+            new top.huliawsl.slateui.command.CommandContext(null, screen),
+            ignored -> {},
+            ignored -> {},
+            screen,
+            top.huliawsl.slateui.api.StateProvider.EMPTY,
+            Theme.DEFAULT,
+            top.huliawsl.slateui.runtime.SlateClipboard.EMPTY,
+            modifiers
+        );
     }
 }

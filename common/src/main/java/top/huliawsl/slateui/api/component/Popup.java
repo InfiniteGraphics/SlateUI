@@ -1,8 +1,10 @@
 package top.huliawsl.slateui.api.component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
+import org.lwjgl.glfw.GLFW;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.binding.BindingEvaluator;
@@ -21,13 +23,34 @@ public class Popup extends SlateComponent {
     private final SlateComponent anchor;
     private final SlateComponent popup;
     private final Supplier<Object> openSupplier;
+    private final String closeCommand;
+    private final boolean closeOnOutsideClick;
+    private final boolean closeOnEscape;
+    private final boolean consumeOutsidePointer;
     private Rect popupBounds = Rect.ZERO;
 
     public Popup(SlateComponent anchor, SlateComponent popup, Supplier<Object> openSupplier, SlateStyle style) {
+        this(anchor, popup, openSupplier, null, false, false, false, style);
+    }
+
+    public Popup(
+        SlateComponent anchor,
+        SlateComponent popup,
+        Supplier<Object> openSupplier,
+        String closeCommand,
+        boolean closeOnOutsideClick,
+        boolean closeOnEscape,
+        boolean consumeOutsidePointer,
+        SlateStyle style
+    ) {
         super(style);
         this.anchor = Objects.requireNonNull(anchor, "anchor");
         this.popup = Objects.requireNonNull(popup, "popup");
         this.openSupplier = Objects.requireNonNull(openSupplier, "openSupplier");
+        this.closeCommand = closeCommand;
+        this.closeOnOutsideClick = closeOnOutsideClick;
+        this.closeOnEscape = closeOnEscape;
+        this.consumeOutsidePointer = consumeOutsidePointer;
     }
 
     @Override
@@ -79,8 +102,12 @@ public class Popup extends SlateComponent {
             if (popupBounds.contains(mouseX, mouseY)) {
                 return true;
             }
+            if (!anchor.bounds().contains(mouseX, mouseY) && closeOnOutsideClick) {
+                return close(context, "outside-click") || consumeOutsidePointer;
+            }
         }
-        return anchor.mouseClicked(context, mouseX, mouseY, button);
+        boolean handled = anchor.mouseClicked(context, mouseX, mouseY, button);
+        return handled || (open() && consumeOutsidePointer);
     }
 
     @Override
@@ -92,17 +119,24 @@ public class Popup extends SlateComponent {
             if (popupBounds.contains(mouseX, mouseY)) {
                 return true;
             }
+            if (!anchor.bounds().contains(mouseX, mouseY) && closeOnOutsideClick) {
+                return close(context, "outside-release") || consumeOutsidePointer;
+            }
         }
-        return anchor.mouseReleased(context, mouseX, mouseY, button);
+        boolean handled = anchor.mouseReleased(context, mouseX, mouseY, button);
+        return handled || (open() && consumeOutsidePointer);
     }
 
     @Override
     public boolean mouseMoved(SlateInteractionContext context, double mouseX, double mouseY) {
-        boolean handled = anchor.mouseMoved(context, mouseX, mouseY);
         if (open()) {
-            handled |= popup.mouseMoved(context, mouseX, mouseY);
+            boolean handled = popup.mouseMoved(context, mouseX, mouseY);
+            if (!consumeOutsidePointer || anchor.bounds().contains(mouseX, mouseY)) {
+                handled |= anchor.mouseMoved(context, mouseX, mouseY);
+            }
+            return handled;
         }
-        return handled;
+        return anchor.mouseMoved(context, mouseX, mouseY);
     }
 
     @Override
@@ -114,22 +148,34 @@ public class Popup extends SlateComponent {
             if (popupBounds.contains(mouseX, mouseY)) {
                 return true;
             }
+            if (consumeOutsidePointer && !anchor.bounds().contains(mouseX, mouseY)) {
+                return true;
+            }
         }
         return anchor.mouseScrolled(context, mouseX, mouseY, delta);
     }
 
     @Override
     public boolean keyPressed(SlateInteractionContext context, int keyCode, int scanCode, int modifiers) {
-        if (open() && popup.keyPressed(context, keyCode, scanCode, modifiers)) {
-            return true;
+        if (open()) {
+            if (closeOnEscape && keyCode == GLFW.GLFW_KEY_ESCAPE) {
+                return close(context, "escape");
+            }
+            if (popup.keyPressed(context, keyCode, scanCode, modifiers)) {
+                return true;
+            }
+            return !consumeOutsidePointer && anchor.keyPressed(context, keyCode, scanCode, modifiers);
         }
         return anchor.keyPressed(context, keyCode, scanCode, modifiers);
     }
 
     @Override
     public boolean charTyped(SlateInteractionContext context, char codePoint, int modifiers) {
-        if (open() && popup.charTyped(context, codePoint, modifiers)) {
-            return true;
+        if (open()) {
+            if (popup.charTyped(context, codePoint, modifiers)) {
+                return true;
+            }
+            return !consumeOutsidePointer && anchor.charTyped(context, codePoint, modifiers);
         }
         return anchor.charTyped(context, codePoint, modifiers);
     }
@@ -140,5 +186,12 @@ public class Popup extends SlateComponent {
 
     protected final Rect popupBounds() {
         return popupBounds;
+    }
+
+    protected final boolean close(SlateInteractionContext context, String reason) {
+        if (closeCommand == null || closeCommand.isBlank()) {
+            return false;
+        }
+        return context.commands().execute(closeCommand, context, Map.of("reason", reason, "component", debugPath()));
     }
 }

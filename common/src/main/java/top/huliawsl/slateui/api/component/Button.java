@@ -1,6 +1,7 @@
 package top.huliawsl.slateui.api.component;
 
 import java.util.List;
+import java.util.Map;
 import top.huliawsl.slateui.api.HorizontalAlign;
 import top.huliawsl.slateui.api.SlateBorder;
 import top.huliawsl.slateui.api.SlateComponent;
@@ -32,19 +33,33 @@ public class Button extends SlateComponent {
 
     private final String commandId;
     private final List<SlateComponent> children;
+    private final Map<String, Object> payload;
 
     public Button(String label, String commandId, SlateStyle style) {
-        this(List.of(new Text(label)), commandId, style);
+        this(List.of(new Text(label)), commandId, Map.of(), style);
+    }
+
+    public Button(String label, String commandId, Map<String, Object> payload, SlateStyle style) {
+        this(List.of(new Text(label)), commandId, payload, style);
     }
 
     public Button(List<SlateComponent> children, String commandId, SlateStyle style) {
+        this(children, commandId, Map.of(), style);
+    }
+
+    public Button(List<SlateComponent> children, String commandId, Map<String, Object> payload, SlateStyle style) {
         super(SlateStyle.withDefaults(DEFAULT_STYLE, style));
         this.children = List.copyOf(children);
         this.commandId = commandId;
+        this.payload = payload == null ? Map.of() : Map.copyOf(payload);
     }
 
     public String commandId() {
         return commandId;
+    }
+
+    public Map<String, Object> payload() {
+        return payload;
     }
 
     @Override
@@ -101,7 +116,7 @@ public class Button extends SlateComponent {
                 return true;
             }
             try {
-                boolean executed = context.commands().execute(commandId, context);
+                boolean executed = context.commands().execute(commandId, context, payload);
                 context.commandLogger().accept((executed ? "EXEC " : "MISS ") + commandId + " component=" + debugPath());
                 if (!executed) {
                     context.logDiagnostic("COMMAND missing id=" + commandId + " component=" + debugPath());

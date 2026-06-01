@@ -1,8 +1,11 @@
 package top.huliawsl.slateui.api.component;
 
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import org.lwjgl.glfw.GLFW;
 import top.huliawsl.slateui.api.SlateBorder;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
@@ -51,7 +54,11 @@ public class SlotGrid extends SlateComponent {
     private SlateNativeContainerBinding nativeContainerBinding;
     private List<ContainerSlot> lastSlots = List.of();
     private int hoveredSlotIndex = -1;
+    private int focusedSlotIndex = -1;
     private long lastClickMillis;
+    private int lastClickedSlotIndex = -1;
+    private int dragSplitButton = -1;
+    private final Set<Integer> dragSplitSlots = new LinkedHashSet<>();
 
     public SlotGrid(ContainerSlotProvider provider, int columns, String clickCommand, SlateStyle style) {
         this(provider, columns, DEFAULT_SLOT_SIZE, DEFAULT_GAP, clickCommand, style);
@@ -82,7 +89,7 @@ public class SlotGrid extends SlateComponent {
     }
 
     public String accessibilityDiagnostics() {
-        return "slots=" + lastSlots.size() + " columns=" + columns + " mode=" + slotMode + " hovered=" + hoveredSlotIndex;
+        return "slots=" + lastSlots.size() + " columns=" + columns + " mode=" + slotMode + " hovered=" + hoveredSlotIndex + " focused=" + focusedSlotIndex;
     }
 
     public String tooltipTextAt(double mouseX, double mouseY) {
@@ -142,45 +149,53 @@ public class SlotGrid extends SlateComponent {
             return false;
         }
         ContainerSlot slot = slotAt(mouseX, mouseY);
-        SlotClickType clickType = clickType(button);
+        SlotClickType clickType = clickType(context, slot, button);
         long now = System.currentTimeMillis();
-        if (now - lastClickMillis <= 350) {
+        if (clickType == SlotClickType.LEFT_CLICK && slot != null && slot.index() == lastClickedSlotIndex && now - lastClickMillis <= 350) {
             clickType = SlotClickType.DOUBLE_CLICK;
         }
         lastClickMillis = now;
+        lastClickedSlotIndex = slot == null ? -1 : slot.index();
         if (slot == null || !slot.enabled() || slotMode == SlotMode.LOCKED) {
+            dragSplitButton = -1;
+            dragSplitSlots.clear();
             return bounds().contains(mouseX, mouseY);
         }
-        SlotValidationResult validation = slotValidator.validate(slot, clickType);
-        if (!validation.valid()) {
-            context.logDiagnostic("SLOT validation failed component=" + debugPath() + " slot=" + slot.index() + " message=" + validation.message());
+        if (!dispatchSlotCommand(context, slot, clickType, button, clickType == SlotClickType.NUMBER_KEY ? Math.max(0, Math.min(8, button - 1)) : -1)) {
             return true;
         }
-        if (clickCommand != null && !clickCommand.isBlank()) {
-            try {
-                Map<String, Object> payload = new LinkedHashMap<>();
-                payload.put("slotIndex", slot.index());
-                payload.put("itemId", slot.itemId());
-                payload.put("count", slot.count());
-                payload.put("button", button);
-                payload.put("clickType", clickType.name());
-                payload.put("mode", slotMode.name());
-                if (nativeContainerBinding != null) {
-                    int hotbarIndex = clickType == SlotClickType.NUMBER_KEY ? Math.max(0, Math.min(8, button - 1)) : -1;
-                    nativeContainerBinding.click(slot.index(), clickType, button, hotbarIndex)
-                        .ifPresent(nativeClick -> payload.putAll(nativeClick.payload()));
-                }
-                boolean executed = context.commands().execute(clickCommand, context, payload);
-                context.commandLogger().accept((executed ? "EXEC " : "MISS ") + clickCommand + " component=" + debugPath() + " slot=" + slot.index());
-                if (!executed) {
-                    context.logDiagnostic("COMMAND missing id=" + clickCommand + " component=" + debugPath() + " slot=" + slot.index());
-                }
-            } catch (Throwable throwable) {
-                throw SlateRuntimeException.command(this, clickCommand, throwable);
-            }
+        focusedSlotIndex = slot.index();
+        if ((button == 0 || button == 1) && clickType == SlotClickType.LEFT_CLICK || clickType == SlotClickType.RIGHT_CLICK) {
+            dragSplitButton = button;
+            dragSplitSlots.clear();
+            dragSplitSlots.add(slot.index());
+        } else {
+            dragSplitButton = -1;
+            dragSplitSlots.clear();
         }
         context.requestFocus(this);
         return true;
+    }
+
+    @Override
+    public boolean mouseDragged(SlateInteractionContext context, double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (style().disabled() || slotMode == SlotMode.LOCKED || dragSplitButton < 0 || dragSplitButton != button || !bounds().contains(mouseX, mouseY)) {
+            return false;
+        }
+        ContainerSlot slot = slotAt(mouseX, mouseY);
+        if (slot == null || !slot.enabled() || dragSplitSlots.contains(slot.index())) {
+            return slot != null;
+        }
+        dragSplitSlots.add(slot.index());
+        focusedSlotIndex = slot.index();
+        return dispatchSlotCommand(context, slot, SlotClickType.DRAG_SPLIT, button, -1);
+    }
+
+    @Override
+    public boolean mouseReleased(SlateInteractionContext context, double mouseX, double mouseY, int button) {
+        dragSplitButton = -1;
+        dragSplitSlots.clear();
+        return super.mouseReleased(context, mouseX, mouseY, button);
     }
 
     @Override
@@ -199,11 +214,39 @@ public class SlotGrid extends SlateComponent {
         return true;
     }
 
+    @Override
+    public boolean keyPressed(SlateInteractionContext context, int keyCode, int scanCode, int modifiers) {
+        if (!isFocused() || style().disabled()) {
+            return false;
+        }
+        int hotbarIndex = hotbarIndex(keyCode);
+        if (hotbarIndex < 0) {
+            return false;
+        }
+        ContainerSlot slot = slotByIndex(focusedSlotIndex >= 0 ? focusedSlotIndex : hoveredSlotIndex);
+        if (slot == null || !slot.enabled() || slotMode == SlotMode.LOCKED) {
+            return false;
+        }
+        return dispatchSlotCommand(context, slot, SlotClickType.NUMBER_KEY, hotbarIndex + 1, hotbarIndex);
+    }
+
     public ContainerSlot slotAt(double mouseX, double mouseY) {
         Rect content = contentRect(bounds());
         for (int i = 0; i < lastSlots.size(); i++) {
             if (slotRect(content, i).contains(mouseX, mouseY)) {
                 return lastSlots.get(i);
+            }
+        }
+        return null;
+    }
+
+    private ContainerSlot slotByIndex(int slotIndex) {
+        if (slotIndex < 0) {
+            return null;
+        }
+        for (ContainerSlot slot : lastSlots) {
+            if (slot.index() == slotIndex) {
+                return slot;
             }
         }
         return null;
@@ -217,13 +260,55 @@ public class SlotGrid extends SlateComponent {
         return new Rect(x, y, slotSize, slotSize);
     }
 
-    private static SlotClickType clickType(int button) {
+    private boolean dispatchSlotCommand(SlateInteractionContext context, ContainerSlot slot, SlotClickType clickType, int button, int hotbarIndex) {
+        SlotValidationResult validation = slotValidator.validate(slot, clickType);
+        if (!validation.valid()) {
+            context.logDiagnostic("SLOT validation failed component=" + debugPath() + " slot=" + slot.index() + " message=" + validation.message());
+            return true;
+        }
+        if (clickCommand == null || clickCommand.isBlank()) {
+            return true;
+        }
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("slotIndex", slot.index());
+            payload.put("itemId", slot.itemId());
+            payload.put("count", slot.count());
+            payload.put("button", button);
+            payload.put("clickType", clickType.name());
+            payload.put("mode", slotMode.name());
+            if (hotbarIndex >= 0) {
+                payload.put("hotbarIndex", hotbarIndex);
+            }
+            if (nativeContainerBinding != null) {
+                nativeContainerBinding.click(slot.index(), clickType, button, hotbarIndex)
+                    .ifPresent(nativeClick -> payload.putAll(nativeClick.payload()));
+            }
+            boolean executed = context.commands().execute(clickCommand, context, payload);
+            context.commandLogger().accept((executed ? "EXEC " : "MISS ") + clickCommand + " component=" + debugPath() + " slot=" + slot.index());
+            if (!executed) {
+                context.logDiagnostic("COMMAND missing id=" + clickCommand + " component=" + debugPath() + " slot=" + slot.index());
+            }
+            return true;
+        } catch (Throwable throwable) {
+            throw SlateRuntimeException.command(this, clickCommand, throwable);
+        }
+    }
+
+    private static SlotClickType clickType(SlateInteractionContext context, ContainerSlot slot, int button) {
+        if (context.shiftDown() && button == 0 && slot != null) {
+            return SlotClickType.SHIFT_CLICK;
+        }
         if (button == 1) {
             return SlotClickType.RIGHT_CLICK;
         }
-        if (button >= 2 && button <= 9) {
-            return SlotClickType.NUMBER_KEY;
-        }
         return SlotClickType.LEFT_CLICK;
+    }
+
+    private static int hotbarIndex(int keyCode) {
+        if (keyCode >= GLFW.GLFW_KEY_1 && keyCode <= GLFW.GLFW_KEY_9) {
+            return keyCode - GLFW.GLFW_KEY_1;
+        }
+        return -1;
     }
 }

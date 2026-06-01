@@ -96,6 +96,11 @@ public abstract class SlateCompositeComponent extends SlateComponent {
     }
 
     @Override
+    public boolean mouseDragged(SlateInteractionContext context, double mouseX, double mouseY, int button, double dragX, double dragY) {
+        return resolved().mouseDragged(context, mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
     public boolean keyPressed(SlateInteractionContext context, int keyCode, int scanCode, int modifiers) {
         return resolved().keyPressed(context, keyCode, scanCode, modifiers);
     }

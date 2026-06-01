@@ -2,6 +2,7 @@ package top.huliawsl.slateui.api.component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
@@ -18,8 +19,14 @@ public final class CheckboxGroup extends Stack {
         List<String> safeOptions = options == null ? List.of() : options;
         Set<String> selected = selectedValues == null ? Set.of() : selectedValues;
         for (String option : safeOptions) {
-            String prefix = selected.contains(option) ? "[x] " : "[ ] ";
-            children.add(new Button(prefix + option, changeCommand, SlateStyle.EMPTY).componentKey(option));
+            boolean checked = selected.contains(option);
+            String prefix = checked ? "[x] " : "[ ] ";
+            children.add(new Button(
+                prefix + option,
+                changeCommand,
+                Map.of("value", option, "selected", checked, "nextSelected", !checked),
+                SlateStyle.EMPTY
+            ).componentKey(option));
         }
         return children;
     }

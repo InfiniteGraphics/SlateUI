@@ -57,10 +57,20 @@ class SlateDemoEntrypointTest {
         assertTrue(runtimeTexts.stream().anyMatch(text -> text.contains("Disabled parent")));
         assertTrue(runtimeTexts.stream().anyMatch(text -> text.contains("Clip hit count")));
 
+        provider.set("gallery.page", "settings");
+        List<String> settingsTexts = collectTexts(screen, 420, 900);
+        assertTrue(settingsTexts.stream().anyMatch(text -> text.contains("Mode:")));
+        assertTrue(settingsTexts.stream().anyMatch(text -> text.contains("Open Confirm Dialog")));
+
         provider.set("gallery.page", "layout");
         List<String> layoutTexts = collectTexts(screen, 420, 800);
         assertTrue(layoutTexts.stream().anyMatch(text -> text.contains("AbsoluteOverlay")));
         assertTrue(layoutTexts.stream().anyMatch(text -> text.contains("SlateTween")));
+
+        provider.set("gallery.page", "container");
+        List<String> containerTexts = collectTexts(screen, 420, 900);
+        assertTrue(containerTexts.stream().anyMatch(text -> text.contains("Native container shell")));
+        assertTrue(containerTexts.stream().anyMatch(text -> text.contains("Shift+click quick-moves")));
 
         provider.set("gallery.page", "ecosystem");
         List<String> ecosystemTexts = collectTexts(screen, 420, 800);

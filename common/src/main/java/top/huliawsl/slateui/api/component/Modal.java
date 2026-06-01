@@ -1,8 +1,10 @@
 package top.huliawsl.slateui.api.component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
+import org.lwjgl.glfw.GLFW;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.binding.BindingEvaluator;
@@ -24,12 +26,31 @@ public final class Modal extends SlateComponent {
     private final SlateComponent content;
     private final SlateComponent modal;
     private final Supplier<Object> openSupplier;
+    private final String closeCommand;
+    private final boolean closeOnBackdropClick;
+    private final boolean closeOnEscape;
+    private Rect modalBounds = Rect.ZERO;
 
     public Modal(SlateComponent content, SlateComponent modal, Supplier<Object> openSupplier, SlateStyle style) {
+        this(content, modal, openSupplier, null, false, false, style);
+    }
+
+    public Modal(
+        SlateComponent content,
+        SlateComponent modal,
+        Supplier<Object> openSupplier,
+        String closeCommand,
+        boolean closeOnBackdropClick,
+        boolean closeOnEscape,
+        SlateStyle style
+    ) {
         super(style);
         this.content = Objects.requireNonNull(content, "content");
         this.modal = Objects.requireNonNull(modal, "modal");
         this.openSupplier = Objects.requireNonNull(openSupplier, "openSupplier");
+        this.closeCommand = closeCommand;
+        this.closeOnBackdropClick = closeOnBackdropClick;
+        this.closeOnEscape = closeOnEscape;
     }
 
     @Override
@@ -59,7 +80,10 @@ public final class Modal extends SlateComponent {
             Size modalSize = modal.layoutNode().measuredSize();
             int x = bounds.x() + Math.max(0, (bounds.width() - modalSize.width()) / 2);
             int y = bounds.y() + Math.max(0, (bounds.height() - modalSize.height()) / 2);
-            layoutChild(context, modal, new Rect(x, y, modalSize.width(), modalSize.height()));
+            modalBounds = new Rect(x, y, modalSize.width(), modalSize.height());
+            layoutChild(context, modal, modalBounds);
+        } else {
+            modalBounds = Rect.ZERO;
         }
     }
 
@@ -77,7 +101,16 @@ public final class Modal extends SlateComponent {
         if (!open()) {
             return content.mouseClicked(context, mouseX, mouseY, button);
         }
-        return modal.mouseClicked(context, mouseX, mouseY, button) || bounds().contains(mouseX, mouseY);
+        if (modal.mouseClicked(context, mouseX, mouseY, button)) {
+            return true;
+        }
+        if (modalBounds.contains(mouseX, mouseY)) {
+            return true;
+        }
+        if (bounds().contains(mouseX, mouseY) && closeOnBackdropClick) {
+            return close(context, "backdrop-click");
+        }
+        return bounds().contains(mouseX, mouseY);
     }
 
     @Override
@@ -85,7 +118,16 @@ public final class Modal extends SlateComponent {
         if (!open()) {
             return content.mouseReleased(context, mouseX, mouseY, button);
         }
-        return modal.mouseReleased(context, mouseX, mouseY, button) || bounds().contains(mouseX, mouseY);
+        if (modal.mouseReleased(context, mouseX, mouseY, button)) {
+            return true;
+        }
+        if (modalBounds.contains(mouseX, mouseY)) {
+            return true;
+        }
+        if (bounds().contains(mouseX, mouseY) && closeOnBackdropClick) {
+            return close(context, "backdrop-release");
+        }
+        return bounds().contains(mouseX, mouseY);
     }
 
     @Override
@@ -103,7 +145,13 @@ public final class Modal extends SlateComponent {
 
     @Override
     public boolean keyPressed(SlateInteractionContext context, int keyCode, int scanCode, int modifiers) {
-        return open() ? modal.keyPressed(context, keyCode, scanCode, modifiers) : content.keyPressed(context, keyCode, scanCode, modifiers);
+        if (!open()) {
+            return content.keyPressed(context, keyCode, scanCode, modifiers);
+        }
+        if (closeOnEscape && keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            return close(context, "escape");
+        }
+        return modal.keyPressed(context, keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -113,5 +161,12 @@ public final class Modal extends SlateComponent {
 
     private boolean open() {
         return BindingEvaluator.isTruthy(openSupplier.get());
+    }
+
+    private boolean close(SlateInteractionContext context, String reason) {
+        if (closeCommand == null || closeCommand.isBlank()) {
+            return false;
+        }
+        return context.commands().execute(closeCommand, context, Map.of("reason", reason, "component", debugPath()));
     }
 }

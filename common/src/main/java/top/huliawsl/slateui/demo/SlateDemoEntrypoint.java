@@ -21,20 +21,26 @@ import top.huliawsl.slateui.api.ThemeTokens;
 import top.huliawsl.slateui.api.VerticalAlign;
 import top.huliawsl.slateui.api.component.Box;
 import top.huliawsl.slateui.api.component.Conditional;
+import top.huliawsl.slateui.api.component.ConfirmDialog;
 import top.huliawsl.slateui.api.component.AbsoluteOverlay;
+import top.huliawsl.slateui.api.component.Dropdown;
 import top.huliawsl.slateui.api.component.GhostIngredient;
 import top.huliawsl.slateui.api.component.Image;
 import top.huliawsl.slateui.api.component.IngredientView;
 import top.huliawsl.slateui.api.component.Input;
 import top.huliawsl.slateui.api.component.Modal;
 import top.huliawsl.slateui.api.component.OverlayRoot;
+import top.huliawsl.slateui.api.component.PlayerInventory;
 import top.huliawsl.slateui.api.component.Popup;
+import top.huliawsl.slateui.api.component.RadioGroup;
 import top.huliawsl.slateui.api.component.RecipePreview;
 import top.huliawsl.slateui.api.component.ScrollView;
 import top.huliawsl.slateui.api.component.SlotGrid;
 import top.huliawsl.slateui.api.component.Stack;
 import top.huliawsl.slateui.api.component.StickyHeader;
+import top.huliawsl.slateui.api.component.Tabs;
 import top.huliawsl.slateui.api.component.Text;
+import top.huliawsl.slateui.api.component.TreeView;
 import top.huliawsl.slateui.api.component.Tooltip;
 import top.huliawsl.slateui.api.component.Toggle;
 import top.huliawsl.slateui.api.component.VirtualList;
@@ -44,6 +50,11 @@ import top.huliawsl.slateui.authoring.SlateIrLoader;
 import top.huliawsl.slateui.authoring.SlateIrRuntimeFactory;
 import top.huliawsl.slateui.authoring.SlateReloadSupport;
 import top.huliawsl.slateui.api.container.ContainerSlot;
+import top.huliawsl.slateui.api.container.NativeContainerSlot;
+import top.huliawsl.slateui.api.container.NativeContainerSlotRange;
+import top.huliawsl.slateui.api.container.NativeContainerSlotRole;
+import top.huliawsl.slateui.api.container.PlayerInventoryLayout;
+import top.huliawsl.slateui.api.container.SlateNativeContainerBinding;
 import top.huliawsl.slateui.api.container.StaticContainerSlotProvider;
 import top.huliawsl.slateui.command.SlateCommandRegistry;
 import top.huliawsl.slateui.command.MinecraftCommandContext;
@@ -87,11 +98,18 @@ public final class SlateDemoEntrypoint {
             .set("settings.status", status)
             .set("settings.enabled", true)
             .set("settings.mode", debugEnabled ? "Debug" : "Normal")
+            .set("settings.modeIndex", debugEnabled ? 1 : 0)
+            .set("settings.tags", java.util.List.of("beta"))
+            .set("settings.accordionOpen", true)
+            .set("settings.dropdownOpen", false)
+            .set("settings.treePath", "0")
+            .set("settings.color", "#FF3B82F6")
             .set("form.email", "alex@example.com")
             .set("form.query", "diamond pickaxe")
             .set("theme.name", debugEnabled ? "Debug Theme" : "Default Theme")
             .set("ui.popupOpen", false)
             .set("ui.modalOpen", false)
+            .set("ui.confirmOpen", false)
             .set("ui.runtimeHits", 0)
             .registerComputed("settings.summary", List.of("settings.playerName", "settings.status"), state ->
                 state.get("settings.playerName") + " / " + state.get("settings.status"))
@@ -193,15 +211,62 @@ public final class SlateDemoEntrypoint {
         settingsChildren.add(new Text(ignored -> "Status: " + provider.get("settings.status"), SlateStyle.EMPTY));
         settingsChildren.add(new Text(ignored -> "Summary: " + provider.get("settings.summary"), SlateStyle.EMPTY));
         settingsChildren.add(new Text(ignored -> "Enabled: " + provider.get("settings.enabled"), SlateStyle.EMPTY));
+        settingsChildren.add(new Text(ignored -> "Mode: " + provider.get("settings.mode"), SlateStyle.EMPTY));
+        settingsChildren.add(new Text(ignored -> "Color: " + provider.get("settings.color"), SlateStyle.EMPTY));
         if (notice != null && !notice.isBlank()) {
             settingsChildren.add(new Text(notice, noticeStyle));
         }
         settingsChildren.add(new Input("Enter player name", ignored -> String.valueOf(provider.get("settings.playerName")), null, playerNameHandler, fieldStyle));
         settingsChildren.add(new Input("Update status", ignored -> String.valueOf(provider.get("settings.status")), null, statusHandler, fieldStyle));
         settingsChildren.add(new Toggle(provider, "Enable feature", ignored -> Boolean.TRUE.equals(provider.get("settings.enabled")), null, enabledHandler, subtleButtonStyle));
+        settingsChildren.add(new Dropdown(
+            List.of("Normal", "Debug", "Safe"),
+            ((Number) provider.get("settings.modeIndex")).intValue(),
+            Boolean.TRUE.equals(provider.get("settings.dropdownOpen")),
+            "demo.dropdown",
+            "demo.dropdown",
+            subtleButtonStyle
+        ));
+        settingsChildren.add(new RadioGroup(List.of("Normal", "Debug", "Safe"), ((Number) provider.get("settings.modeIndex")).intValue(), "demo.mode", SlateStyle.builder().gap(4).build()));
+        settingsChildren.add(new top.huliawsl.slateui.api.component.CheckboxGroup(
+            List.of("beta", "creative", "expert"),
+            new java.util.LinkedHashSet<>(stringListValue(provider.get("settings.tags"))),
+            "demo.tags",
+            SlateStyle.builder().gap(4).build()
+        ));
+        settingsChildren.add(new top.huliawsl.slateui.api.component.ColorPicker(parseColor(String.valueOf(provider.get("settings.color"))), "demo.color", SlateStyle.builder().gap(6).build()));
+        settingsChildren.add(new Tabs(
+            List.of(
+                new Tabs.Tab("Overview", new Text("Tabs now send selectedIndex and selectedLabel payloads.")),
+                new Tabs.Tab("Advanced", new Text("Keep tab state outside the component, and feed it back in.")),
+                new Tabs.Tab("Native", new Text("This matches the rest of the Slate controlled-component model."))
+            ),
+            ((Number) provider.get("settings.modeIndex")).intValue(),
+            "demo.mode",
+            SlateStyle.builder().gap(6).build()
+        ));
+        settingsChildren.add(new top.huliawsl.slateui.api.component.Accordion(
+            List.of(
+                new top.huliawsl.slateui.api.component.Accordion.Section("Controlled section", new Text("Accordion headers now emit section payloads."), Boolean.TRUE.equals(provider.get("settings.accordionOpen"))),
+                new top.huliawsl.slateui.api.component.Accordion.Section("Always closed", new Text("Hidden body"), false)
+            ),
+            "demo.accordion",
+            SlateStyle.builder().gap(4).build()
+        ));
+        settingsChildren.add(new TreeView(
+            List.of(
+                new TreeView.Node("Root", List.of(
+                    new TreeView.Node("Inputs", List.of(), "0".equals(String.valueOf(provider.get("settings.treePath")))),
+                    new TreeView.Node("Containers", List.of(), "0.1".equals(String.valueOf(provider.get("settings.treePath"))))
+                ), true)
+            ),
+            "demo.tree",
+            SlateStyle.builder().gap(4).build()
+        ));
         settingsChildren.add(new Stack(StackDirection.COLUMN, List.of(
             new top.huliawsl.slateui.api.component.Button("Open .slate Screen", "demo.authoring", primaryButtonStyle),
-            new top.huliawsl.slateui.api.component.Button("Open Error Page", "demo.error", primaryButtonStyle)
+            new top.huliawsl.slateui.api.component.Button("Open Error Page", "demo.error", primaryButtonStyle),
+            new top.huliawsl.slateui.api.component.Button("Open Confirm Dialog", "demo.confirm.open", primaryButtonStyle)
         ), SlateStyle.builder().gap(8).build()));
         DemoPanel settingsPage = new DemoPanel(
             "Settings Page",
@@ -271,23 +336,40 @@ public final class SlateDemoEntrypoint {
             SlateStyle.builder().gap(8).build()
         );
 
-        SlotGrid slotGrid = new SlotGrid(new StaticContainerSlotProvider(List.of(
+        SlateNativeContainerBinding nativeBinding = SlateNativeContainerBinding.builder("demo:machine")
+            .range(new NativeContainerSlotRange(0, 0, 2, NativeContainerSlotRole.MACHINE, true, true, "machine-input"))
+            .slot(NativeContainerSlot.output(2, 2))
+            .slot(NativeContainerSlot.upgrade(3, 3, "upgrade-only"))
+            .playerInventory(PlayerInventoryLayout.vanilla(4, 4))
+            .serverAuthoritative()
+            .build();
+        List<ContainerSlot> machineSlots = List.of(
             new ContainerSlot(0, "minecraft:stone", 64, true),
             new ContainerSlot(1, "minecraft:oak_log", 32, true),
             new ContainerSlot(2, "minecraft:iron_ingot", 12, true),
-            ContainerSlot.empty(3),
-            new ContainerSlot(4, "minecraft:diamond", 3, true),
-            new ContainerSlot(5, "minecraft:apple", 8, true),
-            ContainerSlot.empty(6),
-            new ContainerSlot(7, "minecraft:torch", 48, true),
-            new ContainerSlot(8, "minecraft:book", 1, false)
-        )), 3, 22, 4, "demo.slot.click", SlateStyle.builder().width(110).clipContent(true).build());
+            new ContainerSlot(3, "minecraft:speed_upgrade", 1, true)
+        );
+        List<ContainerSlot> playerSlots = new ArrayList<>();
+        for (int index = 0; index < 27; index++) {
+            playerSlots.add(new ContainerSlot(4 + index, index % 9 == 0 ? "minecraft:cobblestone" : index % 5 == 0 ? "minecraft:torch" : "", index % 9 == 0 ? 64 : index % 5 == 0 ? 16 : 0, true));
+        }
+        for (int index = 0; index < 9; index++) {
+            playerSlots.add(new ContainerSlot(31 + index, index == 0 ? "minecraft:diamond_pickaxe" : "", index == 0 ? 1 : 0, true));
+        }
+        SlotGrid slotGrid = new SlotGrid(new StaticContainerSlotProvider(machineSlots), 4, 22, 4, "demo.slot.click", SlateStyle.builder().width(110).clipContent(true).build())
+            .nativeContainerBinding(nativeBinding);
+        SlotGrid playerInventory = new PlayerInventory(
+            new StaticContainerSlotProvider(playerSlots),
+            "demo.slot.click",
+            SlateStyle.builder().width(214).clipContent(true).build()
+        ).nativeContainerBinding(nativeBinding);
         DemoPanel containerPage = new DemoPanel(
             "Container Page",
             List.of(
-                new Text("Fixed slot grid for inventory/container layouts."),
+                new Text("Native container shell: machine slots + player inventory use one server-authoritative binding."),
                 slotGrid,
-                new Text("Disabled slots ignore commands; enabled slots log component path and slot index.", noticeStyle),
+                playerInventory,
+                new Text("Shift+click quick-moves. Focus a slot grid and press 1-9 for hotbar swap. Drag across slots to emit split payloads.", noticeStyle),
                 new Popup(
                     new Tooltip(
                         new top.huliawsl.slateui.api.component.Button("Toggle Popup", "demo.popup.toggle", primaryButtonStyle),
@@ -296,6 +378,10 @@ public final class SlateDemoEntrypoint {
                     ),
                     new Box(List.of(new Text("Popup content uses rounded chrome.")), panelStyle),
                     () -> provider.get("ui.popupOpen"),
+                    "demo.popup.close",
+                    true,
+                    true,
+                    true,
                     SlateStyle.EMPTY
                 ),
                 new Modal(
@@ -305,6 +391,17 @@ public final class SlateDemoEntrypoint {
                         new top.huliawsl.slateui.api.component.Button("Close Modal", "demo.modal.close", primaryButtonStyle)
                     ), panelStyle),
                     () -> provider.get("ui.modalOpen"),
+                    "demo.modal.close",
+                    true,
+                    true,
+                    SlateStyle.EMPTY
+                ),
+                new ConfirmDialog(
+                    "Apply Native Action",
+                    "Backdrop click, Escape and Cancel now share the same close path.",
+                    "demo.confirm.ok",
+                    "demo.confirm.close",
+                    () -> provider.get("ui.confirmOpen"),
                     SlateStyle.EMPTY
                 )
             ),
@@ -473,10 +570,52 @@ public final class SlateDemoEntrypoint {
         commands.register("demo.runtime.focus", context -> provider.set("settings.status", "Runtime focus button activated"));
         commands.register("demo.disabled.hit", context -> provider.set("settings.status", "Disabled child should not run"));
         commands.register("demo.clip.hit", context -> provider.set("ui.runtimeHits", ((Number) provider.get("ui.runtimeHits")).intValue() + 1));
-        commands.register("demo.slot.click", context -> provider.set("settings.status", "Slot clicked: #" + context.payloadInt("slotIndex", -1) + " " + context.payloadString("itemId", "")));
+        commands.register("demo.slot.click", context -> provider.set("settings.status",
+            "Slot " + context.payloadInt("slotIndex", -1)
+                + " " + context.payloadString("clickType", "")
+                + " " + context.payloadString("interaction", "")
+                + (context.payload().containsKey("hotbarIndex") ? " hotbar=" + context.payloadInt("hotbarIndex", -1) : "")
+        ));
         commands.register("demo.popup.toggle", context -> provider.set("ui.popupOpen", !(Boolean) provider.get("ui.popupOpen")));
+        commands.register("demo.popup.close", context -> provider.set("ui.popupOpen", false));
         commands.register("demo.modal.open", context -> provider.set("ui.modalOpen", true));
         commands.register("demo.modal.close", context -> provider.set("ui.modalOpen", false));
+        commands.register("demo.confirm.open", context -> provider.set("ui.confirmOpen", true));
+        commands.register("demo.confirm.close", context -> provider.set("ui.confirmOpen", false));
+        commands.register("demo.confirm.ok", context -> {
+            provider.set("ui.confirmOpen", false);
+            provider.set("settings.status", "Confirmed native-style dialog action");
+        });
+        commands.register("demo.dropdown", context -> {
+            String action = context.payloadString("action", "");
+            if ("select".equals(action)) {
+                provider.set("settings.modeIndex", context.payloadInt("selectedIndex", 0));
+                provider.set("settings.mode", context.payloadString("selectedValue", "Normal"));
+                provider.set("settings.dropdownOpen", false);
+            } else {
+                provider.set("settings.dropdownOpen", !(Boolean) provider.get("settings.dropdownOpen"));
+            }
+        });
+        commands.register("demo.mode", context -> {
+            provider.set("settings.modeIndex", context.payloadInt("selectedIndex", 0));
+            provider.set("settings.mode", context.payloadString("selectedLabel", context.payloadString("selectedValue", "Normal")));
+        });
+        commands.register("demo.tags", context -> {
+            java.util.LinkedHashSet<String> tags = new java.util.LinkedHashSet<>(stringListValue(provider.get("settings.tags")));
+            String value = context.payloadString("value", "");
+            if (context.payloadBoolean("nextSelected", false)) {
+                tags.add(value);
+            } else {
+                tags.remove(value);
+            }
+            provider.set("settings.tags", List.copyOf(tags));
+        });
+        commands.register("demo.color", context -> provider.set("settings.color", context.payloadString("selectedHex", "#FFFFFFFF")));
+        commands.register("demo.accordion", context -> provider.set("settings.accordionOpen", context.payloadBoolean("nextOpen", false)));
+        commands.register("demo.tree", context -> {
+            provider.set("settings.treePath", context.payloadString("path", "0"));
+            provider.set("settings.status", "Tree path: " + context.payloadString("path", "0"));
+        });
         commands.register("slate.reload", context -> SlateReloadSupport.reload(AUTHORING_RESOURCE, DEMO_TITLE, createAuthoringCommands(debugEnabled, provider, theme), provider, theme, debugEnabled));
         return commands;
     }
@@ -511,6 +650,34 @@ public final class SlateDemoEntrypoint {
 
     private static SlateScreen createFaultyScreen(boolean debugEnabled) {
         return new SlateScreen(Component.literal("SlateUI Error Demo"), new FaultyComponent(), new SlateCommandRegistry(), StateProvider.EMPTY, Theme.DEFAULT, debugEnabled);
+    }
+
+    private static int parseColor(String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.startsWith("#")) {
+            normalized = normalized.substring(1);
+        }
+        if (normalized.length() == 6) {
+            normalized = "FF" + normalized;
+        }
+        try {
+            return (int) Long.parseLong(normalized, 16);
+        } catch (NumberFormatException ignored) {
+            return 0xFF3B82F6;
+        }
+    }
+
+    private static List<String> stringListValue(Object value) {
+        if (!(value instanceof List<?> values)) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        for (Object entry : values) {
+            if (entry != null) {
+                result.add(String.valueOf(entry));
+            }
+        }
+        return List.copyOf(result);
     }
 
     private static final class ClipHitDemo extends SlateComponent {

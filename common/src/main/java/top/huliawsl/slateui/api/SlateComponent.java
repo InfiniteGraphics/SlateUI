@@ -299,6 +299,19 @@ public abstract class SlateComponent {
         return false;
     }
 
+    public boolean mouseDragged(SlateInteractionContext context, double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (style.disabled() || !bounds.contains(mouseX, mouseY) || !childrenCanReceivePointer(mouseX, mouseY)) {
+            return false;
+        }
+        List<SlateComponent> children = children();
+        for (int index = children.size() - 1; index >= 0; index--) {
+            if (children.get(index).mouseDragged(context, mouseX, mouseY, button, dragX, dragY)) {
+                return true;
+            }
+        }
+        return pressed;
+    }
+
     public boolean keyPressed(SlateInteractionContext context, int keyCode, int scanCode, int modifiers) {
         if (style.disabled()) {
             return false;

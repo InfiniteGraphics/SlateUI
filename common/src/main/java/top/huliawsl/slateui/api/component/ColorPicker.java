@@ -2,6 +2,7 @@ package top.huliawsl.slateui.api.component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.api.StackDirection;
@@ -32,7 +33,12 @@ public final class ColorPicker extends Stack {
                 .border(new top.huliawsl.slateui.api.SlateBorder(value == selectedColor ? 0xFFFFFFFF : 0xFF334155, 1))
                 .borderRadius(2)
                 .build();
-            children.add(new Button(List.of(), changeCommand, swatchStyle).componentKey(String.format("%08X", value)));
+            children.add(new Button(
+                List.of(),
+                changeCommand,
+                Map.of("selectedColor", value, "selectedHex", String.format("#%08X", value)),
+                swatchStyle
+            ).componentKey(String.format("%08X", value)));
         }
         return children;
     }

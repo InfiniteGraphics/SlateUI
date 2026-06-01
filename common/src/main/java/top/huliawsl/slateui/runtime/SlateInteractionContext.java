@@ -18,6 +18,7 @@ public final class SlateInteractionContext {
     private final StateProvider stateProvider;
     private final Theme theme;
     private final SlateClipboard clipboard;
+    private final int modifiers;
 
     public SlateInteractionContext(
         SlateCommandRegistry commands,
@@ -28,7 +29,7 @@ public final class SlateInteractionContext {
         StateProvider stateProvider,
         Theme theme
     ) {
-        this(commands, commandContext, commandLogger, diagnosticsLogger, host, stateProvider, theme, SlateClipboard.EMPTY);
+        this(commands, commandContext, commandLogger, diagnosticsLogger, host, stateProvider, theme, SlateClipboard.EMPTY, 0);
     }
 
     public SlateInteractionContext(
@@ -41,6 +42,20 @@ public final class SlateInteractionContext {
         Theme theme,
         SlateClipboard clipboard
     ) {
+        this(commands, commandContext, commandLogger, diagnosticsLogger, host, stateProvider, theme, clipboard, 0);
+    }
+
+    public SlateInteractionContext(
+        SlateCommandRegistry commands,
+        CommandContext commandContext,
+        Consumer<String> commandLogger,
+        Consumer<String> diagnosticsLogger,
+        SlateHost host,
+        StateProvider stateProvider,
+        Theme theme,
+        SlateClipboard clipboard,
+        int modifiers
+    ) {
         this.commands = Objects.requireNonNull(commands, "commands");
         this.commandContext = Objects.requireNonNull(commandContext, "commandContext");
         this.commandLogger = Objects.requireNonNull(commandLogger, "commandLogger");
@@ -49,6 +64,7 @@ public final class SlateInteractionContext {
         this.stateProvider = Objects.requireNonNull(stateProvider, "stateProvider");
         this.theme = Objects.requireNonNull(theme, "theme");
         this.clipboard = clipboard == null ? SlateClipboard.EMPTY : clipboard;
+        this.modifiers = modifiers;
     }
 
     public SlateCommandRegistry commands() {
@@ -90,6 +106,22 @@ public final class SlateInteractionContext {
 
     public SlateClipboard clipboard() {
         return clipboard;
+    }
+
+    public int modifiers() {
+        return modifiers;
+    }
+
+    public boolean shiftDown() {
+        return (modifiers & org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT) != 0;
+    }
+
+    public boolean controlDown() {
+        return (modifiers & org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL) != 0;
+    }
+
+    public boolean altDown() {
+        return (modifiers & org.lwjgl.glfw.GLFW.GLFW_MOD_ALT) != 0;
     }
 
     public void requestFocus(SlateComponent component) {

@@ -2,6 +2,7 @@ package top.huliawsl.slateui.api.component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import top.huliawsl.slateui.api.SlateComponent;
 import top.huliawsl.slateui.api.SlateStyle;
 import top.huliawsl.slateui.api.StackDirection;
@@ -18,7 +19,12 @@ public final class Tabs extends Stack {
         List<Tab> safeTabs = tabs == null ? List.of() : tabs;
         List<SlateComponent> headers = new ArrayList<>();
         for (int index = 0; index < safeTabs.size(); index++) {
-            headers.add(new Button((index == selectedIndex ? "* " : "") + safeTabs.get(index).label(), selectCommand, SlateStyle.EMPTY).componentKey(String.valueOf(index)));
+            headers.add(new Button(
+                (index == selectedIndex ? "* " : "") + safeTabs.get(index).label(),
+                selectCommand,
+                Map.of("selectedIndex", index, "selectedLabel", safeTabs.get(index).label()),
+                SlateStyle.EMPTY
+            ).componentKey(String.valueOf(index)));
         }
         List<SlateComponent> children = new ArrayList<>();
         children.add(new Toolbar(headers));
