@@ -14,6 +14,7 @@ import top.huliawsl.slateui.render.DrawDebugRectCommand;
 import top.huliawsl.slateui.render.DrawRectCommand;
 import top.huliawsl.slateui.render.PopClipCommand;
 import top.huliawsl.slateui.render.PushClipCommand;
+import top.huliawsl.slateui.runtime.InvalidationType;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -184,6 +185,10 @@ public abstract class SlateComponent {
         return false;
     }
 
+    public boolean acceptsKeyboardFocus() {
+        return focusable() && !style.disabled();
+    }
+
     protected final void setBounds(Rect bounds) {
         this.bounds = bounds;
         this.layoutNode.setBounds(bounds);
@@ -218,19 +223,21 @@ public abstract class SlateComponent {
         if (!bounds.contains(mouseX, mouseY)) {
             return false;
         }
+        List<SlateComponent> children = children();
+        if (childrenCanReceivePointer(mouseX, mouseY)) {
+            for (int index = children.size() - 1; index >= 0; index--) {
+                if (children.get(index).mouseClicked(context, mouseX, mouseY, button)) {
+                    return true;
+                }
+            }
+        }
         boolean changed = !pressed;
         setPressed(true);
         if (changed) {
-            context.requestRebuild("press:" + debugName());
+            context.requestInvalidation(InvalidationType.INTERACTION, "press:" + debugName());
         }
-        if (focusable()) {
+        if (acceptsKeyboardFocus()) {
             context.requestFocus(this);
-        }
-        List<SlateComponent> children = children();
-        for (int index = children.size() - 1; index >= 0; index--) {
-            if (children.get(index).mouseClicked(context, mouseX, mouseY, button)) {
-                return true;
-            }
         }
         return false;
     }
@@ -239,33 +246,50 @@ public abstract class SlateComponent {
         boolean wasPressed = pressed;
         setPressed(false);
         if (wasPressed) {
-            context.requestRebuild("release:" + debugName());
+            context.requestInvalidation(InvalidationType.INTERACTION, "release:" + debugName());
         }
         List<SlateComponent> children = children();
-        for (int index = children.size() - 1; index >= 0; index--) {
-            if (children.get(index).mouseReleased(context, mouseX, mouseY, button)) {
-                return true;
+        if (childrenCanReceivePointer(mouseX, mouseY)) {
+            for (int index = children.size() - 1; index >= 0; index--) {
+                if (children.get(index).mouseReleased(context, mouseX, mouseY, button)) {
+                    return true;
+                }
             }
         }
         return wasPressed && bounds.contains(mouseX, mouseY);
     }
 
     public boolean mouseMoved(SlateInteractionContext context, double mouseX, double mouseY) {
+        if (style.disabled()) {
+            if (hovered) {
+                setHovered(false);
+                context.requestInvalidation(InvalidationType.INTERACTION, "hover:" + debugName());
+            }
+            clearDescendantHover(context);
+            return false;
+        }
         boolean childHovered = false;
         List<SlateComponent> children = children();
-        for (int index = children.size() - 1; index >= 0; index--) {
-            childHovered |= children.get(index).mouseMoved(context, mouseX, mouseY);
+        if (childrenCanReceivePointer(mouseX, mouseY)) {
+            for (int index = children.size() - 1; index >= 0; index--) {
+                childHovered |= children.get(index).mouseMoved(context, mouseX, mouseY);
+            }
+        } else {
+            clearDescendantHover(context);
         }
         boolean localHovered = bounds.contains(mouseX, mouseY);
         boolean changed = hovered != localHovered;
         setHovered(localHovered);
         if (changed) {
-            context.requestRebuild("hover:" + debugName());
+            context.requestInvalidation(InvalidationType.INTERACTION, "hover:" + debugName());
         }
         return localHovered || childHovered;
     }
 
     public boolean mouseScrolled(SlateInteractionContext context, double mouseX, double mouseY, double delta) {
+        if (style.disabled() || !bounds.contains(mouseX, mouseY) || !childrenCanReceivePointer(mouseX, mouseY)) {
+            return false;
+        }
         List<SlateComponent> children = children();
         for (int index = children.size() - 1; index >= 0; index--) {
             if (children.get(index).mouseScrolled(context, mouseX, mouseY, delta)) {
@@ -276,6 +300,9 @@ public abstract class SlateComponent {
     }
 
     public boolean keyPressed(SlateInteractionContext context, int keyCode, int scanCode, int modifiers) {
+        if (style.disabled()) {
+            return false;
+        }
         List<SlateComponent> children = children();
         for (int index = children.size() - 1; index >= 0; index--) {
             if (children.get(index).keyPressed(context, keyCode, scanCode, modifiers)) {
@@ -286,6 +313,9 @@ public abstract class SlateComponent {
     }
 
     public boolean charTyped(SlateInteractionContext context, char codePoint, int modifiers) {
+        if (style.disabled()) {
+            return false;
+        }
         List<SlateComponent> children = children();
         for (int index = children.size() - 1; index >= 0; index--) {
             if (children.get(index).charTyped(context, codePoint, modifiers)) {
@@ -410,6 +440,20 @@ public abstract class SlateComponent {
     protected final void popClip(List<DrawCommand> commands) {
         if (style.clipContent()) {
             commands.add(new PopClipCommand());
+        }
+    }
+
+    private boolean childrenCanReceivePointer(double mouseX, double mouseY) {
+        return !style.clipContent() || contentRect(bounds).contains(mouseX, mouseY);
+    }
+
+    private void clearDescendantHover(SlateInteractionContext context) {
+        for (SlateComponent child : children()) {
+            if (child.hovered) {
+                child.setHovered(false);
+                context.requestInvalidation(InvalidationType.INTERACTION, "hover:" + child.debugName());
+            }
+            child.clearDescendantHover(context);
         }
     }
 

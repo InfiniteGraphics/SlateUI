@@ -76,6 +76,10 @@ public final class SlateInteractionContext {
         host.requestRebuild(reason);
     }
 
+    public void requestInvalidation(InvalidationType type, String reason) {
+        host.requestInvalidation(type, reason);
+    }
+
     public StateProvider stateProvider() {
         return stateProvider;
     }

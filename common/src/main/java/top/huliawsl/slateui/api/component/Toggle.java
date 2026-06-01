@@ -18,6 +18,7 @@ import top.huliawsl.slateui.render.DrawBorderCommand;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.DrawRectCommand;
 import top.huliawsl.slateui.render.DrawTextCommand;
+import top.huliawsl.slateui.runtime.InvalidationType;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -125,7 +126,7 @@ public class Toggle extends SlateComponent {
             }
         }
         context.logDiagnostic("TOGGLE checked=" + next + " component=" + debugPath());
-        context.requestRebuild("toggle:" + debugName());
+        context.requestInvalidation(InvalidationType.LAYOUT, "toggle:" + debugName());
         return true;
     }
 }

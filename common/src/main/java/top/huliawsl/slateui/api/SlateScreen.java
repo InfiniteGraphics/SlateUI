@@ -21,7 +21,9 @@ import top.huliawsl.slateui.render.DrawCommandDispatcher;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.MinecraftSlateRenderer;
 import top.huliawsl.slateui.runtime.MinecraftTextMeasurer;
+import top.huliawsl.slateui.runtime.InvalidationType;
 import top.huliawsl.slateui.runtime.SlateClipboard;
+import top.huliawsl.slateui.runtime.SlateFocusTraversal;
 import top.huliawsl.slateui.runtime.SlateHost;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
@@ -43,6 +45,9 @@ public class SlateScreen extends Screen implements SlateHost {
     private final String bindingDump;
     private List<DrawCommand> drawCommands = List.of();
     private boolean runtimeDirty = true;
+    private boolean layoutDirty = true;
+    private boolean paintDirty = true;
+    private boolean interactionDirty = true;
     private SlateComponent focusedComponent;
 
     public SlateScreen(Component title, SlateComponent root, SlateCommandRegistry commands, boolean debugEnabled) {
@@ -65,7 +70,7 @@ public class SlateScreen extends Screen implements SlateHost {
         this.debugEnabled = debugEnabled;
         this.stateListener = path -> {
             this.root.notifyStateUpdated(path);
-            requestRebuild("state:" + path);
+            requestInvalidation(InvalidationType.LAYOUT, "state:" + path);
         };
         this.stateProvider.addListener(stateListener);
     }
@@ -83,6 +88,7 @@ public class SlateScreen extends Screen implements SlateHost {
             lastWidth = width;
             lastHeight = height;
             root.notifyScreenResized(new Size(width, height));
+            requestInvalidation(InvalidationType.LAYOUT, "screen-resize");
         }
         if (runtimeDirty) {
             rebuildRuntime();
@@ -91,8 +97,26 @@ public class SlateScreen extends Screen implements SlateHost {
 
     @Override
     public void requestRebuild(String reason) {
-        diagnostics.logDiagnostic("REBUILD " + reason);
+        requestInvalidation(InvalidationType.LAYOUT, reason);
+    }
+
+    @Override
+    public void requestInvalidation(InvalidationType type, String reason) {
+        InvalidationType resolvedType = type == null ? InvalidationType.LAYOUT : type;
+        diagnostics.logDiagnostic("INVALIDATE " + resolvedType + " " + reason);
         runtimeDirty = true;
+        switch (resolvedType) {
+            case LAYOUT -> {
+                layoutDirty = true;
+                paintDirty = true;
+                interactionDirty = true;
+            }
+            case PAINT -> paintDirty = true;
+            case INTERACTION -> {
+                interactionDirty = true;
+                paintDirty = true;
+            }
+        }
     }
 
     protected void rebuildRuntime() {
@@ -101,16 +125,23 @@ public class SlateScreen extends Screen implements SlateHost {
         try {
             SlateLayoutContext layoutContext = new SlateLayoutContext(new MinecraftTextMeasurer(font), theme);
             Size available = new Size(width, height);
-            root.refreshDebugPaths();
             long layoutStart = System.nanoTime();
-            measureRoot(layoutContext, available);
-            layoutRoot(layoutContext, new Rect(0, 0, width, height));
+            if (layoutDirty) {
+                root.refreshDebugPaths();
+                measureRoot(layoutContext, available);
+                layoutRoot(layoutContext, new Rect(0, 0, width, height));
+            }
             long layoutNanos = System.nanoTime() - layoutStart;
-            List<DrawCommand> commands = new ArrayList<>();
-            renderRoot(commands);
-            this.drawCommands = List.copyOf(commands);
+            if (layoutDirty || paintDirty) {
+                List<DrawCommand> commands = new ArrayList<>();
+                renderRoot(commands);
+                this.drawCommands = List.copyOf(commands);
+            }
             diagnostics.capture(root, drawCommands, focusedComponent == null ? "<none>" : focusedComponent.debugPath(), bindingDump, dumpState(), theme);
             diagnostics.captureTimings(System.nanoTime() - rebuildStart, layoutNanos);
+            layoutDirty = false;
+            paintDirty = false;
+            interactionDirty = false;
         } catch (Throwable throwable) {
             openErrorScreen("rebuild", throwable);
         }
@@ -148,7 +179,11 @@ public class SlateScreen extends Screen implements SlateHost {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         try {
             String path = diagnostics.componentPathAt(mouseX, mouseY);
-            boolean handled = root.mouseClicked(createInteractionContext(), mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
+            boolean handled = root.mouseClicked(createInteractionContext(), mouseX, mouseY, button);
+            if (!handled) {
+                clearFocus(focusedComponent);
+            }
+            handled = handled || super.mouseClicked(mouseX, mouseY, button);
             diagnostics.captureEvent("mouseClicked", path, handled);
             return handled;
         } catch (Throwable throwable) {
@@ -192,12 +227,12 @@ public class SlateScreen extends Screen implements SlateHost {
             }
             if (keyCode == GLFW.GLFW_KEY_F9) {
                 diagnostics.logDiagnostic("DEBUG toggle bounds requested");
-                requestRebuild("debug-bounds");
+                requestInvalidation(InvalidationType.PAINT, "debug-bounds");
                 return true;
             }
             if (keyCode == GLFW.GLFW_KEY_F10) {
                 diagnostics.logDiagnostic("DEBUG toggle hit regions requested");
-                requestRebuild("debug-hit-regions");
+                requestInvalidation(InvalidationType.PAINT, "debug-hit-regions");
                 return true;
             }
             if (keyCode == GLFW.GLFW_KEY_TAB) {
@@ -303,7 +338,7 @@ public class SlateScreen extends Screen implements SlateHost {
             focusedComponent.setFocused(true);
             diagnostics.logDiagnostic("FOCUS " + focusedComponent.debugPath());
         }
-        requestRebuild("focus-change");
+        requestInvalidation(InvalidationType.INTERACTION, "focus-change");
     }
 
     private void measureRoot(SlateLayoutContext layoutContext, Size available) {
@@ -361,22 +396,9 @@ public class SlateScreen extends Screen implements SlateHost {
     }
 
     private void moveFocus(int direction) {
-        List<SlateComponent> focusOrder = new ArrayList<>();
-        collectFocusable(root, focusOrder);
-        if (focusOrder.isEmpty()) {
-            return;
-        }
-        int current = focusedComponent == null ? -1 : focusOrder.indexOf(focusedComponent);
-        int next = Math.floorMod(current + direction, focusOrder.size());
-        setFocusedComponent(focusOrder.get(next));
-    }
-
-    private static void collectFocusable(SlateComponent component, List<SlateComponent> focusOrder) {
-        if (component.focusable() && !component.style().disabled()) {
-            focusOrder.add(component);
-        }
-        for (SlateComponent child : component.children()) {
-            collectFocusable(child, focusOrder);
+        SlateComponent next = SlateFocusTraversal.next(root, focusedComponent, direction);
+        if (next != null) {
+            setFocusedComponent(next);
         }
     }
 

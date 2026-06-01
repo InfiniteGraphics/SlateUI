@@ -19,6 +19,7 @@ import top.huliawsl.slateui.render.DrawRectCommand;
 import top.huliawsl.slateui.render.DrawTextCommand;
 import top.huliawsl.slateui.render.PopClipCommand;
 import top.huliawsl.slateui.render.PushClipCommand;
+import top.huliawsl.slateui.runtime.InvalidationType;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -184,7 +185,7 @@ public class Input extends SlateComponent {
         }
         lastClickMillis = now;
         draggingSelection = true;
-        context.requestRebuild("input-cursor");
+        context.requestInvalidation(InvalidationType.INTERACTION, "input-cursor");
         return true;
     }
 
@@ -192,7 +193,7 @@ public class Input extends SlateComponent {
     public boolean mouseReleased(SlateInteractionContext context, double mouseX, double mouseY, int button) {
         if (draggingSelection) {
             draggingSelection = false;
-            context.requestRebuild("input-selection");
+            context.requestInvalidation(InvalidationType.INTERACTION, "input-selection");
             return true;
         }
         return false;
@@ -202,7 +203,7 @@ public class Input extends SlateComponent {
     public boolean mouseMoved(SlateInteractionContext context, double mouseX, double mouseY) {
         if (draggingSelection) {
             cursor = cursorAt(mouseX);
-            context.requestRebuild("input-drag-selection");
+            context.requestInvalidation(InvalidationType.INTERACTION, "input-drag-selection");
             return true;
         }
         return super.mouseMoved(context, mouseX, mouseY);
@@ -218,7 +219,7 @@ public class Input extends SlateComponent {
         if (control && keyCode == GLFW.GLFW_KEY_A) {
             cursor = draft.length();
             selectionAnchor = 0;
-            context.requestRebuild("input-select-all");
+            context.requestInvalidation(InvalidationType.INTERACTION, "input-select-all");
             return true;
         }
         if (control && keyCode == GLFW.GLFW_KEY_C) {
@@ -246,22 +247,22 @@ public class Input extends SlateComponent {
         }
         if (keyCode == GLFW.GLFW_KEY_LEFT) {
             moveCursor(Math.max(0, cursor - 1), shift);
-            context.requestRebuild("input-left");
+            context.requestInvalidation(InvalidationType.INTERACTION, "input-left");
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_RIGHT) {
             moveCursor(Math.min(draft.length(), cursor + 1), shift);
-            context.requestRebuild("input-right");
+            context.requestInvalidation(InvalidationType.INTERACTION, "input-right");
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_HOME) {
             moveCursor(0, shift);
-            context.requestRebuild("input-home");
+            context.requestInvalidation(InvalidationType.INTERACTION, "input-home");
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_END) {
             moveCursor(draft.length(), shift);
-            context.requestRebuild("input-end");
+            context.requestInvalidation(InvalidationType.INTERACTION, "input-end");
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
@@ -318,7 +319,7 @@ public class Input extends SlateComponent {
         }
         runValueCommand(context, inputCommand, "input");
         runValueCommand(context, changeCommand, "change");
-        context.requestRebuild("input-change");
+        context.requestInvalidation(InvalidationType.LAYOUT, "input-change");
     }
 
     private String fitToMaxLength(String value, int selectionStart, int selectionEnd) {

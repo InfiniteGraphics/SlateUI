@@ -9,6 +9,7 @@ import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.DrawRectCommand;
 import top.huliawsl.slateui.render.PopClipCommand;
 import top.huliawsl.slateui.render.PushClipCommand;
+import top.huliawsl.slateui.runtime.InvalidationType;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -108,7 +109,7 @@ public class ScrollView extends SlateComponent {
         if (nextOffset != scrollOffset) {
             scrollOffset = nextOffset;
             context.logDiagnostic("SCROLL offset=" + scrollOffset);
-            context.requestRebuild("scroll");
+            context.requestInvalidation(InvalidationType.LAYOUT, "scroll");
         }
         return true;
     }

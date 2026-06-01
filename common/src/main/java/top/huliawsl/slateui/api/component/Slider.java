@@ -10,6 +10,7 @@ import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.layout.Size;
 import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.DrawRectCommand;
+import top.huliawsl.slateui.runtime.InvalidationType;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -97,7 +98,7 @@ public final class Slider extends SlateComponent {
                 throw SlateRuntimeException.command(this, changeCommand, throwable);
             }
         }
-        context.requestRebuild("slider-change");
+        context.requestInvalidation(InvalidationType.LAYOUT, "slider-change");
     }
 
     private double normalized() {

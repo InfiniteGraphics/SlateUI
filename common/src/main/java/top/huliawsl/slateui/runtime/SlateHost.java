@@ -26,6 +26,10 @@ public interface SlateHost {
 
     void requestRebuild(String reason);
 
+    default void requestInvalidation(InvalidationType type, String reason) {
+        requestRebuild((type == null ? InvalidationType.LAYOUT : type).name().toLowerCase() + ":" + reason);
+    }
+
     void requestFocus(SlateComponent component);
 
     void clearFocus(SlateComponent component);

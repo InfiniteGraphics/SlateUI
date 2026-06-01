@@ -20,6 +20,7 @@ import top.huliawsl.slateui.render.DrawCommand;
 import top.huliawsl.slateui.render.DrawItemIconCommand;
 import top.huliawsl.slateui.render.DrawRectCommand;
 import top.huliawsl.slateui.render.DrawTextCommand;
+import top.huliawsl.slateui.runtime.InvalidationType;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
@@ -175,7 +176,7 @@ public class SlotGrid extends SlateComponent {
         int nextHovered = slot == null ? -1 : slot.index();
         if (hoveredSlotIndex != nextHovered) {
             hoveredSlotIndex = nextHovered;
-            context.requestRebuild("slot-hover");
+            context.requestInvalidation(InvalidationType.INTERACTION, "slot-hover");
         }
         return super.mouseMoved(context, mouseX, mouseY);
     }

@@ -18,6 +18,7 @@ import top.huliawsl.slateui.api.StackDirection;
 import top.huliawsl.slateui.api.component.Image;
 import top.huliawsl.slateui.api.component.Input;
 import top.huliawsl.slateui.api.component.Button;
+import top.huliawsl.slateui.api.component.Box;
 import top.huliawsl.slateui.api.component.Text;
 import top.huliawsl.slateui.api.component.ScrollView;
 import top.huliawsl.slateui.api.component.Stack;
@@ -437,6 +438,43 @@ class RuntimeComponentsTest {
     }
 
     @Test
+    void clippedParentDoesNotDispatchToChildOutsideContent() {
+        ClickComponent child = new ClickComponent();
+        OverflowParent parent = new OverflowParent(child, SlateStyle.builder()
+            .padding(new top.huliawsl.slateui.layout.Insets(0, 10, 0, 0))
+            .clipContent(true)
+            .build());
+        parent.measure(new SlateLayoutContext(null), new Size(40, 40));
+        parent.layout(new SlateLayoutContext(null), new Rect(0, 0, 40, 40));
+        TestScreen screen = new TestScreen(parent);
+        SlateInteractionContext interaction = new SlateInteractionContext(
+            new top.huliawsl.slateui.command.SlateCommandRegistry(),
+            new top.huliawsl.slateui.command.CommandContext(null, screen),
+            ignored -> {},
+            ignored -> {},
+            screen,
+            top.huliawsl.slateui.api.StateProvider.EMPTY,
+            top.huliawsl.slateui.api.Theme.DEFAULT
+        );
+
+        assertEquals(false, parent.mouseClicked(interaction, 5, 5, 0));
+        assertEquals(0, child.clicks.get());
+    }
+
+    @Test
+    void focusTraversalSkipsDisabledSubtrees() {
+        Button disabledChild = new Button("Disabled", null, SlateStyle.EMPTY);
+        Box disabledParent = new Box(List.of(disabledChild), SlateStyle.builder().disabled(true).build());
+        Button enabled = new Button("Enabled", null, SlateStyle.EMPTY);
+        Stack root = new Stack(StackDirection.COLUMN, List.of(disabledParent, enabled), SlateStyle.EMPTY);
+        TestScreen screen = new TestScreen(root);
+
+        assertTrue(screen.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
+
+        assertEquals(enabled, screen.focusedComponent());
+    }
+
+    @Test
     void providerNotifiesListenersOnDirtyUpdate() {
         MutableStateProvider provider = new MutableStateProvider();
         MutableString dirtyPath = new MutableString();
@@ -604,6 +642,38 @@ class RuntimeComponentsTest {
 
     private static final class MutableString {
         private String value = "";
+    }
+
+    private static final class OverflowParent extends SlateComponent {
+
+        private final SlateComponent child;
+
+        private OverflowParent(SlateComponent child, SlateStyle style) {
+            super(style);
+            this.child = child;
+        }
+
+        @Override
+        public List<SlateComponent> children() {
+            return List.of(child);
+        }
+
+        @Override
+        public Size measure(SlateLayoutContext context, Size available) {
+            measureChild(context, child, available);
+            setMeasuredSize(available);
+            return available;
+        }
+
+        @Override
+        public void layout(SlateLayoutContext context, Rect bounds) {
+            setBounds(bounds);
+            layoutChild(context, child, new Rect(bounds.x(), bounds.y(), bounds.width(), bounds.height()));
+        }
+
+        @Override
+        public void collectDrawCommands(SlateRenderContext context, List<top.huliawsl.slateui.render.DrawCommand> commands) {
+        }
     }
 
     private static final class LifecycleComponent extends FixedComponent {

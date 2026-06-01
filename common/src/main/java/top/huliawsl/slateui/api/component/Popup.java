@@ -72,16 +72,26 @@ public class Popup extends SlateComponent {
 
     @Override
     public boolean mouseClicked(SlateInteractionContext context, double mouseX, double mouseY, int button) {
-        if (open() && popup.mouseClicked(context, mouseX, mouseY, button)) {
-            return true;
+        if (open()) {
+            if (popup.mouseClicked(context, mouseX, mouseY, button)) {
+                return true;
+            }
+            if (popupBounds.contains(mouseX, mouseY)) {
+                return true;
+            }
         }
         return anchor.mouseClicked(context, mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseReleased(SlateInteractionContext context, double mouseX, double mouseY, int button) {
-        if (open() && popup.mouseReleased(context, mouseX, mouseY, button)) {
-            return true;
+        if (open()) {
+            if (popup.mouseReleased(context, mouseX, mouseY, button)) {
+                return true;
+            }
+            if (popupBounds.contains(mouseX, mouseY)) {
+                return true;
+            }
         }
         return anchor.mouseReleased(context, mouseX, mouseY, button);
     }
@@ -97,8 +107,13 @@ public class Popup extends SlateComponent {
 
     @Override
     public boolean mouseScrolled(SlateInteractionContext context, double mouseX, double mouseY, double delta) {
-        if (open() && popup.mouseScrolled(context, mouseX, mouseY, delta)) {
-            return true;
+        if (open()) {
+            if (popup.mouseScrolled(context, mouseX, mouseY, delta)) {
+                return true;
+            }
+            if (popupBounds.contains(mouseX, mouseY)) {
+                return true;
+            }
         }
         return anchor.mouseScrolled(context, mouseX, mouseY, delta);
     }
