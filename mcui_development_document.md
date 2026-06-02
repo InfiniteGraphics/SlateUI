@@ -198,6 +198,7 @@ Kotlin DSL 可以做，但必须是可选模块。
 暂不进入：
 
 - Container / Slot；
+- SlotGrid 固定槽位网格；
 - HUD overlay；
 - World-space UI；
 - server-driven UI。
@@ -999,9 +1000,10 @@ MVP 不做 `<script>`。
 - StackColumn；
 - Absolute；
 - Overlay；
-- ScrollView。
+- ScrollView；
+- SlotGrid。
 
-FixedGrid 放 MVP 1 或 MVP 2。
+SlotGrid 的定位是“固定槽位网格”：面向 inventory / container 这类固定大小、固定间距、按序号命中的槽位 UI。它不是通用布局系统，不等价于 CSS Grid，也不承诺 grid-template、auto-placement、area 等 CSS Grid 能力。
 
 不承诺完整 Flexbox / CSS Grid。
 
@@ -1070,7 +1072,7 @@ ScrollView 是第一阶段重要组件。
 - gap；
 - background；
 - border；
-- radius；
+- border-radius / radius token；
 - opacity；
 - text color；
 - align；
@@ -1138,11 +1140,12 @@ DrawCommand 应支持：
 
 - push clip；
 - pop clip；
-- draw rect；
-- draw border；
+- draw rect，包括圆角矩形；
+- draw border，包括圆角边框；
 - draw text；
 - draw image；
 - draw debug rect；
+- rounded clip metadata，第一阶段由矩形 scissor 兜底，rect / border 命令按圆角边界裁切；
 - 后续 draw slot。
 
 需要 layer / z-order / pass 概念：
@@ -1469,6 +1472,7 @@ Fabric 和 NeoForge 1.21.x 都能运行。
 
 - server intent command；
 - Container / Slot；
+- SlotGrid 固定槽位网格；
 - HUD；
 - World-space UI；
 - advanced inspector；
