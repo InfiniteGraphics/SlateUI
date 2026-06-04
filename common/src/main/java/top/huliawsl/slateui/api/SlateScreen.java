@@ -28,6 +28,7 @@ import top.huliawsl.slateui.runtime.SlateHost;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.runtime.SlateLayoutContext;
 import top.huliawsl.slateui.runtime.SlateRenderContext;
+import top.huliawsl.slateui.runtime.SlateCursor;
 
 public class SlateScreen extends Screen implements SlateHost {
 
@@ -154,7 +155,7 @@ public class SlateScreen extends Screen implements SlateHost {
                 rebuildRuntime();
             }
             diagnostics.capturePointer(mouseX, mouseY);
-            guiGraphics.fill(0, 0, width, height, BACKGROUND_COLOR);
+            renderSlateBackground(guiGraphics, mouseX, mouseY, partialTick);
             MinecraftSlateRenderer renderer = new MinecraftSlateRenderer(guiGraphics, font);
             try {
                 DrawCommandDispatcher.render(drawCommands, renderer);
@@ -166,10 +167,24 @@ public class SlateScreen extends Screen implements SlateHost {
         }
     }
 
+    protected void renderSlateBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        guiGraphics.fill(0, 0, width, height, BACKGROUND_COLOR);
+    }
+
+    protected boolean shouldDispatchPointerEvent(double mouseX, double mouseY, String eventName) {
+        return true;
+    }
+
+    protected boolean shouldDispatchKeyboardEvent(String eventName) {
+        return true;
+    }
+
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
         try {
-            root.mouseMoved(createInteractionContext(), mouseX, mouseY);
+            if (shouldDispatchPointerEvent(mouseX, mouseY, "mouseMoved")) {
+                root.mouseMoved(createInteractionContext(), mouseX, mouseY);
+            }
         } catch (Throwable throwable) {
             openErrorScreen("mouseMoved", throwable);
         }
@@ -178,6 +193,9 @@ public class SlateScreen extends Screen implements SlateHost {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         try {
+            if (!shouldDispatchPointerEvent(mouseX, mouseY, "mouseClicked")) {
+                return false;
+            }
             String path = diagnostics.componentPathAt(mouseX, mouseY);
             boolean handled = root.mouseClicked(createInteractionContext(currentPointerModifiers()), mouseX, mouseY, button);
             if (!handled) {
@@ -195,6 +213,9 @@ public class SlateScreen extends Screen implements SlateHost {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         try {
+            if (!shouldDispatchPointerEvent(mouseX, mouseY, "mouseReleased")) {
+                return false;
+            }
             String path = diagnostics.componentPathAt(mouseX, mouseY);
             boolean handled = root.mouseReleased(createInteractionContext(currentPointerModifiers()), mouseX, mouseY, button) || super.mouseReleased(mouseX, mouseY, button);
             diagnostics.captureEvent("mouseReleased", path, handled);
@@ -208,6 +229,9 @@ public class SlateScreen extends Screen implements SlateHost {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         try {
+            if (!shouldDispatchPointerEvent(mouseX, mouseY, "mouseDragged")) {
+                return false;
+            }
             String path = diagnostics.componentPathAt(mouseX, mouseY);
             boolean handled = root.mouseDragged(createInteractionContext(currentPointerModifiers()), mouseX, mouseY, button, dragX, dragY)
                 || super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
@@ -222,6 +246,9 @@ public class SlateScreen extends Screen implements SlateHost {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         try {
+            if (!shouldDispatchPointerEvent(mouseX, mouseY, "mouseScrolled")) {
+                return false;
+            }
             String path = diagnostics.componentPathAt(mouseX, mouseY);
             boolean handled = root.mouseScrolled(createInteractionContext(currentPointerModifiers()), mouseX, mouseY, scrollY) || super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
             diagnostics.captureEvent("mouseScrolled", path, handled);
@@ -249,6 +276,9 @@ public class SlateScreen extends Screen implements SlateHost {
                 requestInvalidation(InvalidationType.PAINT, "debug-hit-regions");
                 return true;
             }
+            if (!shouldDispatchKeyboardEvent("keyPressed")) {
+                return false;
+            }
             if (keyCode == GLFW.GLFW_KEY_TAB) {
                 moveFocus((modifiers & GLFW.GLFW_MOD_SHIFT) != 0 ? -1 : 1);
                 return true;
@@ -271,6 +301,9 @@ public class SlateScreen extends Screen implements SlateHost {
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
         try {
+            if (!shouldDispatchKeyboardEvent("charTyped")) {
+                return false;
+            }
             if (focusedComponent != null && focusedComponent.charTyped(createInteractionContext(modifiers), codePoint, modifiers)) {
                 return true;
             }
@@ -338,6 +371,31 @@ public class SlateScreen extends Screen implements SlateHost {
     @Override
     public void reportDiagnostic(String entry) {
         diagnostics.logDiagnostic(entry);
+    }
+
+    @Override
+    public void requestPointerCapture(String reason) {
+        long window = Minecraft.getInstance().getWindow().getWindow();
+        GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
+        diagnostics.logDiagnostic("POINTER capture " + reason);
+    }
+
+    @Override
+    public void releasePointerCapture(String reason) {
+        long window = Minecraft.getInstance().getWindow().getWindow();
+        GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
+        diagnostics.logDiagnostic("POINTER release " + reason);
+    }
+
+    @Override
+    public void setCursor(SlateCursor cursor) {
+        if (cursor == SlateCursor.HIDDEN) {
+            long window = Minecraft.getInstance().getWindow().getWindow();
+            GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_HIDDEN);
+        } else {
+            long window = Minecraft.getInstance().getWindow().getWindow();
+            GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
+        }
     }
 
     public void setFocusedComponent(SlateComponent component) {

@@ -6,12 +6,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import top.huliawsl.slateui.api.SlateText;
 import top.huliawsl.slateui.layout.Insets;
+import top.huliawsl.slateui.layout.Point;
 import top.huliawsl.slateui.layout.Rect;
 import top.huliawsl.slateui.runtime.SlateRenderer;
 
 public final class MinecraftSlateRenderer implements SlateRenderer {
 
-    private static final Capabilities CAPABILITIES = new Capabilities(true, true, true, false, true);
+    private static final Capabilities CAPABILITIES = new Capabilities(true, true, true, false, true, true, true);
 
     private final GuiGraphics graphics;
     private final Font font;
@@ -92,6 +93,31 @@ public final class MinecraftSlateRenderer implements SlateRenderer {
         fill(rect, 0xFF7F1D1D, 0);
         drawBorder(rect, 0xFFFCA5A5, 1, 0);
         drawText(rect.x() + 4, rect.y() + 4, new SlateText.Literal(texture), 0xFFFFFFFF);
+    }
+
+    @Override
+    public void drawLine(Point start, Point end, int color, int thickness) {
+        if (start == null || end == null) {
+            return;
+        }
+        int clampedThickness = Math.max(1, thickness);
+        int dx = end.x() - start.x();
+        int dy = end.y() - start.y();
+        int steps = Math.max(Math.abs(dx), Math.abs(dy));
+        if (steps == 0) {
+            fill(new Rect(start.x(), start.y(), clampedThickness, clampedThickness), color, 0);
+            return;
+        }
+        for (int step = 0; step <= steps; step++) {
+            int x = start.x() + Math.round(dx * (step / (float) steps));
+            int y = start.y() + Math.round(dy * (step / (float) steps));
+            fill(new Rect(x - clampedThickness / 2, y - clampedThickness / 2, clampedThickness, clampedThickness), color, 0);
+        }
+    }
+
+    @Override
+    public Object nativeSurface() {
+        return graphics;
     }
 
     @Override

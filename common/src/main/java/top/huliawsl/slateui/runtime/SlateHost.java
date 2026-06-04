@@ -52,6 +52,15 @@ public interface SlateHost {
     default void reportDiagnostic(String entry) {
     }
 
+    default void requestPointerCapture(String reason) {
+    }
+
+    default void releasePointerCapture(String reason) {
+    }
+
+    default void setCursor(SlateCursor cursor) {
+    }
+
     default StateProvider stateProvider() {
         return StateProvider.EMPTY;
     }

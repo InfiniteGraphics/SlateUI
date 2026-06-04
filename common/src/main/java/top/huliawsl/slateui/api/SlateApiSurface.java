@@ -16,6 +16,7 @@ public final class SlateApiSurface {
         return Set.of(
             "top.huliawsl.slateui.api",
             "top.huliawsl.slateui.api.component",
+            "top.huliawsl.slateui.api.overlay",
             "top.huliawsl.slateui.binding",
             "top.huliawsl.slateui.command",
             "top.huliawsl.slateui.layout",
@@ -57,7 +58,12 @@ public final class SlateApiSurface {
             "Toggle",
             "Image",
             "ScrollView",
-            "List"
+            "List",
+            "SelectableList",
+            "SelectableCardGrid",
+            "ParameterForm",
+            "ResizableSplitPane",
+            "Canvas"
         );
     }
 
@@ -93,6 +99,9 @@ public final class SlateApiSurface {
             "Java API",
             "Texture/text rendering",
             "Input/focus",
+            "Editor surface components",
+            "Canvas/raw draw",
+            "Overlay screens",
             "Loader support for selected MC versions"
         );
     }
