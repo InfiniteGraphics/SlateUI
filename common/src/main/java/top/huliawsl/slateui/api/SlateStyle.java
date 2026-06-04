@@ -8,6 +8,8 @@ public final class SlateStyle {
 
     public static final SlateStyle EMPTY = SlateStyle.builder().build();
 
+    private final String styleClass;
+    private final String variant;
     private final Integer width;
     private final Integer height;
     private final Integer minWidth;
@@ -37,6 +39,8 @@ public final class SlateStyle {
     private final Boolean clipContent;
 
     private SlateStyle(Builder builder) {
+        this.styleClass = builder.styleClass;
+        this.variant = builder.variant;
         this.width = builder.width;
         this.height = builder.height;
         this.minWidth = builder.minWidth;
@@ -78,6 +82,8 @@ public final class SlateStyle {
             return defaults;
         }
         Builder builder = builder();
+        builder.styleClass = override.styleClass != null ? override.styleClass : defaults.styleClass;
+        builder.variant = override.variant != null ? override.variant : defaults.variant;
         builder.width = override.width != null ? override.width : defaults.width;
         builder.height = override.height != null ? override.height : defaults.height;
         builder.minWidth = override.minWidth != null ? override.minWidth : defaults.minWidth;
@@ -106,6 +112,14 @@ public final class SlateStyle {
         builder.disabled = override.disabled != null ? override.disabled : defaults.disabled;
         builder.clipContent = override.clipContent != null ? override.clipContent : defaults.clipContent;
         return builder.build();
+    }
+
+    public String styleClass() {
+        return styleClass;
+    }
+
+    public String variant() {
+        return variant;
     }
 
     public Integer width() {
@@ -228,7 +242,9 @@ public final class SlateStyle {
         int resolvedRadius = resolvedTheme.resolveRadius(borderRadius, borderRadiusToken, 0);
         int resolvedGap = resolvedTheme.resolveSpacing(gap, gapToken, gap());
         String background = resolvedBackground == Integer.MIN_VALUE ? "<none>" : String.format("#%08X", resolvedBackground);
-        return "size=" + nullable(width) + "x" + nullable(height)
+        return "class=" + (styleClass == null ? "<none>" : styleClass)
+            + " variant=" + (variant == null ? "<none>" : variant)
+            + " size=" + nullable(width) + "x" + nullable(height)
             + " min=" + nullable(minWidth) + "x" + nullable(minHeight)
             + " max=" + nullable(maxWidth) + "x" + nullable(maxHeight)
             + " padding=" + padding()
@@ -289,6 +305,8 @@ public final class SlateStyle {
 
     public static final class Builder {
 
+        private String styleClass;
+        private String variant;
         private Integer width;
         private Integer height;
         private Integer minWidth;
@@ -318,6 +336,16 @@ public final class SlateStyle {
         private Boolean clipContent;
 
         private Builder() {
+        }
+
+        public Builder styleClass(String styleClass) {
+            this.styleClass = styleClass == null || styleClass.isBlank() ? null : styleClass;
+            return this;
+        }
+
+        public Builder variant(String variant) {
+            this.variant = variant == null || variant.isBlank() ? null : variant;
+            return this;
         }
 
         public Builder width(int width) {

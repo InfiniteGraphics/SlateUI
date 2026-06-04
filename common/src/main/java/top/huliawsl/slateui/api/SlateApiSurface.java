@@ -62,8 +62,11 @@ public final class SlateApiSurface {
             "SelectableList",
             "SelectableCardGrid",
             "ParameterForm",
+            "PropertyGrid",
+            "DataTable",
             "ResizableSplitPane",
-            "Canvas"
+            "Canvas",
+            "CanvasViewport"
         );
     }
 
@@ -94,6 +97,8 @@ public final class SlateApiSurface {
             "Style/theme",
             "State/binding",
             "Commands",
+            "Shortcuts",
+            "Selection model",
             "Diagnostics",
             ".slate basic authoring",
             "Java API",
@@ -113,7 +118,8 @@ public final class SlateApiSurface {
             "World-space UI",
             "Visual editor",
             "Scripting integrations",
-            "Advanced animation"
+            "Advanced animation",
+            "Undo/redo"
         );
     }
 }

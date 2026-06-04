@@ -243,20 +243,21 @@ public abstract class SlateComponent {
     }
 
     public boolean mouseReleased(SlateInteractionContext context, double mouseX, double mouseY, int button) {
+        boolean captured = context.isPointerCaptured(this);
         boolean wasPressed = pressed;
         setPressed(false);
         if (wasPressed) {
             context.requestInvalidation(InvalidationType.INTERACTION, "release:" + debugName());
         }
         List<SlateComponent> children = children();
-        if (childrenCanReceivePointer(mouseX, mouseY)) {
+        if (!captured && childrenCanReceivePointer(mouseX, mouseY)) {
             for (int index = children.size() - 1; index >= 0; index--) {
                 if (children.get(index).mouseReleased(context, mouseX, mouseY, button)) {
                     return true;
                 }
             }
         }
-        return wasPressed && bounds.contains(mouseX, mouseY);
+        return wasPressed && (captured || bounds.contains(mouseX, mouseY));
     }
 
     public boolean mouseMoved(SlateInteractionContext context, double mouseX, double mouseY) {
@@ -300,16 +301,19 @@ public abstract class SlateComponent {
     }
 
     public boolean mouseDragged(SlateInteractionContext context, double mouseX, double mouseY, int button, double dragX, double dragY) {
-        if (style.disabled() || !bounds.contains(mouseX, mouseY) || !childrenCanReceivePointer(mouseX, mouseY)) {
+        boolean captured = context.isPointerCaptured(this);
+        if (style.disabled() || (!captured && (!bounds.contains(mouseX, mouseY) || !childrenCanReceivePointer(mouseX, mouseY)))) {
             return false;
         }
-        List<SlateComponent> children = children();
-        for (int index = children.size() - 1; index >= 0; index--) {
-            if (children.get(index).mouseDragged(context, mouseX, mouseY, button, dragX, dragY)) {
-                return true;
+        if (!captured) {
+            List<SlateComponent> children = children();
+            for (int index = children.size() - 1; index >= 0; index--) {
+                if (children.get(index).mouseDragged(context, mouseX, mouseY, button, dragX, dragY)) {
+                    return true;
+                }
             }
         }
-        return pressed;
+        return pressed || captured;
     }
 
     public boolean keyPressed(SlateInteractionContext context, int keyCode, int scanCode, int modifiers) {
