@@ -6,5 +6,9 @@ public enum SlatePseudoClass {
     FOCUS,
     DISABLED,
     CHECKED,
-    SELECTED
+    SELECTED,
+    ERROR,
+    WARNING,
+    DRAGGING,
+    DROP_TARGET
 }
