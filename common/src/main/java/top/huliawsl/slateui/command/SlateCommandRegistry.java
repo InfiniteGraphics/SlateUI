@@ -14,19 +14,22 @@ import top.huliawsl.slateui.server.SlateServerIntentBridge;
 public final class SlateCommandRegistry {
 
     private final Map<String, Consumer<CommandContext>> commands;
+    private final Map<String, SlateCommand> commandModels;
     private final Set<String> serverIntentCommands;
     private final SlateServerIntentBridge serverIntentBridge;
 
     public SlateCommandRegistry() {
-        this(new LinkedHashMap<>(), new LinkedHashSet<>(), SlateServerIntentBridge.noop());
+        this(new LinkedHashMap<>(), new LinkedHashMap<>(), new LinkedHashSet<>(), SlateServerIntentBridge.noop());
     }
 
     private SlateCommandRegistry(
         Map<String, Consumer<CommandContext>> commands,
+        Map<String, SlateCommand> commandModels,
         Set<String> serverIntentCommands,
         SlateServerIntentBridge serverIntentBridge
     ) {
         this.commands = new LinkedHashMap<>(commands);
+        this.commandModels = new LinkedHashMap<>(commandModels);
         this.serverIntentCommands = new LinkedHashSet<>(serverIntentCommands);
         this.serverIntentBridge = Objects.requireNonNull(serverIntentBridge, "serverIntentBridge");
     }
@@ -36,13 +39,28 @@ public final class SlateCommandRegistry {
         return this;
     }
 
+    public SlateCommandRegistry register(SlateCommand command) {
+        Objects.requireNonNull(command, "command");
+        commandModels.put(command.id(), command);
+        commands.put(command.id(), command::execute);
+        return this;
+    }
+
+    public Optional<SlateCommand> commandModel(String id) {
+        return Optional.ofNullable(commandModels.get(id));
+    }
+
+    public Set<SlateCommand> commandModels() {
+        return Set.copyOf(commandModels.values());
+    }
+
     public SlateCommandRegistry registerServerIntent(String id) {
         serverIntentCommands.add(Objects.requireNonNull(id, "id"));
         return this;
     }
 
     public SlateCommandRegistry withServerIntentBridge(SlateServerIntentBridge bridge) {
-        return new SlateCommandRegistry(commands, serverIntentCommands, bridge);
+        return new SlateCommandRegistry(commands, commandModels, serverIntentCommands, bridge);
     }
 
     public boolean execute(String id, CommandContext context) {
@@ -94,6 +112,6 @@ public final class SlateCommandRegistry {
     }
 
     public SlateCommandRegistry copy() {
-        return new SlateCommandRegistry(commands, serverIntentCommands, serverIntentBridge);
+        return new SlateCommandRegistry(commands, commandModels, serverIntentCommands, serverIntentBridge);
     }
 }
