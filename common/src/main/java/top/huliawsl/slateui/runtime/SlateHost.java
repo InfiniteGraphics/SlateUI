@@ -52,13 +52,40 @@ public interface SlateHost {
     default void reportDiagnostic(String entry) {
     }
 
+    /**
+     * Legacy global pointer capture hook. Prefer capturePointer(component, button, reason)
+     * for component-level drag capture.
+     */
     default void requestPointerCapture(String reason) {
     }
 
+    /**
+     * Legacy global pointer capture release hook. Prefer releasePointer(component, reason).
+     */
     default void releasePointerCapture(String reason) {
     }
 
+    default void capturePointer(SlateComponent component, int button, String reason) {
+        requestPointerCapture(reason);
+    }
+
+    default void releasePointer(SlateComponent component, String reason) {
+        releasePointerCapture(reason);
+    }
+
+    default SlateComponent capturedPointer() {
+        return null;
+    }
+
+    default boolean isPointerCaptured(SlateComponent component) {
+        return component != null && capturedPointer() == component;
+    }
+
     default void setCursor(SlateCursor cursor) {
+    }
+
+    default SlateDragDropManager dragDropManager() {
+        return new SlateDragDropManager();
     }
 
     default StateProvider stateProvider() {

@@ -131,4 +131,28 @@ public final class SlateInteractionContext {
     public void clearFocus(SlateComponent component) {
         host.clearFocus(component);
     }
+
+    public void capturePointer(SlateComponent component, int button, String reason) {
+        host.capturePointer(component, button, reason);
+    }
+
+    public void releasePointer(SlateComponent component, String reason) {
+        host.releasePointer(component, reason);
+    }
+
+    public SlateComponent capturedPointer() {
+        return host.capturedPointer();
+    }
+
+    public boolean isPointerCaptured(SlateComponent component) {
+        return host.isPointerCaptured(component);
+    }
+
+    public void setCursor(SlateCursor cursor) {
+        host.setCursor(cursor);
+    }
+
+    public SlateDragDropManager dragDropManager() {
+        return host.dragDropManager();
+    }
 }

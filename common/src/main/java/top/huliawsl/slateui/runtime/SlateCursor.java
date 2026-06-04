@@ -5,8 +5,13 @@ public enum SlateCursor {
     POINTER,
     TEXT,
     CROSSHAIR,
+    MOVE,
+    GRAB,
+    GRABBING,
     RESIZE_HORIZONTAL,
     RESIZE_VERTICAL,
-    MOVE,
+    RESIZE_DIAGONAL_NE_SW,
+    RESIZE_DIAGONAL_NW_SE,
+    NOT_ALLOWED,
     HIDDEN
 }
