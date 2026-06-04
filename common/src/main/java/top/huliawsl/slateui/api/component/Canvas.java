@@ -26,19 +26,29 @@ public final class Canvas extends SlateComponent {
 
     private final CanvasPainter painter;
     private final CanvasInputHandler inputHandler;
+    private final CanvasViewport viewport;
     private final int preferredWidth;
     private final int preferredHeight;
 
     public Canvas(CanvasPainter painter, CanvasInputHandler inputHandler, int preferredWidth, int preferredHeight, SlateStyle style) {
+        this(painter, inputHandler, null, preferredWidth, preferredHeight, style);
+    }
+
+    public Canvas(CanvasPainter painter, CanvasInputHandler inputHandler, CanvasViewport viewport, int preferredWidth, int preferredHeight, SlateStyle style) {
         super(SlateStyle.withDefaults(DEFAULT_STYLE, style));
         this.painter = painter == null ? ignored -> {} : painter;
         this.inputHandler = inputHandler;
+        this.viewport = viewport;
         this.preferredWidth = Math.max(0, preferredWidth);
         this.preferredHeight = Math.max(0, preferredHeight);
     }
 
     public Canvas(CanvasPainter painter, int preferredWidth, int preferredHeight, SlateStyle style) {
-        this(painter, null, preferredWidth, preferredHeight, style);
+        this(painter, null, null, preferredWidth, preferredHeight, style);
+    }
+
+    public CanvasViewport viewport() {
+        return viewport;
     }
 
     @Override
@@ -69,7 +79,7 @@ public final class Canvas extends SlateComponent {
         if (!canHandle(mouseX, mouseY)) {
             return false;
         }
-        boolean handled = dispatch(context, CanvasPointerEvent.click(mouseX, mouseY, button, contentRect(bounds())));
+        boolean handled = dispatch(context, CanvasPointerEvent.click(mouseX, mouseY, button, contentRect(bounds()), viewport));
         if (handled) {
             setPressed(true);
             context.requestFocus(this);
@@ -80,7 +90,7 @@ public final class Canvas extends SlateComponent {
 
     @Override
     public boolean mouseReleased(SlateInteractionContext context, double mouseX, double mouseY, int button) {
-        boolean handled = dispatch(context, CanvasPointerEvent.release(mouseX, mouseY, button, contentRect(bounds())));
+        boolean handled = dispatch(context, CanvasPointerEvent.release(mouseX, mouseY, button, contentRect(bounds()), viewport));
         if (isPressed()) {
             setPressed(false);
             context.requestInvalidation(InvalidationType.INTERACTION, "canvas-release");
@@ -96,7 +106,7 @@ public final class Canvas extends SlateComponent {
         if (!inside) {
             return false;
         }
-        return dispatch(context, CanvasPointerEvent.move(mouseX, mouseY, contentRect(bounds())));
+        return dispatch(context, CanvasPointerEvent.move(mouseX, mouseY, contentRect(bounds()), viewport));
     }
 
     @Override
@@ -104,7 +114,7 @@ public final class Canvas extends SlateComponent {
         if (!isPressed() && !canHandle(mouseX, mouseY)) {
             return false;
         }
-        return dispatch(context, CanvasPointerEvent.drag(mouseX, mouseY, button, dragX, dragY, contentRect(bounds())));
+        return dispatch(context, CanvasPointerEvent.drag(mouseX, mouseY, button, dragX, dragY, contentRect(bounds()), viewport));
     }
 
     @Override
@@ -112,7 +122,7 @@ public final class Canvas extends SlateComponent {
         if (!canHandle(mouseX, mouseY)) {
             return false;
         }
-        return dispatch(context, CanvasPointerEvent.scroll(mouseX, mouseY, delta, contentRect(bounds())));
+        return dispatch(context, CanvasPointerEvent.scroll(mouseX, mouseY, delta, contentRect(bounds()), viewport));
     }
 
     private boolean canHandle(double mouseX, double mouseY) {
