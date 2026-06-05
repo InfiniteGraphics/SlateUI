@@ -3,6 +3,7 @@ package top.huliawsl.slateui.command;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import top.huliawsl.slateui.security.SlateCommandCapability;
 
 public final class SlateCommand {
 
@@ -10,6 +11,7 @@ public final class SlateCommand {
     private final String title;
     private final String description;
     private final SlateShortcut shortcut;
+    private final SlateCommandCapability capability;
     private final Predicate<CommandContext> enabled;
     private final Predicate<CommandContext> visible;
     private final Consumer<CommandContext> handler;
@@ -19,6 +21,7 @@ public final class SlateCommand {
         this.title = builder.title == null || builder.title.isBlank() ? builder.id : builder.title;
         this.description = builder.description == null ? "" : builder.description;
         this.shortcut = builder.shortcut;
+        this.capability = builder.capability == null ? SlateCommandCapability.LOCAL_SAFE : builder.capability;
         this.enabled = builder.enabled == null ? ignored -> true : builder.enabled;
         this.visible = builder.visible == null ? ignored -> true : builder.visible;
         this.handler = Objects.requireNonNull(builder.handler, "handler");
@@ -44,6 +47,10 @@ public final class SlateCommand {
         return shortcut;
     }
 
+    public SlateCommandCapability capability() {
+        return capability;
+    }
+
     public boolean enabled(CommandContext context) {
         return enabled.test(context);
     }
@@ -61,6 +68,7 @@ public final class SlateCommand {
         private String title;
         private String description;
         private SlateShortcut shortcut;
+        private SlateCommandCapability capability;
         private Predicate<CommandContext> enabled;
         private Predicate<CommandContext> visible;
         private Consumer<CommandContext> handler;
@@ -81,6 +89,11 @@ public final class SlateCommand {
 
         public Builder shortcut(SlateShortcut shortcut) {
             this.shortcut = shortcut;
+            return this;
+        }
+
+        public Builder capability(SlateCommandCapability capability) {
+            this.capability = capability;
             return this;
         }
 

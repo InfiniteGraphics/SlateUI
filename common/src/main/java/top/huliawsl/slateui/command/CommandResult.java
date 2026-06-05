@@ -12,4 +12,8 @@ public record CommandResult(boolean executed, String message) {
     public static CommandResult missing(String message) {
         return new CommandResult(false, message == null || message.isBlank() ? "missing" : message);
     }
+
+    public static CommandResult rejected(String message) {
+        return new CommandResult(false, message == null || message.isBlank() ? "rejected" : "rejected: " + message);
+    }
 }

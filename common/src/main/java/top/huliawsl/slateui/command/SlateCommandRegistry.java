@@ -10,6 +10,9 @@ import java.util.function.Consumer;
 import top.huliawsl.slateui.runtime.SlateInteractionContext;
 import top.huliawsl.slateui.server.SlateServerIntent;
 import top.huliawsl.slateui.server.SlateServerIntentBridge;
+import top.huliawsl.slateui.security.SlateCommandCapability;
+import top.huliawsl.slateui.security.SlateCommandSecurityPolicy;
+import top.huliawsl.slateui.security.SlateSecurityDecision;
 
 public final class SlateCommandRegistry {
 
@@ -17,21 +20,24 @@ public final class SlateCommandRegistry {
     private final Map<String, SlateCommand> commandModels;
     private final Set<String> serverIntentCommands;
     private final SlateServerIntentBridge serverIntentBridge;
+    private final SlateCommandSecurityPolicy securityPolicy;
 
     public SlateCommandRegistry() {
-        this(new LinkedHashMap<>(), new LinkedHashMap<>(), new LinkedHashSet<>(), SlateServerIntentBridge.noop());
+        this(new LinkedHashMap<>(), new LinkedHashMap<>(), new LinkedHashSet<>(), SlateServerIntentBridge.noop(), SlateCommandSecurityPolicy.trustedClient());
     }
 
     private SlateCommandRegistry(
         Map<String, Consumer<CommandContext>> commands,
         Map<String, SlateCommand> commandModels,
         Set<String> serverIntentCommands,
-        SlateServerIntentBridge serverIntentBridge
+        SlateServerIntentBridge serverIntentBridge,
+        SlateCommandSecurityPolicy securityPolicy
     ) {
         this.commands = new LinkedHashMap<>(commands);
         this.commandModels = new LinkedHashMap<>(commandModels);
         this.serverIntentCommands = new LinkedHashSet<>(serverIntentCommands);
         this.serverIntentBridge = Objects.requireNonNull(serverIntentBridge, "serverIntentBridge");
+        this.securityPolicy = Objects.requireNonNullElseGet(securityPolicy, SlateCommandSecurityPolicy::localOnly);
     }
 
     public SlateCommandRegistry register(String id, Consumer<CommandContext> handler) {
@@ -60,7 +66,11 @@ public final class SlateCommandRegistry {
     }
 
     public SlateCommandRegistry withServerIntentBridge(SlateServerIntentBridge bridge) {
-        return new SlateCommandRegistry(commands, commandModels, serverIntentCommands, bridge);
+        return new SlateCommandRegistry(commands, commandModels, serverIntentCommands, bridge, securityPolicy);
+    }
+
+    public SlateCommandRegistry withSecurityPolicy(SlateCommandSecurityPolicy policy) {
+        return new SlateCommandRegistry(commands, commandModels, serverIntentCommands, serverIntentBridge, policy);
     }
 
     public boolean execute(String id, CommandContext context) {
@@ -71,6 +81,12 @@ public final class SlateCommandRegistry {
         Consumer<CommandContext> handler = commands.get(id);
         if (handler == null) {
             return CommandResult.MISSING;
+        }
+        SlateCommand command = commandModels.get(id);
+        SlateCommandCapability capability = command == null ? SlateCommandCapability.LOCAL_SAFE : command.capability();
+        SlateSecurityDecision decision = securityPolicy.evaluate(id, capability);
+        if (!decision.allowed()) {
+            return CommandResult.rejected(decision.reason());
         }
         handler.accept(context);
         return CommandResult.EXECUTED;
@@ -87,11 +103,21 @@ public final class SlateCommandRegistry {
     public CommandResult executeResult(String id, SlateInteractionContext context, Map<String, Object> payload) {
         Consumer<CommandContext> handler = commands.get(id);
         if (handler != null) {
+            SlateCommand command = commandModels.get(id);
+            SlateCommandCapability capability = command == null ? SlateCommandCapability.LOCAL_SAFE : command.capability();
+            SlateSecurityDecision decision = securityPolicy.evaluate(id, capability);
+            if (!decision.allowed()) {
+                return CommandResult.rejected(decision.reason());
+            }
             handler.accept(context.commandContext().withPayload(payload));
             return CommandResult.EXECUTED;
         }
         if (!serverIntentCommands.contains(id)) {
             return CommandResult.MISSING;
+        }
+        SlateSecurityDecision decision = securityPolicy.evaluate(id, SlateCommandCapability.SERVER_INTENT);
+        if (!decision.allowed()) {
+            return CommandResult.rejected(decision.reason());
         }
         CommandContext commandContext = context.commandContext().withPayload(payload);
         String title = commandContext.host().title();
@@ -112,6 +138,6 @@ public final class SlateCommandRegistry {
     }
 
     public SlateCommandRegistry copy() {
-        return new SlateCommandRegistry(commands, commandModels, serverIntentCommands, serverIntentBridge);
+        return new SlateCommandRegistry(commands, commandModels, serverIntentCommands, serverIntentBridge, securityPolicy);
     }
 }
