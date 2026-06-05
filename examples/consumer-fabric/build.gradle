@@ -1,0 +1,19 @@
+plugins {
+    id 'fabric-loom' version '1.7-SNAPSHOT'
+}
+
+group = 'example.slateui'
+version = '1.0.0'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url = 'https://maven.fabricmc.net' }
+}
+
+dependencies {
+    minecraft 'com.mojang:minecraft:1.21'
+    mappings loom.officialMojangMappings()
+    modImplementation 'net.fabricmc:fabric-loader:0.15.11'
+    modImplementation 'top.huliawsl:slateui-fabric-mc1_21:1.0-SNAPSHOT'
+}

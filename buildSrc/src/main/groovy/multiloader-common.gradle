@@ -3,8 +3,10 @@ plugins {
     id 'maven-publish'
 }
 
+def slateMinecraftLine = minecraft_version.toString().replace('.', '_').replace('-', '_')
+
 base {
-    archivesName = "${mod_id}-${project.name}-${minecraft_version}"
+    archivesName = "${mod_id}-${project.name}-mc${slateMinecraftLine}"
 }
 
 java {
@@ -47,7 +49,7 @@ repositories {
 ['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements'].each { variant ->
     configurations."$variant".outgoing {
         capability("$group:${base.archivesName.get()}:$version")
-        capability("$group:$mod_id-${project.name}-${minecraft_version}:$version")
+        capability("$group:$mod_id-${project.name}-mc${slateMinecraftLine}:$version")
         capability("$group:$mod_id:$version")
     }
     publishing.publications.configureEach {

@@ -29,6 +29,8 @@ sourceSets {
             include 'top/huliawsl/slateui/debug/SlateRuntimeException.java'
             include 'top/huliawsl/slateui/layout/**'
             include 'top/huliawsl/slateui/override/**'
+            include 'top/huliawsl/slateui/resources/**'
+            include 'top/huliawsl/slateui/security/**'
             include 'top/huliawsl/slateui/render/**'
             include 'top/huliawsl/slateui/runtime/**'
             include 'top/huliawsl/slateui/server/**'

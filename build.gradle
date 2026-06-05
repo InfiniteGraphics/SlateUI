@@ -6,6 +6,18 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '2.0.21' apply false
 }
 
+apply from: rootProject.file('gradle/slateui-version-matrix.gradle')
+loadSlateVersionLane(rootProject)
+
+tasks.register('printSlateCompatibilityMatrix') {
+    group = 'help'
+    description = 'Prints the configured SlateUI multi-loader/multi-version lane.'
+    doLast {
+        println "SlateUI lane=${findProperty('slateui.matrixLane') ?: 'default'} minecraft=${minecraft_version} java=${java_version}"
+        println "Fabric=${fabric_version} Forge=${forge_version} NeoForge=${neoforge_version}"
+    }
+}
+
 tasks.register('compileSlate') {
     dependsOn(':slateui-authoring:compileSlate')
 }

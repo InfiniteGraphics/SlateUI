@@ -152,3 +152,16 @@ Version-specific Minecraft APIs live behind the Minecraft adapter module and loa
 - Resource override locations and priority are documented in `docs/resource-overrides.md`.
 - Compiler schema can be exported with `SlateCompilerCli --schema`.
 - Compiler watch mode is available as `SlateCompilerCli --watch <inputDir> <outputDir>`.
+
+## High-version multi-loader framework status
+
+SlateUI now has an explicit framework-hardening layer for high-version, multi-loader, multi-version usage:
+
+- compatibility matrix: `SlateCompatibilityMatrix.current()`
+- Gradle lanes: `versions/mc1201`, `versions/mc1210`, `versions/mc1214`
+- lane invocation: `./gradlew -Pslateui.matrixLane=mc1210 :fabric:build`
+- loader artifacts: `slateui-<loader>-mc<line>`
+- platform services: `Services.PLATFORM.snapshot()`
+- canonical data-driven paths: `assets/<modid>/slate/screens`, `themes`, `components`, `state`, `schema`
+- framework checklist: `docs/framework-hardening.md`
+- adoption guide: `docs/multi-version-adoption.md`

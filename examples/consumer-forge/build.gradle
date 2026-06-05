@@ -1,0 +1,17 @@
+plugins {
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+group = 'example.slateui'
+version = '1.0.0'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url = 'https://maven.minecraftforge.net' }
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.3.0'
+    implementation 'top.huliawsl:slateui-forge-mc1_20_1:1.0-SNAPSHOT'
+}
