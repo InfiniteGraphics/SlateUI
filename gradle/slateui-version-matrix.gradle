@@ -1,0 +1,20 @@
+import java.util.Properties
+
+ext.loadSlateVersionLane = { Project project ->
+    def lane = project.findProperty('slateui.matrixLane')
+    if (lane == null || lane.toString().isBlank()) {
+        return
+    }
+    def laneFile = project.rootProject.file("versions/${lane}/gradle.properties")
+    if (!laneFile.exists()) {
+        throw new GradleException("Unknown SlateUI matrix lane '${lane}'. Expected ${laneFile}")
+    }
+    def props = new Properties()
+    laneFile.withInputStream { props.load(it) }
+    project.rootProject.allprojects { target ->
+        props.each { key, value ->
+            target.ext.set(key.toString(), value.toString())
+        }
+    }
+    project.logger.lifecycle("Loaded SlateUI matrix lane ${lane} from ${laneFile}")
+}
