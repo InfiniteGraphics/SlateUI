@@ -26,7 +26,14 @@ public final class SlateCompatibilityMatrix {
     }
 
     public static SlateCompatibilityMatrix mvp4() {
-        return current();
+        return new SlateCompatibilityMatrix(List.of(
+            new LoaderVersionSupport(LoaderId.FABRIC, MinecraftVersionRange.of("1.21", "1.22"), SupportLevel.SUPPORTED, "Primary high-version Fabric target."),
+            new LoaderVersionSupport(LoaderId.NEOFORGE, MinecraftVersionRange.of("1.21", "1.22"), SupportLevel.SUPPORTED, "Primary high-version NeoForge target."),
+            new LoaderVersionSupport(LoaderId.FORGE, MinecraftVersionRange.of("1.21", "1.22"), SupportLevel.EXPERIMENTAL, "Forge 1.21.x is tracked as experimental and is not part of the default stable CI lane."),
+            new LoaderVersionSupport(LoaderId.FABRIC, MinecraftVersionRange.of("1.20.1", "1.20.2"), SupportLevel.EXPERIMENTAL, "Backport target for mods that need a 1.20.1 bridge."),
+            new LoaderVersionSupport(LoaderId.FORGE, MinecraftVersionRange.of("1.20.1", "1.20.2"), SupportLevel.CONSIDERED, "Tracked for API-contract checks; compile smoke belongs to the explicit matrix workflow."),
+            new LoaderVersionSupport(LoaderId.NEOFORGE, MinecraftVersionRange.of("1.20.1", "1.20.2"), SupportLevel.UNSUPPORTED, "NeoForge 1.20.1 is outside the SlateUI MVP4 runtime target.")
+        ));
     }
 
     public List<LoaderVersionSupport> entries() {

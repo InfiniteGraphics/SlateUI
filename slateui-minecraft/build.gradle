@@ -30,6 +30,7 @@ sourceSets {
             srcDir rootProject.file('common/src/main/java')
             include 'top/huliawsl/slateui/minecraft/adapter/**'
             include 'top/huliawsl/slateui/api/SlateScreen.java'
+            include 'top/huliawsl/slateui/api/SlateOverlayScreen.java'
             include 'top/huliawsl/slateui/command/MinecraftCommandContext.java'
             include 'top/huliawsl/slateui/render/Minecraft*.java'
             include 'top/huliawsl/slateui/runtime/MinecraftTextMeasurer.java'

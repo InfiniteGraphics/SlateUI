@@ -22,10 +22,6 @@ jobs:
             java: '21'
             loader: neoforge
             task: ':neoforge:build'
-          - lane: mc1210
-            java: '21'
-            loader: forge
-            task: ':forge:build'
           - lane: mc1201
             java: '17'
             loader: fabric

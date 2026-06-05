@@ -87,9 +87,14 @@ class V10ReleaseReadinessTest {
         assertTrue(ci.contains(":slateui-core:test"));
         assertTrue(ci.contains(":slateui-minecraft:compileJava"));
         assertTrue(ci.contains(":fabric:build"));
-        assertTrue(ci.contains(":forge:build"));
         assertTrue(ci.contains(":neoforge:build"));
+        assertFalse(ci.contains(":forge:build"));
+
+        String matrixCi = Files.readString(root().resolve(Path.of(".github", "workflows", "ci-matrix.yml")));
+        assertTrue(matrixCi.contains(":forge:build"));
+        assertTrue(matrixCi.contains("mc1201"));
         assertFalse(ci.contains("TODO"));
+        assertFalse(matrixCi.contains("TODO"));
     }
 
     private static Path root() {

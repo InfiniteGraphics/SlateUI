@@ -18,7 +18,6 @@ jobs:
           - :slateui-core:test
           - :slateui-minecraft:compileJava
           - :fabric:build
-          - :forge:build
           - :neoforge:build
     steps:
       - name: Checkout

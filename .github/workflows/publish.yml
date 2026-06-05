@@ -21,7 +21,7 @@ jobs:
         uses: gradle/actions/wrapper-validation@v4
 
       - name: Build artifacts
-        run: .\gradlew.bat build --stacktrace
+        run: .\gradlew.bat test :slateui-core:build :slateui-minecraft:build :fabric:build :neoforge:build --stacktrace
 
       - name: Publish
         if: ${{ vars.SLATEUI_PUBLISH_ENABLED == 'true' }}
