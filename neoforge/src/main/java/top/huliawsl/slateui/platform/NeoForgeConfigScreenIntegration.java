@@ -1,5 +1,9 @@
 package top.huliawsl.slateui.platform;
 
+import java.util.Optional;
+import top.huliawsl.slateui.platform.services.SlateConfigScreenProvider;
+import top.huliawsl.slateui.platform.services.SlatePlatformRegistry;
+
 public final class NeoForgeConfigScreenIntegration {
 
     private NeoForgeConfigScreenIntegration() {
@@ -7,5 +11,13 @@ public final class NeoForgeConfigScreenIntegration {
 
     public static String loaderId() {
         return "neoforge";
+    }
+
+    public static void register(String modId, SlateConfigScreenProvider provider) {
+        SlatePlatformRegistry.global().registerConfigScreen(modId, provider);
+    }
+
+    public static Optional<SlateConfigScreenProvider> find(String modId) {
+        return SlatePlatformRegistry.global().configScreen(modId);
     }
 }
