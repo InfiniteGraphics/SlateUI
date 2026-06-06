@@ -14,6 +14,7 @@ import top.huliawsl.slateui.api.SlateApiSurface;
 import top.huliawsl.slateui.api.SlateExperimentalApi;
 import top.huliawsl.slateui.api.SlateInternalApi;
 import top.huliawsl.slateui.api.SlatePublicApi;
+import top.huliawsl.slateui.api.SlateText;
 import top.huliawsl.slateui.api.ThemeTokens;
 import top.huliawsl.slateui.platform.LoaderId;
 import top.huliawsl.slateui.platform.SlateCompatibilityMatrix;
@@ -56,6 +57,8 @@ class V10ReleaseReadinessTest {
             .getMethod("executeResult", String.class, top.huliawsl.slateui.command.CommandContext.class));
         assertNotNull(Class.forName("top.huliawsl.slateui.render.DrawCommandDispatcher")
             .getMethod("render", List.class, top.huliawsl.slateui.runtime.SlateRenderer.class));
+        assertNotNull(SlateText.class.getMethod("literal", String.class));
+        assertNotNull(SlateText.class.getMethod("translatable", String.class, Object[].class));
     }
 
     @Test
@@ -66,6 +69,7 @@ class V10ReleaseReadinessTest {
         assertEquals(SupportLevel.SUPPORTED, matrix.resolve(LoaderId.NEOFORGE, "1.21.1").level());
         assertEquals(SupportLevel.EXPERIMENTAL, matrix.resolve(LoaderId.FORGE, "1.21.1").level());
         assertTrue(SlateApiSurface.stableScope().contains("Screen runtime"));
+        assertTrue(SlateApiSurface.stableScope().contains("Core runtime without native Minecraft types"));
         assertTrue(SlateApiSurface.experimentalScope().contains("HUD"));
     }
 

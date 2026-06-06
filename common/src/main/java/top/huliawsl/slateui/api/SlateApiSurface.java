@@ -93,6 +93,7 @@ public final class SlateApiSurface {
     public static List<String> stableScope() {
         return List.of(
             "Screen runtime",
+            "Core runtime without native Minecraft types",
             "Core components",
             "Style/theme",
             "State/binding",

@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 import top.huliawsl.slateui.api.ComputedStateProvider;
 import top.huliawsl.slateui.api.HorizontalAlign;
 import top.huliawsl.slateui.api.InputValueHandler;
+import top.huliawsl.slateui.api.SlateText;
 import top.huliawsl.slateui.api.ToggleValueHandler;
 import top.huliawsl.slateui.api.SlateBorder;
 import top.huliawsl.slateui.api.SlateComponent;
@@ -57,7 +58,6 @@ import top.huliawsl.slateui.api.container.PlayerInventoryLayout;
 import top.huliawsl.slateui.api.container.SlateNativeContainerBinding;
 import top.huliawsl.slateui.api.container.StaticContainerSlotProvider;
 import top.huliawsl.slateui.command.SlateCommandRegistry;
-import top.huliawsl.slateui.command.MinecraftCommandContext;
 import top.huliawsl.slateui.layout.AbsolutePlacement;
 import top.huliawsl.slateui.layout.FlexSpec;
 import top.huliawsl.slateui.layout.Insets;
@@ -536,7 +536,7 @@ public final class SlateDemoEntrypoint {
         OverlayRoot root = new OverlayRoot(List.of(
             new Box(List.of(content), rootStyle)
         ), rootStyle);
-        return new SlateScreen(DEMO_TITLE, root, commands, provider, theme, debugEnabled);
+        return new SlateScreen(SlateText.literal("SlateUI Gallery"), root, commands, provider, theme, debugEnabled);
     }
 
     public static SlateScreen createAuthoringScreen(boolean debugEnabled) {
@@ -555,10 +555,10 @@ public final class SlateDemoEntrypoint {
 
     private static SlateCommandRegistry createGalleryCommands(boolean debugEnabled, ComputedStateProvider provider, Theme theme) {
         SlateCommandRegistry commands = new SlateCommandRegistry();
-        commands.register("demo.error", context -> MinecraftCommandContext.require(context).minecraft().setScreen(createFaultyScreen(debugEnabled)));
-        commands.register("demo.debug", context -> MinecraftCommandContext.require(context).minecraft().setScreen(createGalleryScreen(true)));
-        commands.register("demo.normal", context -> MinecraftCommandContext.require(context).minecraft().setScreen(createGalleryScreen(false)));
-        commands.register("demo.authoring", context -> MinecraftCommandContext.require(context).minecraft().setScreen(createAuthoringScreen(debugEnabled)));
+        commands.register("demo.error", context -> context.host().openScreen(createFaultyScreen(debugEnabled)));
+        commands.register("demo.debug", context -> context.host().openScreen(createGalleryScreen(true)));
+        commands.register("demo.normal", context -> context.host().openScreen(createGalleryScreen(false)));
+        commands.register("demo.authoring", context -> context.host().openScreen(createAuthoringScreen(debugEnabled)));
         commands.register("demo.page.settings", context -> provider.set("gallery.page", "settings"));
         commands.register("demo.page.form", context -> provider.set("gallery.page", "form"));
         commands.register("demo.page.list", context -> provider.set("gallery.page", "list"));
@@ -622,9 +622,9 @@ public final class SlateDemoEntrypoint {
 
     private static SlateCommandRegistry createAuthoringCommands(boolean debugEnabled, ComputedStateProvider provider, Theme theme) {
         SlateCommandRegistry commands = new SlateCommandRegistry();
-        commands.register("demo.authoring", context -> MinecraftCommandContext.require(context).minecraft().setScreen(createAuthoringScreen(debugEnabled)));
-        commands.register("demo.normal", context -> MinecraftCommandContext.require(context).minecraft().setScreen(createGalleryScreen(false)));
-        commands.register("demo.debug", context -> MinecraftCommandContext.require(context).minecraft().setScreen(createGalleryScreen(true)));
+        commands.register("demo.authoring", context -> context.host().openScreen(createAuthoringScreen(debugEnabled)));
+        commands.register("demo.normal", context -> context.host().openScreen(createGalleryScreen(false)));
+        commands.register("demo.debug", context -> context.host().openScreen(createGalleryScreen(true)));
         commands.register("authoring.name", context -> provider.notifyDirty("settings.playerName"));
         commands.register("slate.reload", context -> SlateReloadSupport.reload(AUTHORING_RESOURCE, DEMO_TITLE, createAuthoringCommands(debugEnabled, provider, theme), provider, theme, debugEnabled));
         return commands;
@@ -649,7 +649,7 @@ public final class SlateDemoEntrypoint {
     }
 
     private static SlateScreen createFaultyScreen(boolean debugEnabled) {
-        return new SlateScreen(Component.literal("SlateUI Error Demo"), new FaultyComponent(), new SlateCommandRegistry(), StateProvider.EMPTY, Theme.DEFAULT, debugEnabled);
+        return new SlateScreen(SlateText.literal("SlateUI Error Demo"), new FaultyComponent(), new SlateCommandRegistry(), StateProvider.EMPTY, Theme.DEFAULT, debugEnabled);
     }
 
     private static int parseColor(String value) {

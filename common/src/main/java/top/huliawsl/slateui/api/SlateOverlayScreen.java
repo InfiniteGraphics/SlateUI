@@ -9,6 +9,23 @@ public class SlateOverlayScreen extends SlateScreen {
 
     private final OverlayPolicy overlayPolicy;
 
+    public SlateOverlayScreen(SlateText title, SlateComponent root, SlateCommandRegistry commands, OverlayPolicy overlayPolicy, boolean debugEnabled) {
+        this(title, root, commands, StateProvider.EMPTY, Theme.DEFAULT, overlayPolicy, debugEnabled);
+    }
+
+    public SlateOverlayScreen(
+        SlateText title,
+        SlateComponent root,
+        SlateCommandRegistry commands,
+        StateProvider stateProvider,
+        Theme theme,
+        OverlayPolicy overlayPolicy,
+        boolean debugEnabled
+    ) {
+        super(title, root, commands, stateProvider, theme, debugEnabled);
+        this.overlayPolicy = overlayPolicy == null ? OverlayPolicy.DEFAULT : overlayPolicy;
+    }
+
     public SlateOverlayScreen(Component title, SlateComponent root, SlateCommandRegistry commands, OverlayPolicy overlayPolicy, boolean debugEnabled) {
         this(title, root, commands, StateProvider.EMPTY, Theme.DEFAULT, overlayPolicy, debugEnabled);
     }

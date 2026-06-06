@@ -52,9 +52,11 @@ SlateComponent root = new Panel("Settings", List.of(
 ), SlateStyle.builder().width(260).build());
 
 Minecraft.getInstance().setScreen(new SlateScreen(
-    Component.literal("Settings"), root, commands, state, Theme.DEFAULT, false
+    SlateText.literal("Settings"), root, commands, state, Theme.DEFAULT, false
 ));
 ```
+
+For new integrations, prefer `SlateText` and `context.host()` on the SlateUI side. That keeps most screen and command code free of direct Minecraft native types, which is friendlier to Fabric Yarn consumers.
 
 ## Stable Screen Scope
 

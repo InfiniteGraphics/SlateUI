@@ -1,8 +1,17 @@
 package top.huliawsl.slateui.api;
 
+import java.util.Arrays;
 import java.util.List;
 
 public sealed interface SlateText permits SlateText.Literal, SlateText.Translatable {
+
+    static SlateText literal(String value) {
+        return new Literal(value);
+    }
+
+    static SlateText translatable(String key, Object... args) {
+        return new Translatable(key, args == null ? List.of() : Arrays.asList(args));
+    }
 
     String fallbackText();
 

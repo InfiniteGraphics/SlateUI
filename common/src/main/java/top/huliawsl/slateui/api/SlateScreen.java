@@ -59,6 +59,18 @@ public class SlateScreen extends Screen implements SlateHost {
     private final SlateDragDropManager dragDropManager = new SlateDragDropManager();
     private SlateCursor currentCursor = SlateCursor.DEFAULT;
 
+    public SlateScreen(SlateText title, SlateComponent root, SlateCommandRegistry commands, boolean debugEnabled) {
+        this(toNativeTitle(title), root, commands, StateProvider.EMPTY, Theme.DEFAULT, debugEnabled);
+    }
+
+    public SlateScreen(SlateText title, SlateComponent root, SlateCommandRegistry commands, StateProvider stateProvider, Theme theme, boolean debugEnabled) {
+        this(toNativeTitle(title), root, commands, stateProvider, theme, debugEnabled);
+    }
+
+    public SlateScreen(SlateText title, SlateComponent root, SlateCommandRegistry commands, StateProvider stateProvider, Theme theme, boolean debugEnabled, String bindingDump) {
+        this(toNativeTitle(title), root, commands, stateProvider, theme, debugEnabled, bindingDump);
+    }
+
     public SlateScreen(Component title, SlateComponent root, SlateCommandRegistry commands, boolean debugEnabled) {
         this(title, root, commands, StateProvider.EMPTY, Theme.DEFAULT, debugEnabled);
     }
@@ -596,6 +608,14 @@ public class SlateScreen extends Screen implements SlateHost {
 
     private void openErrorScreen(String stage, Throwable throwable) {
         Minecraft.getInstance().setScreen(new SlateErrorScreen(stage, throwable, diagnostics));
+    }
+
+    protected static Component toNativeTitle(SlateText title) {
+        SlateText resolved = title == null ? SlateText.literal("") : title;
+        return switch (resolved) {
+            case SlateText.Literal literal -> Component.literal(literal.fallbackText());
+            case SlateText.Translatable translatable -> Component.translatable(translatable.key(), translatable.args().toArray());
+        };
     }
 
     @Override
