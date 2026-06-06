@@ -80,7 +80,8 @@ public final class MinecraftDrawCommandRenderer {
             if (target.width() > 0 && target.height() > 0) {
                 ResourceLocation texture = ResourceLocation.tryParse(command.texture());
                 if (texture != null) {
-                    graphics.blit(
+                    GuiGraphicsCompat.blit(
+                        graphics,
                         texture,
                         command.rect().x(),
                         command.rect().y(),

@@ -17,9 +17,10 @@ public record MinecraftTextMeasurer(Font font) implements SlateTextMeasurer {
     }
 
     private static Component toComponent(SlateText text) {
-        return switch (text) {
-            case SlateText.Literal literal -> Component.literal(literal.fallbackText());
-            case SlateText.Translatable translatable -> Component.translatable(translatable.key(), translatable.args().toArray());
-        };
+        if (text instanceof SlateText.Literal literal) {
+            return Component.literal(literal.fallbackText());
+        }
+        SlateText.Translatable translatable = (SlateText.Translatable) text;
+        return Component.translatable(translatable.key(), translatable.args().toArray());
     }
 }

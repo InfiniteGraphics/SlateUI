@@ -36,8 +36,15 @@ public final class SlateInspectorScreen extends Screen {
         SlateDebugText.draw(guiGraphics, font, lines, scrollOffset, height);
     }
 
-    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
+        return handleMouseScrolled(scrollY);
+    }
+
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        return handleMouseScrolled(scrollY);
+    }
+
+    private boolean handleMouseScrolled(double scrollY) {
         List<String> lines = SlateDebugText.wrap(lines(), font, width);
         scrollOffset = SlateDebugText.clampScroll(scrollOffset + SlateDebugText.scrollStep(scrollY), lines.size(), height);
         return true;

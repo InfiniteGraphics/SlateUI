@@ -275,14 +275,21 @@ public class SlateScreen extends Screen implements SlateHost {
         }
     }
 
-    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
+        return handleMouseScrolled(mouseX, mouseY, scrollY) || super.mouseScrolled(mouseX, mouseY, scrollY);
+    }
+
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        return handleMouseScrolled(mouseX, mouseY, scrollY);
+    }
+
+    private boolean handleMouseScrolled(double mouseX, double mouseY, double scrollY) {
         try {
             if (!shouldDispatchPointerEvent(mouseX, mouseY, "mouseScrolled")) {
                 return false;
             }
             String path = diagnostics.componentPathAt(mouseX, mouseY);
-            boolean handled = root.mouseScrolled(createInteractionContext(currentPointerModifiers()), mouseX, mouseY, scrollY) || super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+            boolean handled = root.mouseScrolled(createInteractionContext(currentPointerModifiers()), mouseX, mouseY, scrollY);
             diagnostics.captureEvent("mouseScrolled", path, handled);
             return handled;
         } catch (Throwable throwable) {
@@ -612,10 +619,11 @@ public class SlateScreen extends Screen implements SlateHost {
 
     protected static Component toNativeTitle(SlateText title) {
         SlateText resolved = title == null ? SlateText.literal("") : title;
-        return switch (resolved) {
-            case SlateText.Literal literal -> Component.literal(literal.fallbackText());
-            case SlateText.Translatable translatable -> Component.translatable(translatable.key(), translatable.args().toArray());
-        };
+        if (resolved instanceof SlateText.Literal literal) {
+            return Component.literal(literal.fallbackText());
+        }
+        SlateText.Translatable translatable = (SlateText.Translatable) resolved;
+        return Component.translatable(translatable.key(), translatable.args().toArray());
     }
 
     @Override

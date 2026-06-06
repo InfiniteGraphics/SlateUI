@@ -55,7 +55,7 @@ public final class SlateCompatibilityMatrix {
     public LoaderVersionSupport requireRuntimeAllowed(LoaderId loader, String minecraftVersion) {
         LoaderVersionSupport support = resolve(loader, minecraftVersion);
         if (!support.level().runtimeAllowed()) {
-            throw new IllegalStateException("Unsupported SlateUI runtime combination: " + loader + " " + minecraftVersion + " — " + support.note());
+            throw new IllegalStateException("Unsupported SlateUI runtime combination: " + loader + " " + minecraftVersion + " - " + support.note());
         }
         return support;
     }
@@ -64,7 +64,7 @@ public final class SlateCompatibilityMatrix {
         String header = "| Loader | Minecraft range | Level | Note |\n|---|---|---|---|";
         String body = entries.stream()
             .sorted(Comparator.comparing((LoaderVersionSupport entry) -> entry.loader().name()).thenComparing(entry -> entry.minecraftRange().minInclusive()))
-            .map(entry -> "| " + entry.loader() + " | " + entry.minecraftRange().minInclusive() + " ≤ mc < " + entry.minecraftRange().maxExclusive() + " | " + entry.level() + " | " + sanitize(entry.note()) + " |")
+            .map(entry -> "| " + entry.loader() + " | " + entry.minecraftRange().minInclusive() + " <= mc < " + entry.minecraftRange().maxExclusive() + " | " + entry.level() + " | " + sanitize(entry.note()) + " |")
             .collect(Collectors.joining("\n"));
         return header + (body.isBlank() ? "" : "\n" + body);
     }

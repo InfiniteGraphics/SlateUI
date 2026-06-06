@@ -56,8 +56,8 @@ public final class ContextMenu extends Popup {
                 children.add(new Divider(false));
                 continue;
             }
-            String marker = item.checked() ? "✓ " : "";
-            String childMarker = item.children().isEmpty() ? "" : " ›";
+            String marker = item.checked() ? "[x] " : "";
+            String childMarker = item.children().isEmpty() ? "" : " >";
             String label = marker + item.label() + childMarker + (item.shortcut().isBlank() ? "" : "    " + item.shortcut());
             SlateStyle buttonStyle = item.enabled()
                 ? SlateStyle.EMPTY

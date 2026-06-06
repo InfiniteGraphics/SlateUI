@@ -87,7 +87,7 @@ public final class MinecraftSlateRenderer implements SlateRenderer {
         Rect target = clipStack.current() == null ? rect : rect.intersect(clipStack.current().rect());
         ResourceLocation resource = ResourceLocation.tryParse(texture);
         if (target.width() > 0 && target.height() > 0 && resource != null && !"minecraft:missingno".equals(texture)) {
-            graphics.blit(resource, rect.x(), rect.y(), u, v, regionWidth, regionHeight, textureWidth, textureHeight);
+            GuiGraphicsCompat.blit(graphics, resource, rect.x(), rect.y(), u, v, regionWidth, regionHeight, textureWidth, textureHeight);
             return;
         }
         fill(rect, 0xFF7F1D1D, 0);
@@ -155,10 +155,11 @@ public final class MinecraftSlateRenderer implements SlateRenderer {
     }
 
     private static Component toComponent(SlateText text) {
-        return switch (text) {
-            case SlateText.Literal literal -> Component.literal(literal.fallbackText());
-            case SlateText.Translatable translatable -> Component.translatable(translatable.key(), translatable.args().toArray());
-        };
+        if (text instanceof SlateText.Literal literal) {
+            return Component.literal(literal.fallbackText());
+        }
+        SlateText.Translatable translatable = (SlateText.Translatable) text;
+        return Component.translatable(translatable.key(), translatable.args().toArray());
     }
 
     private static RowRange rowRange(Rect rect, int radius, int y) {
