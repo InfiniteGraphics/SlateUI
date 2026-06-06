@@ -276,7 +276,7 @@ public class SlateScreen extends Screen implements SlateHost {
     }
 
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
-        return handleMouseScrolled(mouseX, mouseY, scrollY) || super.mouseScrolled(mouseX, mouseY, scrollY);
+        return handleMouseScrolled(mouseX, mouseY, scrollY);
     }
 
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
