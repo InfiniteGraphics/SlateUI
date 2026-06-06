@@ -34,7 +34,9 @@ class CoreBoundaryTest {
                         || normalized.endsWith("/command/CommandContext.java")
                         || normalized.endsWith("/command/SlateCommandRegistry.java")
                         || normalized.contains("/runtime/Slate")
-                        || (normalized.contains("/render/") && !normalized.contains("/Minecraft"));
+                        || (normalized.contains("/render/")
+                            && !normalized.contains("/Minecraft")
+                            && !normalized.endsWith("/GuiGraphicsCompat.java"));
                 })
                 .toList();
             assertTrue(offenders.isEmpty(), offenders.toString());

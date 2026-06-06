@@ -37,6 +37,7 @@ sourceSets {
             exclude 'top/huliawsl/slateui/api/SlateScreen.java'
             exclude 'top/huliawsl/slateui/api/SlateOverlayScreen.java'
             exclude 'top/huliawsl/slateui/command/MinecraftCommandContext.java'
+            exclude 'top/huliawsl/slateui/render/GuiGraphicsCompat.java'
             exclude 'top/huliawsl/slateui/render/Minecraft*.java'
             exclude 'top/huliawsl/slateui/runtime/MinecraftTextMeasurer.java'
         }

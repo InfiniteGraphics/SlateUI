@@ -638,9 +638,12 @@ public class SlateScreen extends Screen implements SlateHost {
     }
 
     private void resetCursorHandles() {
-        long window = Minecraft.getInstance().getWindow().getWindow();
-        GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
-        GLFW.glfwSetCursor(window, 0L);
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft != null && minecraft.getWindow() != null) {
+            long window = minecraft.getWindow().getWindow();
+            GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
+            GLFW.glfwSetCursor(window, 0L);
+        }
         for (long handle : cursorHandles.values()) {
             if (handle != 0L) {
                 GLFW.glfwDestroyCursor(handle);
